@@ -684,22 +684,22 @@ export default function Ray() {
                     {expandedRaw === index && (
                       <div className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
                         <div className="max-w-[90%] bg-[#0d0d0d] border border-[#1f1f1f] rounded-xl p-4 space-y-3">
-                          {message.role === "user" && message.rawInput && (
+                          {message.role === "user" && message.rawInput ? (
                             <div>
                               <p className="text-xs font-medium text-[#d4a574] mb-2">Raw Input</p>
                               <pre className="text-xs text-[#a1a1a1] overflow-x-auto whitespace-pre-wrap font-mono bg-[#0a0a0a] p-3 rounded-lg border border-[#1f1f1f]">
                                 {JSON.stringify(message.rawInput, null, 2)}
                               </pre>
                             </div>
-                          )}
-                          {message.role === "assistant" && message.rawOutput && (
+                          ) : null}
+                          {message.role === "assistant" && message.rawOutput ? (
                             <div>
                               <p className="text-xs font-medium text-[#d4a574] mb-2">Raw Output ({message.rawOutput.length} messages)</p>
                               <pre className="text-xs text-[#a1a1a1] overflow-x-auto whitespace-pre-wrap font-mono bg-[#0a0a0a] p-3 rounded-lg border border-[#1f1f1f] max-h-[400px] overflow-y-auto">
                                 {JSON.stringify(message.rawOutput, null, 2)}
                               </pre>
                             </div>
-                          )}
+                          ) : null}
                         </div>
                       </div>
                     )}
