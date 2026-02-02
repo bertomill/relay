@@ -168,7 +168,7 @@ export default function Checkpointing() {
             <span className="text-[#ce9178]">&apos;1&apos;</span>
             <span className="text-[#fafafa]"> {"}"}</span>
             {"\n"}
-            <span className="text-[#fafafa]">{"  }{"}"};</span>
+            <span className="text-[#fafafa]">{"  });"}</span>
             {"\n\n"}
             <span className="text-[#fafafa]">{"  "}</span>
             <span className="text-[#c586c0]">const</span>
@@ -188,7 +188,7 @@ export default function Checkpointing() {
             <span className="text-[#fafafa]">: </span>
             <span className="text-[#9cdcfe]">opts</span>
             {"\n"}
-            <span className="text-[#fafafa]">{"  }{"}"});</span>
+            <span className="text-[#fafafa]">{"  });"}</span>
             {"\n\n"}
             <span className="text-[#fafafa]">{"  "}</span>
             <span className="text-[#c586c0]">let</span>
@@ -303,7 +303,7 @@ export default function Checkpointing() {
             <span className="text-[#9cdcfe]">sessionId</span>
             <span className="text-[#fafafa]"> {"}"}</span>
             {"\n"}
-            <span className="text-[#fafafa]">{"    }{"}"});</span>
+            <span className="text-[#fafafa]">{"    });"}</span>
             {"\n\n"}
             <span className="text-[#fafafa]">{"    "}</span>
             <span className="text-[#c586c0]">for await</span>
@@ -604,7 +604,7 @@ export default function Checkpointing() {
               <span className="text-[#4ec9b0]"> Date</span>
               <span className="text-[#fafafa]">()</span>
               {"\n"}
-              <span className="text-[#fafafa]">{"    }{"}"});</span>
+              <span className="text-[#fafafa]">{"    });"}</span>
               {"\n"}
               <span className="text-[#fafafa]">{"  }"}</span>
               {"\n"}

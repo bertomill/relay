@@ -262,7 +262,7 @@ export default function Permissions() {
               <span className="text-[#fafafa]">{"    }"}</span>
               <span className="text-[#fafafa]">,</span>
               {"\n"}
-              <span className="text-[#fafafa]">{"  }{"}"});</span>
+              <span className="text-[#fafafa]">{"  });"}</span>
               {"\n\n"}
               <span className="text-[#fafafa]">{"  "}</span>
               <span className="text-[#6a9955]">// Change mode dynamically mid-session</span>

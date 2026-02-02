@@ -744,7 +744,7 @@ return { behavior: "allow", updatedInput: sandboxedInput };`}
             <span className="text-[#9cdcfe]">answers</span>
             <span className="text-[#fafafa]"> {"}"}</span>
             {"\n"}
-            <span className="text-[#fafafa]">{"  }{"}"};</span>
+            <span className="text-[#fafafa]">{"  };"}</span>
             {"\n"}
             <span className="text-[#fafafa]">{"}"}</span>
           </CodeBlock>
