@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 export default function Home() {
   const [formData, setFormData] = useState({
@@ -8,11 +9,33 @@ export default function Home() {
     message: "",
   });
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Inquiry submitted:", formData);
-    setSubmitted(true);
+    setIsSubmitting(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/inquiries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to submit inquiry");
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      console.error("Submit error:", err);
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -35,8 +58,20 @@ export default function Home() {
             </svg>
             <span className="text-xl font-semibold tracking-tight">Relay</span>
           </div>
-          <div className="flex gap-6 text-sm text-[#737373]">
-            <span className="flex items-center gap-2">
+          <div className="flex items-center gap-6 text-sm">
+            <Link
+              href="/learn"
+              className="text-[#a1a1a1] hover:text-[#d4a574] transition-colors"
+            >
+              Learn
+            </Link>
+            <Link
+              href="/agents"
+              className="text-[#a1a1a1] hover:text-[#d4a574] transition-colors"
+            >
+              Agents
+            </Link>
+            <span className="flex items-center gap-2 text-[#737373]">
               <span className="w-2 h-2 bg-[#d4a574] rounded-full animate-pulse" />
               Claude Agents SDK
             </span>
@@ -132,11 +167,15 @@ export default function Home() {
                         }
                       />
                     </div>
+                    {error && (
+                      <p className="text-sm text-red-400 text-center">{error}</p>
+                    )}
                     <button
                       type="submit"
-                      className="w-full py-3 bg-gradient-to-r from-[#d4a574] to-[#b8845f] text-[#0a0a0a] font-semibold rounded-lg hover:opacity-90 transition-all hover:shadow-lg hover:shadow-[#d4a574]/20 cursor-pointer"
+                      disabled={isSubmitting}
+                      className="w-full py-3 bg-gradient-to-r from-[#d4a574] to-[#b8845f] text-[#0a0a0a] font-semibold rounded-lg hover:opacity-90 transition-all hover:shadow-lg hover:shadow-[#d4a574]/20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Send Inquiry
+                      {isSubmitting ? "Sending..." : "Send Inquiry"}
                     </button>
                   </form>
                 </>
