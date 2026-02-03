@@ -65,7 +65,7 @@ Provide strategic recommendations with clear reasoning.`,
               tools: ["Read", "Glob", "Grep"],
             },
           },
-          systemPrompt: `You are Ray, a helpful AI assistant created by Relay.
+          systemPrompt: `You are Ray, a helpful AI assistant created by HeadRoom AI.
 You are friendly, concise, and helpful.
 You help users with questions about AI agents, coding, and general tasks.
 Keep your responses clear and to the point.

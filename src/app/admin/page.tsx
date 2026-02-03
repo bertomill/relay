@@ -100,7 +100,7 @@ export default function AdminDashboard() {
                 <circle cx="21.5" cy="11" r="2" fill="#d4a574" fillOpacity="0.4"/>
                 <circle cx="10.5" cy="21" r="2" fill="#d4a574" fillOpacity="0.4"/>
               </svg>
-              <span className="text-xl font-semibold tracking-tight">Relay</span>
+              <span className="text-xl font-semibold tracking-tight">HeadRoom AI</span>
             </Link>
             <span className="text-[#525252] mx-2">/</span>
             <span className="text-[#737373]">Admin</span>

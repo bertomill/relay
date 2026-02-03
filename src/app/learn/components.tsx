@@ -249,7 +249,7 @@ export function LearnLayout({ children }: { children: React.ReactNode }) {
               <circle cx="21.5" cy="11" r="2" fill="#d4a574" fillOpacity="0.4"/>
               <circle cx="10.5" cy="21" r="2" fill="#d4a574" fillOpacity="0.4"/>
             </svg>
-            <span className="text-xl font-semibold tracking-tight">Relay</span>
+            <span className="text-xl font-semibold tracking-tight">HeadRoom AI</span>
           </Link>
           <div className="flex items-center gap-4 sm:gap-6 text-sm">
             <Link href="/learn" className="text-[#d4a574] hover:opacity-80 transition-opacity">Learn</Link>
@@ -371,7 +371,7 @@ export function LearnLayout({ children }: { children: React.ReactNode }) {
 
         {/* Footer */}
         <footer className="pt-12 text-[#404040] text-xs">
-          <p>&copy; 2025 Relay</p>
+          <p>&copy; 2025 HeadRoom AI</p>
         </footer>
       </div>
     </div>
