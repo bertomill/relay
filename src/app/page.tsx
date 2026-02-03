@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 export default function Home() {
@@ -12,8 +12,26 @@ export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  // Load Calendly script
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://assets.calendly.com/assets/external/widget.js";
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.message.trim()) {
+      setError("Please select at least one option or tell us what's slowing you down.");
+      return;
+    }
+
     setIsSubmitting(true);
     setError("");
 
@@ -117,8 +135,9 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right: Contact Form */}
-            <div className="lg:pl-8">
+            {/* Right: Contact Form + Calendly */}
+            <div className="lg:pl-8 space-y-6">
+              {/* Contact Form */}
               <div className="bg-white rounded-3xl p-8 shadow-xl shadow-[#6B8F71]/8 border border-[#E8E6E1]">
                 {!submitted ? (
                   <>
@@ -136,6 +155,51 @@ export default function Home() {
                       Tell us what&apos;s weighing on your team. We&apos;ll show you how to lift it.
                     </p>
                     <form onSubmit={handleSubmit} className="space-y-4">
+                      {/* Quick select options */}
+                      <div>
+                        <label className="block text-sm font-medium text-[#555] mb-2">
+                          Quick select (click all that apply)
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            "Data entry",
+                            "Compliance docs",
+                            "Client follow-ups",
+                            "Document processing",
+                            "Reporting",
+                            "Email management",
+                          ].map((option) => {
+                            const isSelected = formData.message.includes(option);
+                            return (
+                              <button
+                                key={option}
+                                type="button"
+                                onClick={() => {
+                                  if (isSelected) {
+                                    const newMessage = formData.message
+                                      .split(", ")
+                                      .filter((item) => item !== option)
+                                      .join(", ");
+                                    setFormData({ ...formData, message: newMessage });
+                                  } else {
+                                    const newMessage = formData.message
+                                      ? `${formData.message}, ${option}`
+                                      : option;
+                                    setFormData({ ...formData, message: newMessage });
+                                  }
+                                }}
+                                className={`px-3 py-1.5 text-sm rounded-full border transition-all duration-200 ${
+                                  isSelected
+                                    ? "bg-[#6B8F71] text-white border-[#6B8F71]"
+                                    : "bg-white text-[#555] border-[#E8E6E1] hover:border-[#6B8F71]/50"
+                                }`}
+                              >
+                                {option}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                       <div>
                         <label htmlFor="email" className="block text-sm font-medium text-[#555] mb-1.5">
                           Email
@@ -154,13 +218,12 @@ export default function Home() {
                       </div>
                       <div>
                         <label htmlFor="message" className="block text-sm font-medium text-[#555] mb-1.5">
-                          What&apos;s slowing your team down?
+                          Anything else? (optional)
                         </label>
                         <textarea
                           id="message"
-                          required
                           rows={3}
-                          placeholder="Data entry, compliance docs, client follow-ups..."
+                          placeholder="Tell us more about your specific challenges..."
                           className="w-full px-4 py-3 bg-[#FAFAF8] border border-[#E8E6E1] rounded-xl text-[#1C1C1C] placeholder-[#aaa] focus:outline-none focus:border-[#6B8F71] focus:ring-2 focus:ring-[#6B8F71]/20 transition-all duration-200 resize-none"
                           value={formData.message}
                           onChange={(e) =>
@@ -218,6 +281,22 @@ export default function Home() {
                     </p>
                   </div>
                 )}
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-4">
+                <div className="flex-1 h-px bg-[#E8E6E1]" />
+                <span className="text-sm text-[#888]">or book a call directly</span>
+                <div className="flex-1 h-px bg-[#E8E6E1]" />
+              </div>
+
+              {/* Calendly Widget */}
+              <div className="bg-white rounded-3xl shadow-xl shadow-[#6B8F71]/8 border border-[#E8E6E1] overflow-hidden">
+                <div
+                  className="calendly-inline-widget"
+                  data-url="https://calendly.com/bertomill/lighten-ai-intro-call?hide_event_type_details=1&hide_gdpr_banner=1"
+                  style={{ minWidth: "320px", height: "700px" }}
+                />
               </div>
             </div>
           </div>
