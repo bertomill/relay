@@ -1,108 +1,27 @@
-"use client";
+import { Navigation } from "./components/Navigation";
+import { Footer } from "./components/Footer";
+import { ContactForm } from "./components/ContactForm";
+import { CalendlyWidget } from "./components/CalendlyWidget";
+import { ScrollToTopButton } from "./components/ScrollToTopButton";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+// Hoisted static data - avoids recreation on every render
+const AGENTS = [
+  { name: "Data Entry", icon: "M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" },
+  { name: "Compliance Docs", icon: "M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" },
+  { name: "Client Follow-ups", icon: "M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" },
+  { name: "Document Processing", icon: "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" },
+  { name: "Reporting", icon: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" },
+  { name: "Email Management", icon: "M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" },
+] as const;
 
 export default function Home() {
-  const [formData, setFormData] = useState({
-    email: "",
-    message: "",
-  });
-  const [submitted, setSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
-
-  // Load Calendly script
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://assets.calendly.com/assets/external/widget.js";
-    script.async = true;
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.message.trim()) {
-      setError("Please select at least one option or tell us what's slowing you down.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError("");
-
-    try {
-      const response = await fetch("/api/inquiries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to submit inquiry");
-      }
-
-      setSubmitted(true);
-    } catch (err) {
-      console.error("Submit error:", err);
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#FAFAF8] text-[#1C1C1C] relative overflow-hidden">
       {/* Soft background gradients */}
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#6B8F71] opacity-[0.06] blur-[150px] rounded-full pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#D4E5D7] opacity-[0.15] blur-[120px] rounded-full pointer-events-none" />
 
-      {/* Navigation */}
-      <nav className="relative z-50 border-b border-[#E8E6E1]">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            {/* Feather Logo */}
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M21 3C17 3 13 7 10 12C7 17 6 21 6 25L8 23C9 20 11 16 14 12C17 8 20 6 23 6L21 3Z"
-                fill="#6B8F71"
-              />
-              <path
-                d="M6 25C6 25 8 24 11 21C14 18 17 14 19 10C21 6 21 3 21 3"
-                stroke="#6B8F71"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M6 25L14 17"
-                stroke="#6B8F71"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="text-xl font-semibold tracking-tight text-[#1C1C1C]">Lighten AI</span>
-          </div>
-          <div className="flex items-center gap-8">
-            <Link
-              href="/learn"
-              className="text-sm text-[#666] hover:text-[#6B8F71] transition-colors duration-200 cursor-pointer"
-            >
-              Learn
-            </Link>
-            <Link
-              href="/agents"
-              className="text-sm text-[#666] hover:text-[#6B8F71] transition-colors duration-200 cursor-pointer"
-            >
-              Agents
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <Navigation />
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-8 min-h-screen flex flex-col">
         {/* Hero Section with Form */}
@@ -138,14 +57,7 @@ export default function Home() {
               <div>
                 <p className="text-xs font-semibold text-[#999] uppercase tracking-[0.15em] mb-4">Our Agents</p>
                 <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { name: "Data Entry", icon: "M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" },
-                    { name: "Compliance Docs", icon: "M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" },
-                    { name: "Client Follow-ups", icon: "M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" },
-                    { name: "Document Processing", icon: "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" },
-                    { name: "Reporting", icon: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" },
-                    { name: "Email Management", icon: "M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" },
-                  ].map((agent) => (
+                  {AGENTS.map((agent) => (
                     <div
                       key={agent.name}
                       className="flex items-center gap-2.5 px-3 py-2.5 bg-white border border-[#E8E6E1] rounded-xl hover:border-[#6B8F71]/40 hover:shadow-sm transition-all duration-200"
@@ -166,148 +78,7 @@ export default function Home() {
             <div className="lg:pl-8 space-y-6">
               {/* Contact Form */}
               <div className="bg-white rounded-3xl p-8 shadow-xl shadow-[#6B8F71]/8 border border-[#E8E6E1]">
-                {!submitted ? (
-                  <>
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 rounded-xl bg-[#6B8F71]/10 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-semibold text-[#1C1C1C]">Let&apos;s lighten the load</h2>
-                      </div>
-                    </div>
-                    <p className="text-[#888] mb-6 text-sm">
-                      Tell us what&apos;s weighing on your team. We&apos;ll show you how to lift it.
-                    </p>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      {/* Quick select options */}
-                      <div>
-                        <label className="block text-sm font-medium text-[#555] mb-2">
-                          Quick select (click all that apply)
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                          {[
-                            "Data entry",
-                            "Compliance docs",
-                            "Client follow-ups",
-                            "Document processing",
-                            "Reporting",
-                            "Email management",
-                          ].map((option) => {
-                            const isSelected = formData.message.includes(option);
-                            return (
-                              <button
-                                key={option}
-                                type="button"
-                                onClick={() => {
-                                  if (isSelected) {
-                                    const newMessage = formData.message
-                                      .split(", ")
-                                      .filter((item) => item !== option)
-                                      .join(", ");
-                                    setFormData({ ...formData, message: newMessage });
-                                  } else {
-                                    const newMessage = formData.message
-                                      ? `${formData.message}, ${option}`
-                                      : option;
-                                    setFormData({ ...formData, message: newMessage });
-                                  }
-                                }}
-                                className={`px-3 py-1.5 text-sm rounded-full border transition-all duration-200 ${
-                                  isSelected
-                                    ? "bg-[#6B8F71] text-white border-[#6B8F71]"
-                                    : "bg-white text-[#555] border-[#E8E6E1] hover:border-[#6B8F71]/50"
-                                }`}
-                              >
-                                {option}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-[#555] mb-1.5">
-                          Email
-                        </label>
-                        <input
-                          id="email"
-                          type="email"
-                          required
-                          placeholder="you@yourfirm.com"
-                          className="w-full px-4 py-3 bg-[#FAFAF8] border border-[#E8E6E1] rounded-xl text-[#1C1C1C] placeholder-[#aaa] focus:outline-none focus:border-[#6B8F71] focus:ring-2 focus:ring-[#6B8F71]/20 transition-all duration-200"
-                          value={formData.email}
-                          onChange={(e) =>
-                            setFormData({ ...formData, email: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="message" className="block text-sm font-medium text-[#555] mb-1.5">
-                          Anything else? (optional)
-                        </label>
-                        <textarea
-                          id="message"
-                          rows={3}
-                          placeholder="Tell us more about your specific challenges..."
-                          className="w-full px-4 py-3 bg-[#FAFAF8] border border-[#E8E6E1] rounded-xl text-[#1C1C1C] placeholder-[#aaa] focus:outline-none focus:border-[#6B8F71] focus:ring-2 focus:ring-[#6B8F71]/20 transition-all duration-200 resize-none"
-                          value={formData.message}
-                          onChange={(e) =>
-                            setFormData({ ...formData, message: e.target.value })
-                          }
-                        />
-                      </div>
-                      {error && (
-                        <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2">{error}</p>
-                      )}
-                      <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full py-3.5 bg-[#D97757] text-white font-semibold rounded-xl hover:bg-[#C9684A] transition-all duration-200 hover:shadow-lg hover:shadow-[#D97757]/25 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
-                      >
-                        {isSubmitting ? (
-                          <span className="flex items-center justify-center gap-2">
-                            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                            </svg>
-                            Sending...
-                          </span>
-                        ) : (
-                          "Start the Conversation"
-                        )}
-                      </button>
-                    </form>
-                    <p className="text-xs text-[#aaa] text-center mt-4">
-                      No spam, ever. We&apos;ll reach out within 24 hours.
-                    </p>
-                  </>
-                ) : (
-                  <div className="text-center py-6">
-                    <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-[#6B8F71]/10 flex items-center justify-center">
-                      <svg
-                        className="w-8 h-8 text-[#6B8F71]"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    </div>
-                    <h3 className="text-xl font-semibold mb-2 text-[#1C1C1C]">
-                      You&apos;re all set
-                    </h3>
-                    <p className="text-[#888]">
-                      We&apos;ll be in touch soon to discuss how we can help.
-                    </p>
-                  </div>
-                )}
+                <ContactForm />
               </div>
 
               {/* Divider */}
@@ -319,11 +90,7 @@ export default function Home() {
 
               {/* Calendly Widget */}
               <div className="bg-white rounded-3xl shadow-xl shadow-[#6B8F71]/8 border border-[#E8E6E1] overflow-hidden">
-                <div
-                  className="calendly-inline-widget"
-                  data-url="https://calendly.com/bertomill/lighten-ai-intro-call?hide_event_type_details=1&hide_gdpr_banner=1"
-                  style={{ minWidth: "320px", height: "700px" }}
-                />
+                <CalendlyWidget />
               </div>
             </div>
           </div>
@@ -415,47 +182,12 @@ export default function Home() {
               <p className="text-lg text-white/80 mb-8 max-w-xl mx-auto">
                 Let&apos;s talk about what&apos;s weighing your team down — and how to lift it.
               </p>
-              <button
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="px-8 py-4 bg-white text-[#6B8F71] font-semibold rounded-xl hover:bg-white/90 transition-all duration-200 cursor-pointer active:scale-[0.98]"
-              >
-                Get in touch
-              </button>
+              <ScrollToTopButton />
             </div>
           </section>
         </main>
 
-        {/* Footer */}
-        <footer className="pt-12 pb-6 border-t border-[#E8E6E1]">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2.5">
-              {/* Feather Logo Small */}
-              <svg width="20" height="20" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M21 3C17 3 13 7 10 12C7 17 6 21 6 25L8 23C9 20 11 16 14 12C17 8 20 6 23 6L21 3Z"
-                  fill="#6B8F71"
-                />
-                <path
-                  d="M6 25C6 25 8 24 11 21C14 18 17 14 19 10C21 6 21 3 21 3"
-                  stroke="#6B8F71"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M6 25L14 17"
-                  stroke="#6B8F71"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <span className="text-sm text-[#888]">&copy; 2025 Lighten AI</span>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-[#999]">
-              <span className="hover:text-[#666] transition-colors cursor-pointer">Privacy</span>
-              <span className="hover:text-[#666] transition-colors cursor-pointer">Terms</span>
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </div>
   );
