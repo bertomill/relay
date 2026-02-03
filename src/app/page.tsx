@@ -107,7 +107,7 @@ export default function Home() {
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-8 min-h-screen flex flex-col">
         {/* Hero Section with Form */}
         <section className="py-12 lg:py-20">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
             {/* Left: Headline */}
             <div>
               <h1 className="text-4xl md:text-5xl xl:text-[3.5rem] font-bold tracking-tight leading-[1.1] mb-6 text-[#1C1C1C]">
