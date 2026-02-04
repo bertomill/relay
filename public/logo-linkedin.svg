@@ -1,0 +1,24 @@
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="400" height="400" rx="40" fill="#6B8F71"/>
+
+  <!-- Feather logo (scaled and centered, white on green) -->
+  <g transform="translate(100, 80) scale(7.5)">
+    <path
+      d="M21 3C17 3 13 7 10 12C7 17 6 21 6 25L8 23C9 20 11 16 14 12C17 8 20 6 23 6L21 3Z"
+      fill="white"
+    />
+    <path
+      d="M6 25C6 25 8 24 11 21C14 18 17 14 19 10C21 6 21 3 21 3"
+      stroke="white"
+      stroke-width="2"
+      stroke-linecap="round"
+    />
+    <path
+      d="M6 25L14 17"
+      stroke="white"
+      stroke-width="2"
+      stroke-linecap="round"
+    />
+  </g>
+</svg>
