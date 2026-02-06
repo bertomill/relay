@@ -1,4 +1,4 @@
-Okay fantastic maybe try our layout app layout because it could be there because I'm still not I'm still seeing the the top nav bar get stuck when it scrolled actually our nav bar component may not even be the one that's being used so let's just try itimport { query } from "@anthropic-ai/claude-agent-sdk";
+import { query } from "@anthropic-ai/claude-agent-sdk";
 import { NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {
