@@ -1,4 +1,9 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+html {
+  scroll-behavior: smooth;
+}
 
 :root {
   --background: #FAFAF8;
@@ -76,11 +81,108 @@ body {
   animation: slide-right 0.6s ease-out forwards;
 }
 
+@keyframes hero-float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-30px) scale(1.04);
+  }
+}
+
+.animate-hero-float {
+  animation: hero-float 8s ease-in-out infinite;
+}
+
+/* Feather: gentle floating down with sway and rotation */
+@keyframes feather-float {
+  0% {
+    transform: translateY(-10%) translateX(0) rotate(var(--feather-rotation, 0deg));
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(50vh) translateX(var(--feather-drift, 30px)) rotate(calc(var(--feather-rotation, 0deg) + 180deg));
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) translateX(calc(var(--feather-drift, 30px) * -0.5)) rotate(calc(var(--feather-rotation, 0deg) + 360deg));
+    opacity: 0;
+  }
+}
+
+.animate-feather-float {
+  animation: feather-float var(--duration, 14s) ease-in-out infinite;
+}
+
+/* Feather: gentle bob in place (for dividers and accents) */
+@keyframes feather-bob {
+  0%, 100% {
+    transform: translateY(0) rotate(-5deg);
+  }
+  33% {
+    transform: translateY(-8px) rotate(3deg);
+  }
+  66% {
+    transform: translateY(-3px) rotate(-2deg);
+  }
+}
+
+.animate-feather-bob {
+  animation: feather-bob 4s ease-in-out infinite;
+}
+
+/* Feather: rise upward and fade out — "getting lighter" */
+@keyframes feather-rise {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg) scale(1);
+    opacity: 0.15;
+  }
+  20% {
+    opacity: 0.12;
+  }
+  50% {
+    transform: translateY(-50vh) translateX(var(--feather-sway, 20px)) rotate(120deg) scale(0.85);
+    opacity: 0.08;
+  }
+  100% {
+    transform: translateY(-110vh) translateX(calc(var(--feather-sway, 20px) * -0.7)) rotate(260deg) scale(0.5);
+    opacity: 0;
+  }
+}
+
+.animate-feather-rise {
+  animation: feather-rise var(--duration, 6s) ease-out forwards;
+}
+
+/* Feather: slow idle spin (decorative) */
+@keyframes feather-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-feather-spin {
+  animation: feather-spin 20s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up,
   .animate-fade-in,
   .animate-slide-left,
-  .animate-slide-right {
+  .animate-slide-right,
+  .animate-hero-float,
+  .animate-feather-float,
+  .animate-feather-bob,
+  .animate-feather-rise,
+  .animate-feather-spin {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;

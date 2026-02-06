@@ -2,32 +2,59 @@
 
 import { useState } from "react";
 
-const QUICK_OPTIONS = [
-  "Data entry",
-  "Compliance docs",
-  "Client follow-ups",
-  "Document processing",
-  "Reporting",
-  "Email management",
+const COMPANY_SIZE_OPTIONS = [
+  "Less than 20",
+  "20-50",
+  "50-100",
+  "100-500",
+  "More than 500",
+] as const;
+
+const ANNUAL_REVENUE_OPTIONS = [
+  "Less than $100K",
+  "$100K-$500K",
+  "$500K-$1M",
+  "$1M-$2M",
+  "More than $2M",
+] as const;
+
+const PROJECT_BUDGET_OPTIONS = [
+  "Less than $10K",
+  "$10K-$50K",
+  "$50K-$100K",
+  "More than $100K",
+] as const;
+
+const SERVICES_OPTIONS = [
+  "Identifying AI opportunities",
+  "Educating your team on AI",
+  "Developing custom AI solutions",
 ] as const;
 
 export function ContactForm() {
   const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
     email: "",
-    message: "",
+    company: "",
+    role: "",
+    website: "",
+    companySize: "",
+    annualRevenue: "",
+    projectBudget: "",
+    services: "",
+    additionalInfo: "",
   });
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  const handleChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!formData.message.trim()) {
-      setError("Please select at least one option or tell us what's slowing you down.");
-      return;
-    }
-
     setIsSubmitting(true);
     setError("");
 
@@ -35,7 +62,19 @@ export function ContactForm() {
       const response = await fetch("/api/inquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          email: formData.email,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          company: formData.company,
+          role: formData.role,
+          website: formData.website,
+          company_size: formData.companySize,
+          annual_revenue: formData.annualRevenue || null,
+          project_budget: formData.projectBudget,
+          services: formData.services,
+          message: formData.additionalInfo || null,
+        }),
       });
 
       if (!response.ok) {
@@ -49,22 +88,6 @@ export function ContactForm() {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleOptionToggle = (option: string) => {
-    const isSelected = formData.message.includes(option);
-    if (isSelected) {
-      const newMessage = formData.message
-        .split(", ")
-        .filter((item) => item !== option)
-        .join(", ");
-      setFormData((prev) => ({ ...prev, message: newMessage }));
-    } else {
-      const newMessage = formData.message
-        ? `${formData.message}, ${option}`
-        : option;
-      setFormData((prev) => ({ ...prev, message: newMessage }));
     }
   };
 
@@ -96,80 +119,176 @@ export function ContactForm() {
     );
   }
 
+  const inputClasses =
+    "w-full px-3.5 py-2.5 bg-[#FAFAF8] border border-[#E8E6E1] rounded-xl text-sm text-[#1C1C1C] placeholder-[#aaa] focus:outline-none focus:border-[#6B8F71] focus:ring-2 focus:ring-[#6B8F71]/20 transition-all duration-200";
+
+  const selectClasses =
+    "w-full px-3.5 py-2.5 bg-[#FAFAF8] border border-[#E8E6E1] rounded-xl text-sm text-[#1C1C1C] focus:outline-none focus:border-[#6B8F71] focus:ring-2 focus:ring-[#6B8F71]/20 transition-all duration-200 appearance-none cursor-pointer";
+
   return (
     <>
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-10 h-10 rounded-xl bg-[#6B8F71]/10 flex items-center justify-center">
-          <svg className="w-5 h-5 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex items-center gap-3 mb-1">
+        <div className="w-9 h-9 rounded-lg bg-[#6B8F71]/10 flex items-center justify-center">
+          <svg className="w-4.5 h-4.5 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
           </svg>
         </div>
         <div>
-          <h2 className="text-xl font-semibold text-[#1C1C1C]">Let&apos;s lighten the load</h2>
+          <h2 className="text-lg font-semibold text-[#1C1C1C]">Let&apos;s lighten the load</h2>
         </div>
       </div>
-      <p className="text-[#888] mb-6 text-sm">
-        Tell us what&apos;s weighing on your team. We&apos;ll show you how to lift it.
+      <p className="text-[#888] mb-4 text-sm">
+        Tell us where you&apos;re at. We&apos;ll show you how to lift it.
       </p>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-[#555] mb-2">
-            Quick select (click all that apply)
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {QUICK_OPTIONS.map((option) => {
-              const isSelected = formData.message.includes(option);
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => handleOptionToggle(option)}
-                  className={`px-3 py-1.5 text-sm rounded-full border transition-all duration-200 ${
-                    isSelected
-                      ? "bg-[#6B8F71] text-white border-[#6B8F71]"
-                      : "bg-white text-[#555] border-[#E8E6E1] hover:border-[#6B8F71]/50"
-                  }`}
-                >
-                  {option}
-                </button>
-              );
-            })}
+      <form onSubmit={handleSubmit} className="space-y-3">
+        {/* First Name + Last Name */}
+        <div className="grid grid-cols-2 gap-3">
+          <input
+            type="text"
+            required
+            placeholder="First Name*"
+            className={inputClasses}
+            value={formData.firstName}
+            onChange={(e) => handleChange("firstName", e.target.value)}
+          />
+          <input
+            type="text"
+            required
+            placeholder="Last Name*"
+            className={inputClasses}
+            value={formData.lastName}
+            onChange={(e) => handleChange("lastName", e.target.value)}
+          />
+        </div>
+
+        {/* Email */}
+        <input
+          type="email"
+          required
+          placeholder="Email*"
+          className={inputClasses}
+          value={formData.email}
+          onChange={(e) => handleChange("email", e.target.value)}
+        />
+
+        {/* Company + Role */}
+        <div className="grid grid-cols-2 gap-3">
+          <input
+            type="text"
+            required
+            placeholder="Company*"
+            className={inputClasses}
+            value={formData.company}
+            onChange={(e) => handleChange("company", e.target.value)}
+          />
+          <input
+            type="text"
+            required
+            placeholder="Role*"
+            className={inputClasses}
+            value={formData.role}
+            onChange={(e) => handleChange("role", e.target.value)}
+          />
+        </div>
+
+        {/* Company Website + Company Size */}
+        <div className="grid grid-cols-2 gap-3">
+          <input
+            type="text"
+            required
+            placeholder="Company Website*"
+            className={inputClasses}
+            value={formData.website}
+            onChange={(e) => handleChange("website", e.target.value)}
+          />
+          <div className="relative">
+            <select
+              required
+              className={`${selectClasses} ${!formData.companySize ? "text-[#aaa]" : ""}`}
+              value={formData.companySize}
+              onChange={(e) => handleChange("companySize", e.target.value)}
+            >
+              <option value="" disabled>Company Size*</option>
+              {COMPANY_SIZE_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+            <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#888] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
           </div>
         </div>
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-[#555] mb-1.5">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
+
+        {/* Annual Revenue + Project Budget */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="relative">
+            <select
+              className={`${selectClasses} ${!formData.annualRevenue ? "text-[#aaa]" : ""}`}
+              value={formData.annualRevenue}
+              onChange={(e) => handleChange("annualRevenue", e.target.value)}
+            >
+              <option value="" disabled>Company&apos;s Annual Revenue</option>
+              {ANNUAL_REVENUE_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+            <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#888] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
+          </div>
+          <div className="relative">
+            <select
+              required
+              className={`${selectClasses} ${!formData.projectBudget ? "text-[#aaa]" : ""}`}
+              value={formData.projectBudget}
+              onChange={(e) => handleChange("projectBudget", e.target.value)}
+            >
+              <option value="" disabled>Project Budget*</option>
+              {PROJECT_BUDGET_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+            <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#888] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Services */}
+        <div className="relative">
+          <select
             required
-            placeholder="you@yourfirm.com"
-            className="w-full px-4 py-3 bg-[#FAFAF8] border border-[#E8E6E1] rounded-xl text-[#1C1C1C] placeholder-[#aaa] focus:outline-none focus:border-[#6B8F71] focus:ring-2 focus:ring-[#6B8F71]/20 transition-all duration-200"
-            value={formData.email}
-            onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-          />
+            className={`${selectClasses} ${!formData.services ? "text-[#aaa]" : ""}`}
+            value={formData.services}
+            onChange={(e) => handleChange("services", e.target.value)}
+          >
+            <option value="" disabled>What services are you interested in?*</option>
+            {SERVICES_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+          <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#888] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
         </div>
-        <div>
-          <label htmlFor="message" className="block text-sm font-medium text-[#555] mb-1.5">
-            Anything else? (optional)
-          </label>
-          <textarea
-            id="message"
-            rows={3}
-            placeholder="Tell us more about your specific challenges..."
-            className="w-full px-4 py-3 bg-[#FAFAF8] border border-[#E8E6E1] rounded-xl text-[#1C1C1C] placeholder-[#aaa] focus:outline-none focus:border-[#6B8F71] focus:ring-2 focus:ring-[#6B8F71]/20 transition-all duration-200 resize-none"
-            value={formData.message}
-            onChange={(e) => setFormData((prev) => ({ ...prev, message: e.target.value }))}
-          />
-        </div>
+
+        {/* Additional Info */}
+        <textarea
+          rows={2}
+          placeholder="Additional Info..."
+          className={`${inputClasses} resize-none`}
+          value={formData.additionalInfo}
+          onChange={(e) => handleChange("additionalInfo", e.target.value)}
+        />
+
         {error && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2">{error}</p>
         )}
+
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-3.5 bg-[#D97757] text-white font-semibold rounded-xl hover:bg-[#C9684A] transition-all duration-200 hover:shadow-lg hover:shadow-[#D97757]/25 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+          className="w-full py-3 bg-[#D97757] text-white text-sm font-semibold rounded-xl hover:bg-[#C9684A] transition-all duration-200 hover:shadow-lg hover:shadow-[#D97757]/25 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
         >
           {isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
@@ -180,7 +299,7 @@ export function ContactForm() {
               Sending...
             </span>
           ) : (
-            "Start the Conversation"
+            "Submit"
           )}
         </button>
       </form>

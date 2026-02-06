@@ -37,6 +37,52 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Generated AI assets (can commit specific assets later)
+/public/generated/*
+!/public/generated/.gitkeep
+
+# AI/editor tool configs
+.adal/
+.agent/
+.agents/
+.augment/
+.claude/
+.cline/
+.codebuddy/
+.codex/
+.commandcode/
+.continue/
+.crush/
+.cursor/
+.factory/
+.gemini/
+.goose/
+.iflow/
+.junie/
+.kilocode/
+.kiro/
+.kode/
+.mcpjam/
+.mux/
+.neovate/
+.openclaude/
+.opencode/
+.openhands/
+.pi/
+.pochi/
+.qoder/
+.qwen/
+.roo/
+.trae/
+.vibe/
+.windsurf/
+.zencoder/
+.github/
+
+# Non-app directories
+ai-agency-playbook/
+video/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
