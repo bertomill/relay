@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const getResend = () => process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 function escapeHtml(str: string | null | undefined): string {
   if (!str) return "";
@@ -68,7 +68,8 @@ export async function POST(request: NextRequest) {
 
     // Send email notification (non-blocking — don't let email failure break the form)
     const notificationEmail = process.env.NOTIFICATION_EMAIL;
-    if (notificationEmail) {
+    const resend = getResend();
+    if (notificationEmail && resend) {
       resend.emails
         .send({
           from: "Lighten AI <onboarding@resend.dev>",
