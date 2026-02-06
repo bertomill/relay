@@ -16,11 +16,13 @@ create policy "content_images_auth_insert" on storage.objects
 
 -- Recreate RPC to include the new column (tp.* already covers it,
 -- but refresh the function to bust any cache)
+-- NOTE: This RPC is superseded by 20260207_rename_themes_to_columns.sql
+-- which renames themes→columns and theme_id→column_id.
 create or replace function get_published_content()
 returns json language sql security definer as $$
   select coalesce(json_agg(t), '[]'::json)
   from (
-    select th.*,
+    select c.*,
       coalesce(
         (select json_agg(topic_row)
          from (
@@ -32,13 +34,13 @@ returns json language sql security definer as $$
                '[]'::json
              ) as posts
            from public.topics tp
-           where tp.theme_id = th.id
+           where tp.column_id = c.id
            order by tp.sort_order
          ) topic_row),
         '[]'::json
       ) as topics
-    from public.themes th
-    order by th.sort_order
+    from public.columns c
+    order by c.sort_order
   ) t;
 $$;
 

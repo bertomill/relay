@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 
 interface QuestionOption {
@@ -37,12 +36,35 @@ interface Message {
 
 interface Session {
   id: string;
-  preview: string; // First user message as preview
+  preview: string;
   createdAt: Date;
   messages: Message[];
 }
 
-export default function Ray() {
+interface AgentChatProps {
+  agentId: string;
+  apiEndpoint: string;
+  storageKey: string;
+  placeholder: string;
+  emptyStateTitle: string;
+  emptyStateDescription: string;
+  loadingText: string;
+  agentIcon: string;
+  agentName: string;
+  variant: "full" | "embedded";
+}
+
+export default function AgentChat({
+  apiEndpoint,
+  storageKey,
+  placeholder,
+  emptyStateTitle,
+  emptyStateDescription,
+  loadingText,
+  agentIcon,
+  agentName,
+  variant,
+}: AgentChatProps) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,22 +74,27 @@ export default function Ray() {
   const [showSessions, setShowSessions] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string[]>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const isFull = variant === "full";
+  // Dark theme for full-screen chat, light for embedded widget
+  const isDark = isFull;
 
   // Load sessions from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem("ray-sessions");
+    const saved = localStorage.getItem(storageKey);
     if (saved) {
       const parsed = JSON.parse(saved);
       setSessions(parsed.map((s: Session) => ({ ...s, createdAt: new Date(s.createdAt) })));
     }
-  }, []);
+  }, [storageKey]);
 
   // Save sessions to localStorage when they change
   useEffect(() => {
     if (sessions.length > 0) {
-      localStorage.setItem("ray-sessions", JSON.stringify(sessions));
+      localStorage.setItem(storageKey, JSON.stringify(sessions));
     }
-  }, [sessions]);
+  }, [sessions, storageKey]);
 
   // Save current session when messages change
   useEffect(() => {
@@ -88,7 +115,7 @@ export default function Ray() {
               messages,
             },
             ...prev,
-          ].slice(0, 20); // Keep last 20 sessions
+          ].slice(0, 20);
         }
       });
     }
@@ -132,14 +159,12 @@ export default function Ray() {
     setInput("");
     setIsLoading(true);
 
-    // Add user message with raw input
     setMessages((prev) => [...prev, {
       role: "user",
       content: userMessage,
       rawInput: { message: userMessage, sessionId }
     }]);
 
-    // Add empty assistant message that we'll stream into
     setMessages((prev) => [...prev, {
       role: "assistant",
       content: "",
@@ -147,7 +172,7 @@ export default function Ray() {
     }]);
 
     try {
-      const response = await fetch("/api/agents/ray", {
+      const response = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userMessage, sessionId }),
@@ -179,13 +204,11 @@ export default function Ray() {
             try {
               const parsed = JSON.parse(data);
 
-              // Capture session ID
               if (parsed.type === "session" && parsed.sessionId) {
                 setSessionId(parsed.sessionId);
               }
 
               if (parsed.type === "text" && parsed.text) {
-                // Update the last assistant message with streamed text
                 setMessages((prev) => {
                   const newMessages = [...prev];
                   const lastMessage = newMessages[newMessages.length - 1];
@@ -200,7 +223,6 @@ export default function Ray() {
               }
 
               if (parsed.type === "input") {
-                // Update user message with full raw input
                 setMessages((prev) => {
                   const newMessages = [...prev];
                   const userMsg = newMessages[newMessages.length - 2];
@@ -212,7 +234,6 @@ export default function Ray() {
               }
 
               if (parsed.type === "raw" && parsed.rawMessage) {
-                // Add raw message to output
                 setMessages((prev) => {
                   const newMessages = [...prev];
                   const lastMessage = newMessages[newMessages.length - 1];
@@ -224,7 +245,6 @@ export default function Ray() {
               }
 
               if (parsed.type === "complete" && parsed.allRawMessages) {
-                // Replace with complete raw output
                 setMessages((prev) => {
                   const newMessages = [...prev];
                   const lastMessage = newMessages[newMessages.length - 1];
@@ -236,7 +256,6 @@ export default function Ray() {
               }
 
               if (parsed.type === "ask_user_question") {
-                // Store the pending question in the assistant message
                 setMessages((prev) => {
                   const newMessages = [...prev];
                   const lastMessage = newMessages[newMessages.length - 1];
@@ -251,7 +270,6 @@ export default function Ray() {
               }
 
               if (parsed.type === "subagent_start") {
-                // Show subagent status in the assistant message
                 setMessages((prev) => {
                   const newMessages = [...prev];
                   const lastMessage = newMessages[newMessages.length - 1];
@@ -323,14 +341,12 @@ export default function Ray() {
       const question = messages[messageIndex]?.pendingQuestion?.questions[questionIndex];
 
       if (question?.multiSelect) {
-        // Toggle selection for multi-select
         if (current.includes(optionLabel)) {
           return { ...prev, [key]: current.filter((l) => l !== optionLabel) };
         } else {
           return { ...prev, [key]: [...current, optionLabel] };
         }
       } else {
-        // Single select - replace
         return { ...prev, [key]: [optionLabel] };
       }
     });
@@ -340,7 +356,6 @@ export default function Ray() {
     const message = messages[messageIndex];
     if (!message?.pendingQuestion) return;
 
-    // Build answers object
     const answers: Record<string, string> = {};
     message.pendingQuestion.questions.forEach((q, qIdx) => {
       const key = messageIndex * 100 + qIdx;
@@ -348,12 +363,10 @@ export default function Ray() {
       answers[q.header] = selected.join(", ");
     });
 
-    // Format the answer as a user message
     const answerText = Object.entries(answers)
       .map(([header, value]) => `${header}: ${value}`)
       .join("\n");
 
-    // Clear the pending question from the message
     setMessages((prev) => {
       const newMessages = [...prev];
       if (newMessages[messageIndex]) {
@@ -362,67 +375,34 @@ export default function Ray() {
       return newMessages;
     });
 
-    // Clear selected answers
     setSelectedAnswers({});
 
-    // Submit the answer as a new message
     setInput(answerText);
     setTimeout(() => {
-      const form = document.querySelector("form");
-      if (form) {
-        form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      if (formRef.current) {
+        formRef.current.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
       }
     }, 0);
   };
 
+  // Theme-aware color tokens
+  const accent = isDark ? "#d4a574" : "#6B8F71";
+
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-[#fafafa] relative overflow-hidden">
-      {/* Background gradient orbs */}
-      <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-[#d4a574] opacity-[0.07] blur-[120px] rounded-full" />
-      <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-[#b8845f] opacity-[0.05] blur-[100px] rounded-full" />
-
-      <div className="relative z-10 max-w-4xl mx-auto px-6 py-8 min-h-screen flex flex-col">
-        {/* Header */}
-        <header className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="32" height="32" rx="8" fill="#141414"/>
-                <circle cx="10.5" cy="11" r="3.5" fill="#d4a574"/>
-                <circle cx="21.5" cy="21" r="3.5" fill="#d4a574"/>
-                <path d="M13 13.5L19 18.5" stroke="#d4a574" strokeWidth="2" strokeLinecap="round"/>
-                <circle cx="21.5" cy="11" r="2" fill="#d4a574" fillOpacity="0.4"/>
-                <circle cx="10.5" cy="21" r="2" fill="#d4a574" fillOpacity="0.4"/>
-              </svg>
-              <span className="text-xl font-semibold tracking-tight">HeadRoom AI</span>
-            </Link>
-          </div>
-          <div className="flex items-center gap-6 text-sm">
-            <Link
-              href="/agents"
-              className="text-[#a1a1a1] hover:text-[#d4a574] transition-colors flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-              </svg>
-              Back to Agents
-            </Link>
-          </div>
-        </header>
-
-        {/* Agent info */}
+    <div className={`flex flex-col ${isFull ? "flex-1" : "h-[500px]"}`}>
+      {/* Agent info bar (full variant only) */}
+      {isFull && (
         <div className="mb-6 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#d4a574]/20 to-[#b8845f]/10 flex items-center justify-center">
             <svg className="w-6 h-6 text-[#d4a574]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={agentIcon} />
             </svg>
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Ray</h1>
-            <p className="text-sm text-[#737373]">Your helpful AI assistant</p>
+            <h1 className="text-2xl font-bold tracking-tight">{agentName}</h1>
+            <p className="text-sm text-[#737373]">{emptyStateDescription.split(".")[0]}</p>
           </div>
 
-          {/* Session controls */}
           <div className="ml-auto flex items-center gap-3">
             {sessionId && (
               <span className="text-xs text-[#525252] font-mono bg-[#111111] px-2 py-1 rounded border border-[#1f1f1f]">
@@ -447,7 +427,6 @@ export default function Ray() {
                 )}
               </button>
 
-              {/* Sessions dropdown menu */}
               {showSessions && (
                 <>
                   <div
@@ -516,158 +495,190 @@ export default function Ray() {
 
             <span className="flex items-center gap-1.5 text-xs text-[#737373] bg-[#111111] px-3 py-1.5 rounded-full border border-[#1f1f1f]">
               <span className={`w-1.5 h-1.5 rounded-full ${isLoading ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`} />
-              {isLoading ? "Thinking..." : "Online"}
+              {isLoading ? loadingText : "Online"}
             </span>
           </div>
         </div>
+      )}
 
-        {/* Chat area */}
-        <div className="flex-1 bg-[#111111] border border-[#1f1f1f] rounded-2xl flex flex-col overflow-hidden">
-          {/* Messages */}
-          <div className="flex-1 p-6 overflow-y-auto space-y-4">
-            {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center py-12">
+      {/* Chat area */}
+      <div className={`rounded-2xl flex flex-col overflow-hidden ${isFull ? "flex-1" : "h-full"} ${
+        isDark
+          ? "bg-[#111111] border border-[#1f1f1f]"
+          : "bg-white border border-[#E8E6E1]"
+      }`}>
+        {/* Messages */}
+        <div className="flex-1 p-6 overflow-y-auto space-y-4">
+          {messages.length === 0 ? (
+            <div className={`h-full flex flex-col items-center justify-center text-center ${isFull ? "py-12" : "py-6"}`}>
+              {isFull && (
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#d4a574]/20 to-[#b8845f]/10 flex items-center justify-center mb-4">
                   <svg className="w-8 h-8 text-[#d4a574]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={agentIcon} />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Start a conversation</h3>
-                <p className="text-sm text-[#737373] max-w-sm mb-4">
-                  Ask Ray anything. I can help with coding, analysis, writing, and more.
-                </p>
-                {sessions.length > 0 && (
-                  <button
-                    onClick={() => setShowSessions(true)}
-                    className="text-xs text-[#d4a574] hover:underline"
+              )}
+              <h3 className={`font-semibold mb-2 ${isFull ? "text-lg" : "text-base"} ${isDark ? "" : "text-[#1C1C1C]"}`}>
+                {emptyStateTitle}
+              </h3>
+              <p className={`max-w-sm ${isFull ? "text-sm mb-4" : "text-xs"} ${isDark ? "text-[#737373]" : "text-[#666]"}`}>
+                {emptyStateDescription}
+              </p>
+              {isFull && sessions.length > 0 && (
+                <button
+                  onClick={() => setShowSessions(true)}
+                  className="text-xs text-[#d4a574] hover:underline"
+                >
+                  Or resume a previous session →
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {messages.map((message, index) => (
+                <div key={index} className="space-y-2">
+                  <div
+                    className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
-                    Or resume a previous session →
-                  </button>
-                )}
-              </div>
-            ) : (
-              <>
-                {messages.map((message, index) => (
-                  <div key={index} className="space-y-2">
-                    <div
-                      className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                    >
-                      <div className="flex flex-col gap-1 max-w-[80%]">
-                        <div
-                          className={`px-4 py-3 rounded-2xl ${
-                            message.role === "user"
+                    <div className="flex flex-col gap-1 max-w-[80%]">
+                      <div
+                        className={`px-4 py-3 rounded-2xl ${
+                          message.role === "user"
+                            ? isDark
                               ? "bg-gradient-to-r from-[#d4a574] to-[#b8845f] text-[#0a0a0a]"
-                              : "bg-[#1a1a1a] text-[#fafafa]"
-                          }`}
-                        >
-                          <p className="text-sm whitespace-pre-wrap">
-                            {message.content || (message.role === "assistant" && isLoading ? (
-                              <span className="inline-flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 bg-[#525252] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                                <span className="w-1.5 h-1.5 bg-[#525252] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                                <span className="w-1.5 h-1.5 bg-[#525252] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                              </span>
-                            ) : "")}
-                          </p>
-                        </div>
+                              : "bg-[#6B8F71] text-white"
+                            : isDark
+                              ? "bg-[#1a1a1a] text-[#fafafa]"
+                              : "bg-[#F5F4F0] text-[#1C1C1C]"
+                        }`}
+                      >
+                        <p className="text-sm whitespace-pre-wrap">
+                          {message.content || (message.role === "assistant" && isLoading ? (
+                            <span className="inline-flex items-center gap-1">
+                              <span className={`w-1.5 h-1.5 rounded-full animate-bounce ${isDark ? "bg-[#525252]" : "bg-[#999]"}`} style={{ animationDelay: "0ms" }} />
+                              <span className={`w-1.5 h-1.5 rounded-full animate-bounce ${isDark ? "bg-[#525252]" : "bg-[#999]"}`} style={{ animationDelay: "150ms" }} />
+                              <span className={`w-1.5 h-1.5 rounded-full animate-bounce ${isDark ? "bg-[#525252]" : "bg-[#999]"}`} style={{ animationDelay: "300ms" }} />
+                            </span>
+                          ) : "")}
+                        </p>
+                      </div>
 
-                        {/* Question UI */}
-                        {message.pendingQuestion && (
-                          <div className="mt-3 space-y-4">
-                            {message.pendingQuestion.questions.map((question, qIdx) => {
-                              const key = index * 100 + qIdx;
-                              const selected = selectedAnswers[key] || [];
+                      {/* Question UI */}
+                      {message.pendingQuestion && (
+                        <div className="mt-3 space-y-4">
+                          {message.pendingQuestion.questions.map((question, qIdx) => {
+                            const key = index * 100 + qIdx;
+                            const selected = selectedAnswers[key] || [];
 
-                              return (
-                                <div key={qIdx} className="bg-[#0d0d0d] border border-[#1f1f1f] rounded-xl p-4">
-                                  <div className="flex items-center gap-2 mb-3">
-                                    <span className="text-xs font-medium text-[#d4a574] bg-[#d4a574]/10 px-2 py-0.5 rounded">
-                                      {question.header}
-                                    </span>
-                                    {question.multiSelect && (
-                                      <span className="text-xs text-[#525252]">Select multiple</span>
-                                    )}
-                                  </div>
-                                  <p className="text-sm text-[#fafafa] mb-3">{question.question}</p>
-                                  <div className="space-y-2">
-                                    {question.options.map((option, oIdx) => (
-                                      <button
-                                        key={oIdx}
-                                        onClick={() => handleSelectOption(index, qIdx, option.label)}
-                                        className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
-                                          selected.includes(option.label)
-                                            ? "border-[#d4a574] bg-[#d4a574]/10 text-[#fafafa]"
-                                            : "border-[#262626] hover:border-[#404040] text-[#a1a1a1] hover:text-[#fafafa]"
-                                        }`}
-                                      >
-                                        <div className="flex items-center gap-3">
-                                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                                            selected.includes(option.label)
-                                              ? "border-[#d4a574] bg-[#d4a574]"
-                                              : "border-[#525252]"
-                                          }`}>
-                                            {selected.includes(option.label) && (
-                                              <svg className="w-2.5 h-2.5 text-[#0a0a0a]" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                              </svg>
-                                            )}
-                                          </div>
-                                          <div>
-                                            <p className="text-sm font-medium">{option.label}</p>
-                                            {option.description && (
-                                              <p className="text-xs text-[#737373] mt-0.5">{option.description}</p>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                            <button
-                              onClick={() => handleSubmitAnswers(index)}
-                              disabled={message.pendingQuestion.questions.some((_, qIdx) => {
-                                const key = index * 100 + qIdx;
-                                return !selectedAnswers[key] || selectedAnswers[key].length === 0;
-                              })}
-                              className="w-full px-4 py-2.5 bg-gradient-to-r from-[#d4a574] to-[#b8845f] text-[#0a0a0a] font-medium rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              Continue
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Subagent status indicator */}
-                        {message.subagentStatus && (
-                          <div className="mt-3 bg-[#0d0d0d] border border-[#1f1f1f] rounded-xl p-4">
-                            <div className="flex items-center gap-3">
-                              <div className="relative">
-                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#d4a574]/20 to-[#b8845f]/10 flex items-center justify-center">
-                                  <svg className="w-4 h-4 text-[#d4a574]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
-                                  </svg>
-                                </div>
-                                {!message.subagentStatus.isComplete && (
-                                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" />
-                                )}
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-medium text-[#d4a574] bg-[#d4a574]/10 px-2 py-0.5 rounded">
-                                    {message.subagentStatus.agentType}
+                            return (
+                              <div key={qIdx} className={`rounded-xl p-4 ${
+                                isDark
+                                  ? "bg-[#0d0d0d] border border-[#1f1f1f]"
+                                  : "bg-[#FAFAF8] border border-[#E8E6E1]"
+                              }`}>
+                                <div className="flex items-center gap-2 mb-3">
+                                  <span className="text-xs font-medium px-2 py-0.5 rounded"
+                                    style={{ color: accent, backgroundColor: `${accent}15` }}>
+                                    {question.header}
                                   </span>
-                                  {!message.subagentStatus.isComplete && (
-                                    <span className="text-xs text-[#737373]">working...</span>
+                                  {question.multiSelect && (
+                                    <span className={`text-xs ${isDark ? "text-[#525252]" : "text-[#999]"}`}>Select multiple</span>
                                   )}
                                 </div>
-                                <p className="text-sm text-[#a1a1a1] mt-1">{message.subagentStatus.description}</p>
+                                <p className={`text-sm mb-3 ${isDark ? "text-[#fafafa]" : "text-[#1C1C1C]"}`}>{question.question}</p>
+                                <div className="space-y-2">
+                                  {question.options.map((option, oIdx) => (
+                                    <button
+                                      key={oIdx}
+                                      onClick={() => handleSelectOption(index, qIdx, option.label)}
+                                      className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
+                                        selected.includes(option.label)
+                                          ? isDark
+                                            ? "border-[#d4a574] bg-[#d4a574]/10 text-[#fafafa]"
+                                            : "border-[#6B8F71] bg-[#6B8F71]/10 text-[#1C1C1C]"
+                                          : isDark
+                                            ? "border-[#262626] hover:border-[#404040] text-[#a1a1a1] hover:text-[#fafafa]"
+                                            : "border-[#E8E6E1] hover:border-[#999] text-[#666] hover:text-[#1C1C1C]"
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                          selected.includes(option.label)
+                                            ? `border-[${accent}] bg-[${accent}]`
+                                            : isDark ? "border-[#525252]" : "border-[#D5D3CE]"
+                                        }`}
+                                          style={selected.includes(option.label) ? { borderColor: accent, backgroundColor: accent } : {}}
+                                        >
+                                          {selected.includes(option.label) && (
+                                            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                            </svg>
+                                          )}
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-medium">{option.label}</p>
+                                          {option.description && (
+                                            <p className={`text-xs mt-0.5 ${isDark ? "text-[#737373]" : "text-[#888]"}`}>{option.description}</p>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
                               </div>
+                            );
+                          })}
+                          <button
+                            onClick={() => handleSubmitAnswers(index)}
+                            disabled={message.pendingQuestion.questions.some((_, qIdx) => {
+                              const key = index * 100 + qIdx;
+                              return !selectedAnswers[key] || selectedAnswers[key].length === 0;
+                            })}
+                            className="w-full px-4 py-2.5 font-medium rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                            style={{ backgroundColor: accent }}
+                          >
+                            Continue
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Subagent status indicator */}
+                      {message.subagentStatus && (
+                        <div className={`mt-3 rounded-xl p-4 ${
+                          isDark
+                            ? "bg-[#0d0d0d] border border-[#1f1f1f]"
+                            : "bg-[#FAFAF8] border border-[#E8E6E1]"
+                        }`}>
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+                                style={{ backgroundColor: `${accent}15` }}>
+                                <svg className="w-4 h-4" style={{ color: accent }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={agentIcon} />
+                                </svg>
+                              </div>
+                              {!message.subagentStatus.isComplete && (
+                                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium px-2 py-0.5 rounded"
+                                  style={{ color: accent, backgroundColor: `${accent}15` }}>
+                                  {message.subagentStatus.agentType}
+                                </span>
+                                {!message.subagentStatus.isComplete && (
+                                  <span className={`text-xs ${isDark ? "text-[#737373]" : "text-[#888]"}`}>working...</span>
+                                )}
+                              </div>
+                              <p className={`text-sm mt-1 ${isDark ? "text-[#a1a1a1]" : "text-[#666]"}`}>{message.subagentStatus.description}</p>
                             </div>
                           </div>
-                        )}
+                        </div>
+                      )}
 
-                        {/* Info button */}
+                      {/* Info button (full variant only) */}
+                      {isFull && (
                         <button
                           onClick={() => toggleRaw(index)}
                           className={`self-${message.role === "user" ? "end" : "start"} flex items-center gap-1 text-xs text-[#525252] hover:text-[#d4a574] transition-colors px-2 py-1 rounded-lg hover:bg-[#1a1a1a]`}
@@ -677,67 +688,67 @@ export default function Ray() {
                           </svg>
                           {expandedRaw === index ? "Hide" : "Raw"}
                         </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Raw data panel (full variant only) */}
+                  {isFull && expandedRaw === index && (
+                    <div className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div className="max-w-[90%] bg-[#0d0d0d] border border-[#1f1f1f] rounded-xl p-4 space-y-3">
+                        {message.role === "user" && message.rawInput ? (
+                          <div>
+                            <p className="text-xs font-medium text-[#d4a574] mb-2">Raw Input</p>
+                            <pre className="text-xs text-[#a1a1a1] overflow-x-auto whitespace-pre-wrap font-mono bg-[#0a0a0a] p-3 rounded-lg border border-[#1f1f1f]">
+                              {JSON.stringify(message.rawInput, null, 2)}
+                            </pre>
+                          </div>
+                        ) : null}
+                        {message.role === "assistant" && message.rawOutput ? (
+                          <div>
+                            <p className="text-xs font-medium text-[#d4a574] mb-2">Raw Output ({message.rawOutput.length} messages)</p>
+                            <pre className="text-xs text-[#a1a1a1] overflow-x-auto whitespace-pre-wrap font-mono bg-[#0a0a0a] p-3 rounded-lg border border-[#1f1f1f] max-h-[400px] overflow-y-auto">
+                              {JSON.stringify(message.rawOutput, null, 2)}
+                            </pre>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
-
-                    {/* Raw data panel */}
-                    {expandedRaw === index && (
-                      <div className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                        <div className="max-w-[90%] bg-[#0d0d0d] border border-[#1f1f1f] rounded-xl p-4 space-y-3">
-                          {message.role === "user" && message.rawInput ? (
-                            <div>
-                              <p className="text-xs font-medium text-[#d4a574] mb-2">Raw Input</p>
-                              <pre className="text-xs text-[#a1a1a1] overflow-x-auto whitespace-pre-wrap font-mono bg-[#0a0a0a] p-3 rounded-lg border border-[#1f1f1f]">
-                                {JSON.stringify(message.rawInput, null, 2)}
-                              </pre>
-                            </div>
-                          ) : null}
-                          {message.role === "assistant" && message.rawOutput ? (
-                            <div>
-                              <p className="text-xs font-medium text-[#d4a574] mb-2">Raw Output ({message.rawOutput.length} messages)</p>
-                              <pre className="text-xs text-[#a1a1a1] overflow-x-auto whitespace-pre-wrap font-mono bg-[#0a0a0a] p-3 rounded-lg border border-[#1f1f1f] max-h-[400px] overflow-y-auto">
-                                {JSON.stringify(message.rawOutput, null, 2)}
-                              </pre>
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </>
-            )}
-          </div>
-
-          {/* Input area */}
-          <div className="p-4 border-t border-[#1f1f1f]">
-            <form onSubmit={handleSubmit} className="flex gap-3">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Message Ray..."
-                disabled={isLoading}
-                className="flex-1 px-4 py-3 bg-[#0a0a0a] border border-[#262626] rounded-xl text-[#fafafa] placeholder-[#525252] focus:outline-none focus:border-[#d4a574] transition-colors text-sm disabled:opacity-50"
-              />
-              <button
-                type="submit"
-                disabled={isLoading || !input.trim()}
-                className="px-5 py-3 bg-gradient-to-r from-[#d4a574] to-[#b8845f] text-[#0a0a0a] font-semibold rounded-xl hover:opacity-90 transition-all hover:shadow-lg hover:shadow-[#d4a574]/20 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-                </svg>
-              </button>
-            </form>
-          </div>
+                  )}
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </>
+          )}
         </div>
 
-        {/* Footer */}
-        <footer className="pt-6 text-[#404040] text-xs">
-          <p>&copy; 2025 HeadRoom AI</p>
-        </footer>
+        {/* Input area */}
+        <div className={`p-4 border-t ${isDark ? "border-[#1f1f1f]" : "border-[#E8E6E1]"}`}>
+          <form ref={formRef} onSubmit={handleSubmit} className="flex gap-3">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={placeholder}
+              disabled={isLoading}
+              className={`flex-1 px-4 py-3 rounded-xl transition-colors text-sm disabled:opacity-50 focus:outline-none ${
+                isDark
+                  ? "bg-[#0a0a0a] border border-[#262626] text-[#fafafa] placeholder-[#525252] focus:border-[#d4a574]"
+                  : "bg-[#FAFAF8] border border-[#E8E6E1] text-[#1C1C1C] placeholder-[#999] focus:border-[#6B8F71]"
+              }`}
+            />
+            <button
+              type="submit"
+              disabled={isLoading || !input.trim()}
+              className="px-5 py-3 font-semibold rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-white"
+              style={{ backgroundColor: accent }}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+              </svg>
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

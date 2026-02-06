@@ -5,7 +5,7 @@ import { Navigation } from "../components/Navigation";
 import { Footer } from "../components/Footer";
 import { getPublishedContent } from "@/lib/content";
 import { PLATFORMS, PLATFORM_ORDER } from "./platforms";
-import type { ThemeWithTopics, TopicWithPosts } from "@/lib/types/content";
+import type { ColumnWithTopics, TopicWithPosts } from "@/lib/types/content";
 
 export const metadata: Metadata = {
   title: "Content | Lighten AI",
@@ -23,7 +23,7 @@ function PlatformIcon({ platformKey }: { platformKey: string }) {
   );
 }
 
-function TopicCard({ topic, themeSlug }: { topic: TopicWithPosts; themeSlug: string }) {
+function TopicCard({ topic, columnSlug }: { topic: TopicWithPosts; columnSlug: string }) {
   const publishedByPlatform = new Map(
     topic.posts
       .filter((p) => p.status === "published")
@@ -35,20 +35,20 @@ function TopicCard({ topic, themeSlug }: { topic: TopicWithPosts; themeSlug: str
   return (
     <div className="bg-white border border-[#E8E6E1] rounded-2xl overflow-hidden hover:border-[#6B8F71]/40 transition-all duration-300">
       {topic.image_url && (
-        <Link href={`/content/${themeSlug}/${topic.slug}`} className="block">
+        <Link href={`/content/${columnSlug}/${topic.slug}`} className="block">
           <div className="relative w-full h-48 md:h-56">
             <Image
               src={topic.image_url}
               alt={topic.title}
               fill
               className="object-cover"
-              sizes="(max-width: 768px) 100vw, 800px"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           </div>
         </Link>
       )}
       <div className="p-8">
-        <Link href={`/content/${themeSlug}/${topic.slug}`} className="block mb-5">
+        <Link href={`/content/${columnSlug}/${topic.slug}`} className="block mb-5">
           <h3 className="text-xl font-semibold text-[#1C1C1C] mb-2 group-hover:text-[#6B8F71]">
             {topic.title}
           </h3>
@@ -110,23 +110,37 @@ function TopicCard({ topic, themeSlug }: { topic: TopicWithPosts; themeSlug: str
   );
 }
 
-function ThemeSection({ theme }: { theme: ThemeWithTopics }) {
+function ColumnSection({ column }: { column: ColumnWithTopics }) {
   return (
     <div>
-      <div className="mb-6">
-        <h2 className="text-2xl md:text-3xl font-bold text-[#1C1C1C]">
-          {theme.title}
-        </h2>
-        {theme.description && (
-          <p className="text-[#666] mt-2 leading-relaxed">
-            {theme.description}
-          </p>
+      <div className="mb-6 flex items-center gap-4">
+        {column.owner_avatar_url && (
+          <Image
+            src={column.owner_avatar_url}
+            alt={column.owner_name ?? ""}
+            width={48}
+            height={48}
+            className="rounded-full object-cover"
+          />
         )}
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold text-[#1C1C1C]">
+            {column.title}
+          </h2>
+          {column.owner_name && (
+            <p className="text-sm text-[#999] mt-0.5">by {column.owner_name}</p>
+          )}
+        </div>
       </div>
+      {column.description && (
+        <p className="text-[#666] mb-6 leading-relaxed">
+          {column.description}
+        </p>
+      )}
 
-      <div className="grid gap-6">
-        {theme.topics.map((topic) => (
-          <TopicCard key={topic.id} topic={topic} themeSlug={theme.slug} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {column.topics.map((topic) => (
+          <TopicCard key={topic.id} topic={topic} columnSlug={column.slug} />
         ))}
       </div>
     </div>
@@ -134,7 +148,7 @@ function ThemeSection({ theme }: { theme: ThemeWithTopics }) {
 }
 
 export default async function ContentPage() {
-  const themes = await getPublishedContent();
+  const columns = await getPublishedContent();
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] text-[#1C1C1C] relative overflow-x-hidden">
@@ -195,11 +209,11 @@ export default async function ContentPage() {
           </div>
         </section>
 
-        {/* Theme sections */}
-        {themes.length > 0 ? (
+        {/* Column sections */}
+        {columns.length > 0 ? (
           <section className="py-16 space-y-16">
-            {themes.map((theme) => (
-              <ThemeSection key={theme.id} theme={theme} />
+            {columns.map((column) => (
+              <ColumnSection key={column.id} column={column} />
             ))}
           </section>
         ) : (

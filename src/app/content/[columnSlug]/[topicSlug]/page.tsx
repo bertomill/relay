@@ -10,12 +10,12 @@ import { getTopicBySlug } from "@/lib/content";
 import { PLATFORMS, PLATFORM_ORDER } from "../../platforms";
 
 interface PageProps {
-  params: Promise<{ themeSlug: string; topicSlug: string }>;
+  params: Promise<{ columnSlug: string; topicSlug: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { themeSlug, topicSlug } = await params;
-  const result = await getTopicBySlug(themeSlug, topicSlug);
+  const { columnSlug, topicSlug } = await params;
+  const result = await getTopicBySlug(columnSlug, topicSlug);
 
   if (!result) {
     return { title: "Not Found | Lighten AI" };
@@ -37,12 +37,12 @@ async function getArticleMarkdown(topicSlug: string): Promise<string | null> {
 }
 
 export default async function TopicDetailPage({ params }: PageProps) {
-  const { themeSlug, topicSlug } = await params;
-  const result = await getTopicBySlug(themeSlug, topicSlug);
+  const { columnSlug, topicSlug } = await params;
+  const result = await getTopicBySlug(columnSlug, topicSlug);
 
   if (!result) notFound();
 
-  const { theme, topic } = result;
+  const { column, topic } = result;
   const markdown = await getArticleMarkdown(topicSlug);
 
   const publishedByPlatform = new Map(
@@ -67,7 +67,7 @@ export default async function TopicDetailPage({ params }: PageProps) {
           </Link>
           <span>/</span>
           <Link href="/content" className="hover:text-[#6B8F71] transition-colors">
-            {theme.title}
+            {column.title}
           </Link>
           <span>/</span>
           <span className="text-[#666]">{topic.title}</span>

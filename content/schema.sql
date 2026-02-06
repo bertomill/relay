@@ -1,4 +1,4 @@
--- Content Management Schema: Theme → Topic → Posts
+-- Content Management Schema: Column → Topic → Posts
 -- Run this in your Supabase SQL Editor after project restart
 -- Safe to re-run: drops and recreates everything
 
@@ -9,27 +9,30 @@
 drop function if exists public.get_published_content();
 drop table if exists public.posts cascade;
 drop table if exists public.topics cascade;
-drop table if exists public.themes cascade;
+drop table if exists public.columns cascade;
 
 -- ============================================================
 -- 1. TABLES
 -- ============================================================
 
-create table public.themes (
+create table public.columns (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   slug text not null unique,
   description text,
+  owner_name text,
+  owner_avatar_url text,
   sort_order int not null default 0,
   created_at timestamptz not null default now()
 );
 
 create table public.topics (
   id uuid primary key default gen_random_uuid(),
-  theme_id uuid not null references public.themes(id) on delete cascade,
+  column_id uuid not null references public.columns(id) on delete cascade,
   title text not null,
   slug text not null unique,
   description text,
+  image_url text,
   sort_order int not null default 0,
   created_at timestamptz not null default now()
 );
@@ -51,21 +54,21 @@ create table public.posts (
 -- 2. INDEXES
 -- ============================================================
 
-create index idx_topics_theme_id on public.topics(theme_id);
+create index idx_topics_column_id on public.topics(column_id);
 create index idx_posts_topic_id on public.posts(topic_id);
 create index idx_posts_status on public.posts(status);
-create index idx_themes_sort_order on public.themes(sort_order);
+create index idx_columns_sort_order on public.columns(sort_order);
 create index idx_topics_sort_order on public.topics(sort_order);
 
 -- ============================================================
 -- 3. ROW LEVEL SECURITY + GRANTS
 -- ============================================================
 
-alter table public.themes enable row level security;
+alter table public.columns enable row level security;
 alter table public.topics enable row level security;
 alter table public.posts enable row level security;
 
-create policy "themes_public_read" on public.themes
+create policy "columns_public_read" on public.columns
   for select using (true);
 
 create policy "topics_public_read" on public.topics
@@ -75,7 +78,7 @@ create policy "posts_public_read" on public.posts
   for select using (status = 'published');
 
 grant usage on schema public to anon, authenticated;
-grant select on public.themes to anon, authenticated;
+grant select on public.columns to anon, authenticated;
 grant select on public.topics to anon, authenticated;
 grant select on public.posts to anon, authenticated;
 
@@ -87,7 +90,7 @@ create or replace function get_published_content()
 returns json language sql security definer as $$
   select coalesce(json_agg(t), '[]'::json)
   from (
-    select th.*,
+    select c.*,
       coalesce(
         (select json_agg(topic_row)
          from (
@@ -99,13 +102,13 @@ returns json language sql security definer as $$
                '[]'::json
              ) as posts
            from public.topics tp
-           where tp.theme_id = th.id
+           where tp.column_id = c.id
            order by tp.sort_order
          ) topic_row),
         '[]'::json
       ) as topics
-    from public.themes th
-    order by th.sort_order
+    from public.columns c
+    order by c.sort_order
   ) t;
 $$;
 
@@ -115,7 +118,7 @@ grant execute on function public.get_published_content() to anon, authenticated;
 -- 5. SEED DATA
 -- ============================================================
 
-insert into public.themes (title, slug, description, sort_order)
+insert into public.columns (title, slug, description, sort_order)
 values (
   'AI Agents',
   'ai-agents',
@@ -123,9 +126,9 @@ values (
   0
 );
 
-insert into public.topics (theme_id, title, slug, description, sort_order)
+insert into public.topics (column_id, title, slug, description, sort_order)
 values (
-  (select id from public.themes where slug = 'ai-agents'),
+  (select id from public.columns where slug = 'ai-agents'),
   'Vercel Agents vs Claude Agents',
   'vercel-agents-vs-claude-agents',
   'An honest comparison of Vercel AI SDK 6 and Anthropic''s Claude Agent SDK — when to use each, and why the answer is often both.',

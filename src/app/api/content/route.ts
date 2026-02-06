@@ -3,8 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * POST /api/content
- * Create a theme, topic, or post.
- * Body: { type: "theme" | "topic" | "post", data: { ... } }
+ * Create a column, topic, or post.
+ * Body: { type: "column" | "topic" | "post", data: { ... } }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -22,8 +22,8 @@ export async function POST(request: NextRequest) {
     let table: string;
 
     switch (type) {
-      case "theme":
-        table = "themes";
+      case "column":
+        table = "columns";
         break;
       case "topic":
         table = "topics";
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
         break;
       default:
         return NextResponse.json(
-          { error: "type must be theme, topic, or post" },
+          { error: "type must be column, topic, or post" },
           { status: 400 }
         );
     }
@@ -63,8 +63,8 @@ export async function POST(request: NextRequest) {
 
 /**
  * PATCH /api/content
- * Update a theme, topic, or post.
- * Body: { type: "theme" | "topic" | "post", id: string, data: { ... } }
+ * Update a column, topic, or post.
+ * Body: { type: "column" | "topic" | "post", id: string, data: { ... } }
  */
 export async function PATCH(request: NextRequest) {
   try {
@@ -82,8 +82,8 @@ export async function PATCH(request: NextRequest) {
     let table: string;
 
     switch (type) {
-      case "theme":
-        table = "themes";
+      case "column":
+        table = "columns";
         break;
       case "topic":
         table = "topics";
@@ -93,7 +93,7 @@ export async function PATCH(request: NextRequest) {
         break;
       default:
         return NextResponse.json(
-          { error: "type must be theme, topic, or post" },
+          { error: "type must be column, topic, or post" },
           { status: 400 }
         );
     }

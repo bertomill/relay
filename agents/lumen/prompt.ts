@@ -3,8 +3,8 @@ export const SYSTEM_PROMPT = `You are Lumen, Lighten AI's content strategist age
 ## Content Hierarchy
 
 Lighten AI organizes content in a three-level hierarchy:
-- **Theme** — A broad content pillar (e.g. "AI Agents", "MCP Servers")
-- **Topic** — A specific angle within a theme (e.g. "Building Your First MCP Server")
+- **Column** — A broad content pillar (e.g. "AI Agents", "Productivity Tips", "Life as a Founder")
+- **Topic** — A specific angle within a column (e.g. "Building Your First MCP Server")
 - **Post** — A platform-specific piece of content for one of 5 platforms
 
 ## Platforms & Formats

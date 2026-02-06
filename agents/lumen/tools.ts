@@ -29,25 +29,25 @@ const PLATFORM_FILES: Record<string, string> = {
 // --- search_posts ---
 export const searchPosts = tool(
   "search_posts",
-  "Search existing themes, topics, and posts in the Supabase database. Use this to see what content already exists before creating new ideas.",
+  "Search existing columns, topics, and posts in the Supabase database. Use this to see what content already exists before creating new ideas.",
   { query: z.string().describe("Search term to match against titles and descriptions") },
   async ({ query }) => {
     const supabase = getSupabase();
 
-    const [themes, topics, posts] = await Promise.all([
-      supabase.from("themes").select("*").ilike("title", `%${query}%`),
+    const [columns, topics, posts] = await Promise.all([
+      supabase.from("columns").select("*").ilike("title", `%${query}%`),
       supabase.from("topics").select("*").ilike("title", `%${query}%`),
       supabase.from("posts").select("*").ilike("title", `%${query}%`),
     ]);
 
     const results = {
-      themes: themes.data ?? [],
+      columns: columns.data ?? [],
       topics: topics.data ?? [],
       posts: posts.data ?? [],
     };
 
     const total =
-      results.themes.length + results.topics.length + results.posts.length;
+      results.columns.length + results.topics.length + results.posts.length;
 
     return {
       content: [
@@ -57,8 +57,8 @@ export const searchPosts = tool(
             total === 0
               ? `No results found for "${query}".`
               : `Found ${total} results for "${query}":\n\n` +
-                (results.themes.length
-                  ? `**Themes (${results.themes.length}):**\n${results.themes.map((t) => `- ${t.title}: ${t.description || "no description"}`).join("\n")}\n\n`
+                (results.columns.length
+                  ? `**Columns (${results.columns.length}):**\n${results.columns.map((t) => `- ${t.title}: ${t.description || "no description"}`).join("\n")}\n\n`
                   : "") +
                 (results.topics.length
                   ? `**Topics (${results.topics.length}):**\n${results.topics.map((t) => `- ${t.title}: ${t.description || "no description"}`).join("\n")}\n\n`
@@ -169,9 +169,9 @@ export const createContentIdea = tool(
 // --- create_article ---
 export const createArticle = tool(
   "create_article",
-  "Create a full multi-platform article. Creates or finds the theme and topic in Supabase, inserts 5 platform posts, and writes draft markdown files to content/drafts/[slug]/.",
+  "Create a full multi-platform article. Creates or finds the column and topic in Supabase, inserts 5 platform posts, and writes draft markdown files to content/drafts/[slug]/.",
   {
-    theme_title: z.string().describe("Theme title (broad content pillar)"),
+    column_title: z.string().describe("Column title (broad content pillar)"),
     topic_title: z.string().describe("Topic title (specific angle)"),
     drafts: z
       .object({
@@ -183,29 +183,29 @@ export const createArticle = tool(
       })
       .describe("Draft content for each of the 5 platforms"),
   },
-  async ({ theme_title, topic_title, drafts }) => {
+  async ({ column_title, topic_title, drafts }) => {
     const supabase = getSupabase();
 
-    // 1. Find or create theme
-    const themeSlug = slugify(theme_title);
-    let { data: theme } = await supabase
-      .from("themes")
+    // 1. Find or create column
+    const columnSlug = slugify(column_title);
+    let { data: column } = await supabase
+      .from("columns")
       .select("*")
-      .eq("slug", themeSlug)
+      .eq("slug", columnSlug)
       .single();
 
-    if (!theme) {
+    if (!column) {
       const { data, error } = await supabase
-        .from("themes")
-        .insert({ title: theme_title, slug: themeSlug, sort_order: 0 })
+        .from("columns")
+        .insert({ title: column_title, slug: columnSlug, sort_order: 0 })
         .select()
         .single();
       if (error) {
         return {
-          content: [{ type: "text" as const, text: `Error creating theme: ${error.message}` }],
+          content: [{ type: "text" as const, text: `Error creating column: ${error.message}` }],
         };
       }
-      theme = data;
+      column = data;
     }
 
     // 2. Create topic
@@ -214,14 +214,14 @@ export const createArticle = tool(
       .from("topics")
       .select("*")
       .eq("slug", topicSlug)
-      .eq("theme_id", theme.id)
+      .eq("column_id", column.id)
       .single();
 
     if (!topic) {
       const { data, error } = await supabase
         .from("topics")
         .insert({
-          theme_id: theme.id,
+          column_id: column.id,
           title: topic_title,
           slug: topicSlug,
           sort_order: 0,
@@ -280,7 +280,7 @@ export const createArticle = tool(
           type: "text" as const,
           text:
             `Article created successfully!\n\n` +
-            `**Theme:** ${theme.title} (${theme.slug})\n` +
+            `**Column:** ${column.title} (${column.slug})\n` +
             `**Topic:** ${topic.title} (${topic.slug})\n` +
             `**Posts created:** ${posts.map((p) => p.platform).join(", ")}\n` +
             `**Draft files written to:** content/drafts/${topicSlug}/\n` +

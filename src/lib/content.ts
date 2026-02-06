@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import type { ThemeWithTopics, TopicWithPosts, Theme } from "@/lib/types/content";
+import type { ColumnWithTopics, TopicWithPosts, Column } from "@/lib/types/content";
 
-export async function getPublishedContent(): Promise<ThemeWithTopics[]> {
+export async function getPublishedContent(): Promise<ColumnWithTopics[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase.rpc("get_published_content");
@@ -11,30 +11,30 @@ export async function getPublishedContent(): Promise<ThemeWithTopics[]> {
     return [];
   }
 
-  return (data as ThemeWithTopics[]) ?? [];
+  return (data as ColumnWithTopics[]) ?? [];
 }
 
 export async function getTopicBySlug(
-  themeSlug: string,
+  columnSlug: string,
   topicSlug: string
-): Promise<{ theme: Theme; topic: TopicWithPosts } | null> {
+): Promise<{ column: Column; topic: TopicWithPosts } | null> {
   const supabase = await createClient();
 
-  // Fetch theme by slug
-  const { data: theme, error: themeError } = await supabase
-    .from("themes")
+  // Fetch column by slug
+  const { data: column, error: columnError } = await supabase
+    .from("columns")
     .select("*")
-    .eq("slug", themeSlug)
+    .eq("slug", columnSlug)
     .single();
 
-  if (themeError || !theme) return null;
+  if (columnError || !column) return null;
 
-  // Fetch topic by slug and theme_id
+  // Fetch topic by slug and column_id
   const { data: topic, error: topicError } = await supabase
     .from("topics")
     .select("*")
     .eq("slug", topicSlug)
-    .eq("theme_id", theme.id)
+    .eq("column_id", column.id)
     .single();
 
   if (topicError || !topic) return null;
@@ -47,7 +47,7 @@ export async function getTopicBySlug(
     .order("created_at", { ascending: true });
 
   return {
-    theme,
+    column,
     topic: { ...topic, posts: posts ?? [] },
   };
 }
