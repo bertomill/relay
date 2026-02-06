@@ -66,7 +66,7 @@ async function main() {
         }
       }
     } else if (message.type === "result") {
-      if (message.subtype === "error") {
+      if (message.subtype === "error_during_execution") {
         console.error("\n\nError:", JSON.stringify(message, null, 2));
       }
     }
