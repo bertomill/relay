@@ -51,7 +51,7 @@ async function main() {
     options: {
       systemPrompt: SYSTEM_PROMPT,
       tools: ["WebSearch"],
-      mcpServers: [mcpServer],
+      mcpServers: { "lumen-tools": mcpServer },
       permissionMode: "bypassPermissions",
       allowDangerouslySkipPermissions: true,
       maxTurns: 20,
