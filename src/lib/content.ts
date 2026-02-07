@@ -14,6 +14,19 @@ export async function getPublishedContent(): Promise<ColumnWithTopics[]> {
   return (data as ColumnWithTopics[]) ?? [];
 }
 
+export async function getAllContent(): Promise<ColumnWithTopics[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("get_all_content");
+
+  if (error) {
+    console.error("Error fetching all content:", error.message, error.code, error.details);
+    return [];
+  }
+
+  return (data as ColumnWithTopics[]) ?? [];
+}
+
 export async function getTopicBySlug(
   columnSlug: string,
   topicSlug: string

@@ -12,6 +12,7 @@ export interface AgentFAQ {
 export interface AgentArchitectureNode {
   label: string;
   type: "orchestrator" | "agent" | "result";
+  description?: string;
 }
 
 export interface AgentArchitectureLayer {
@@ -25,6 +26,7 @@ export interface AgentChatConfig {
   emptyStateTitle: string;
   emptyStateDescription: string;
   loadingText: string;
+  starterPrompts: string[];
 }
 
 export interface AgentConfig {

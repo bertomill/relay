@@ -18,6 +18,12 @@ const agents: AgentConfig[] = [
       emptyStateDescription:
         "Ask Ray anything. I can help with coding, analysis, writing, and more.",
       loadingText: "Thinking...",
+      starterPrompts: [
+        "Help me write a Python script to parse CSV files",
+        "Explain how async/await works in JavaScript",
+        "Draft a professional email to follow up on a proposal",
+        "Review this code snippet for potential bugs",
+      ],
     },
     capabilities: [
       {
@@ -85,6 +91,12 @@ const agents: AgentConfig[] = [
       emptyStateDescription:
         "Ask Scout to research any topic. I'll search multiple sources, verify claims, and synthesize a comprehensive report.",
       loadingText: "Researching...",
+      starterPrompts: [
+        "Research the latest AI regulations in the EU",
+        "Compare React, Vue, and Svelte for a new project in 2025",
+        "What are the current trends in renewable energy investment?",
+        "Summarize recent breakthroughs in quantum computing",
+      ],
     },
     capabilities: [
       {
@@ -141,23 +153,135 @@ const agents: AgentConfig[] = [
     ],
     architecture: [
       {
-        nodes: [{ label: "Scout Orchestrator", type: "orchestrator" }],
-      },
-      {
         nodes: [
-          { label: "web-researcher", type: "agent" },
-          { label: "web-researcher", type: "agent" },
-          { label: "web-researcher", type: "agent" },
+          {
+            label: "Scout Orchestrator",
+            type: "orchestrator",
+            description:
+              "The main agent that receives your query, breaks it into subtopics, and coordinates the research workflow across all sub-agents.",
+          },
         ],
       },
       {
         nodes: [
-          { label: "fact-checker", type: "agent" },
-          { label: "synthesizer", type: "agent" },
+          {
+            label: "web-researcher",
+            type: "agent",
+            description:
+              "Parallel sub-agents that independently search the web for information on assigned subtopics, collecting sources and summarizing findings.",
+          },
+          {
+            label: "web-researcher",
+            type: "agent",
+            description:
+              "Parallel sub-agents that independently search the web for information on assigned subtopics, collecting sources and summarizing findings.",
+          },
+          {
+            label: "web-researcher",
+            type: "agent",
+            description:
+              "Parallel sub-agents that independently search the web for information on assigned subtopics, collecting sources and summarizing findings.",
+          },
         ],
       },
       {
-        nodes: [{ label: "Structured Research Report", type: "result" }],
+        nodes: [
+          {
+            label: "fact-checker",
+            type: "agent",
+            description:
+              "Cross-references claims from the web researchers against multiple sources, flagging inconsistencies and verifying key facts.",
+          },
+          {
+            label: "synthesizer",
+            type: "agent",
+            description:
+              "Combines verified findings from all sub-agents into a coherent narrative, organizing information by theme and relevance.",
+          },
+        ],
+      },
+      {
+        nodes: [
+          {
+            label: "Structured Research Report",
+            type: "result",
+            description:
+              "The final output — a comprehensive, sourced report with key insights highlighted, organized into sections with inline citations.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "content-creator",
+    name: "Content Creator",
+    tagline: "Draft multi-platform content for Lighten AI",
+    description:
+      "A content creation agent that drafts platform-specific posts for X, Medium, LinkedIn, Instagram, and YouTube. Powered by the Claude Agent SDK with a content creation Skill for brand-consistent writing.",
+    status: "active",
+    iconPath:
+      "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10",
+    chatConfig: {
+      apiEndpoint: "/api/agents/content-creator",
+      storageKey: "content-creator-sessions",
+      placeholder: "What content would you like to create?",
+      emptyStateTitle: "Create multi-platform content",
+      emptyStateDescription:
+        "Tell me a topic and I'll draft tailored content for X, Medium, LinkedIn, Instagram, and YouTube.",
+      loadingText: "Drafting...",
+      starterPrompts: [
+        "Draft a post about how AI agents can automate repetitive business tasks",
+        "Write content about the difference between AI chatbots and AI agents",
+        "Create a post explaining why small businesses should explore AI automation",
+        "Draft content about Lighten AI's approach to making AI accessible",
+      ],
+    },
+    capabilities: [
+      {
+        title: "Multi-Platform Drafting",
+        description:
+          "Creates tailored content for X, Medium, LinkedIn, Instagram, and YouTube — each formatted for the platform's style and audience.",
+        icon: "M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z",
+      },
+      {
+        title: "Brand Voice",
+        description:
+          "Writes in Lighten AI's voice — knowledgeable but approachable, avoiding hype and buzzwords.",
+        icon: "M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z",
+      },
+      {
+        title: "Topic Research",
+        description:
+          "Searches the web for up-to-date information to ensure content is accurate and timely.",
+        icon: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z",
+      },
+      {
+        title: "Content Strategy",
+        description:
+          "Helps plan content topics, suggest angles, and identify what resonates with your audience.",
+        icon: "M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6",
+      },
+    ],
+    faq: [
+      {
+        question: "What platforms does Content Creator support?",
+        answer:
+          "Content Creator drafts for five platforms: X (Twitter), Medium, LinkedIn, Instagram, and YouTube. Each draft is tailored to the platform's format and audience expectations.",
+      },
+      {
+        question: "How does it maintain brand consistency?",
+        answer:
+          "The agent uses a content creation Skill loaded from the project that contains Lighten AI's brand voice guidelines, platform-specific style rules, and the content database schema. This ensures every draft is on-brand.",
+      },
+      {
+        question: "Can I create content for just one platform?",
+        answer:
+          "Yes. Just specify which platform you want and the agent will draft content only for that platform. You can also ask for a subset like 'X and LinkedIn only'.",
+      },
+      {
+        question: "Does it research topics?",
+        answer:
+          "Yes. The agent has web search and web fetch tools so it can research topics for accuracy before drafting. This is especially useful for technical or time-sensitive content.",
       },
     ],
   },

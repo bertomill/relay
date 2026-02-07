@@ -16,6 +16,8 @@ export interface Topic {
   slug: string;
   description: string | null;
   image_url: string | null;
+  author: string | null;
+  published_date: string | null;
   sort_order: number;
   created_at: string;
 }

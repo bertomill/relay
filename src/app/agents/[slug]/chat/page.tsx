@@ -26,6 +26,7 @@ export default function AgentChatPage() {
       agentIcon={agent.iconPath}
       agentName={agent.name}
       variant="full"
+      starterPrompts={agent.chatConfig.starterPrompts}
     />
   );
 }

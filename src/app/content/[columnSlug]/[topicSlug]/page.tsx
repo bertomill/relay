@@ -79,8 +79,23 @@ export default async function TopicDetailPage({ params }: PageProps) {
             {topic.title}
           </h1>
           {topic.description && (
-            <p className="text-lg text-[#555] leading-relaxed mb-6">
+            <p className="text-lg text-[#555] leading-relaxed mb-4">
               {topic.description}
+            </p>
+          )}
+          {(topic.author || topic.published_date) && (
+            <p className="text-sm text-[#999] mb-6">
+              {topic.author && <span>{topic.author}</span>}
+              {topic.author && topic.published_date && <span> · </span>}
+              {topic.published_date && (
+                <time dateTime={topic.published_date}>
+                  {new Date(topic.published_date + "T00:00:00").toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </time>
+              )}
             </p>
           )}
 

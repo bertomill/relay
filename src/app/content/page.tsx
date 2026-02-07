@@ -1,11 +1,13 @@
 import { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { Navigation } from "../components/Navigation";
 import { Footer } from "../components/Footer";
-import { getPublishedContent } from "@/lib/content";
+import { getPublishedContent, getAllContent } from "@/lib/content";
+import { createClient } from "@/lib/supabase/server";
 import { PLATFORMS, PLATFORM_ORDER } from "./platforms";
-import type { ColumnWithTopics, TopicWithPosts } from "@/lib/types/content";
+import { ContentPageClient } from "./ContentPageClient";
+
+const ADMIN_EMAIL = "bertmill19@gmail.com";
 
 export const metadata: Metadata = {
   title: "Content | Lighten AI",
@@ -13,142 +15,16 @@ export const metadata: Metadata = {
     "Follow Lighten AI on X, Medium, LinkedIn, and Instagram for insights on AI automation for businesses.",
 };
 
-function PlatformIcon({ platformKey }: { platformKey: string }) {
-  const meta = PLATFORMS[platformKey];
-  if (!meta) return null;
-  return (
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-      <path d={meta.iconPath} />
-    </svg>
-  );
-}
-
-function TopicCard({ topic, columnSlug }: { topic: TopicWithPosts; columnSlug: string }) {
-  const publishedByPlatform = new Map(
-    topic.posts
-      .filter((p) => p.status === "published")
-      .map((p) => [p.platform, p])
-  );
-
-  const hasAnyPublished = publishedByPlatform.size > 0;
-
-  return (
-    <div className="bg-white border border-[#E8E6E1] rounded-2xl overflow-hidden hover:border-[#6B8F71]/40 transition-all duration-300">
-      {topic.image_url && (
-        <Link href={`/content/${columnSlug}/${topic.slug}`} className="block">
-          <div className="relative w-full h-48 md:h-56">
-            <Image
-              src={topic.image_url}
-              alt={topic.title}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, 50vw"
-            />
-          </div>
-        </Link>
-      )}
-      <div className="p-8">
-        <Link href={`/content/${columnSlug}/${topic.slug}`} className="block mb-5">
-          <h3 className="text-xl font-semibold text-[#1C1C1C] mb-2 group-hover:text-[#6B8F71]">
-            {topic.title}
-          </h3>
-          {topic.description && (
-            <p className="text-[#666] leading-relaxed">{topic.description}</p>
-          )}
-        </Link>
-
-        <div className="flex flex-wrap gap-2">
-        {PLATFORM_ORDER.map((key) => {
-          const published = publishedByPlatform.get(key);
-
-          if (published?.url) {
-            return (
-              <a
-                key={key}
-                href={published.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#6B8F71]/10 text-[#6B8F71] text-sm font-medium hover:bg-[#6B8F71]/20 transition-colors"
-              >
-                <PlatformIcon platformKey={key} />
-                {PLATFORMS[key].name}
-                <svg
-                  className="w-3.5 h-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25"
-                  />
-                </svg>
-              </a>
-            );
-          }
-
-          // Show "Coming soon" only when there are no published posts at all
-          if (!hasAnyPublished) {
-            return (
-              <span
-                key={key}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F5F4F1] text-[#999] text-sm"
-              >
-                <PlatformIcon platformKey={key} />
-                Coming soon
-              </span>
-            );
-          }
-
-          return null;
-        })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ColumnSection({ column }: { column: ColumnWithTopics }) {
-  return (
-    <div>
-      <div className="mb-6 flex items-center gap-4">
-        {column.owner_avatar_url && (
-          <Image
-            src={column.owner_avatar_url}
-            alt={column.owner_name ?? ""}
-            width={48}
-            height={48}
-            className="rounded-full object-cover"
-          />
-        )}
-        <div>
-          <h2 className="text-2xl md:text-3xl font-bold text-[#1C1C1C]">
-            {column.title}
-          </h2>
-          {column.owner_name && (
-            <p className="text-sm text-[#999] mt-0.5">by {column.owner_name}</p>
-          )}
-        </div>
-      </div>
-      {column.description && (
-        <p className="text-[#666] mb-6 leading-relaxed">
-          {column.description}
-        </p>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {column.topics.map((topic) => (
-          <TopicCard key={topic.id} topic={topic} columnSlug={column.slug} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default async function ContentPage() {
-  const columns = await getPublishedContent();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const isAdminUser = user?.email === ADMIN_EMAIL;
+
+  const publishedColumns = await getPublishedContent();
+  const allColumns = isAdminUser ? await getAllContent() : null;
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] text-[#1C1C1C] relative overflow-x-hidden">
@@ -209,20 +85,12 @@ export default async function ContentPage() {
           </div>
         </section>
 
-        {/* Column sections */}
-        {columns.length > 0 ? (
-          <section className="py-16 space-y-16">
-            {columns.map((column) => (
-              <ColumnSection key={column.id} column={column} />
-            ))}
-          </section>
-        ) : (
-          <section className="py-16 text-center">
-            <p className="text-[#999] text-lg">
-              Content is on the way — check back soon.
-            </p>
-          </section>
-        )}
+        {/* Content with admin/client toggle */}
+        <ContentPageClient
+          publishedColumns={publishedColumns}
+          allColumns={allColumns}
+          isAdminUser={isAdminUser}
+        />
 
         {/* CTA */}
         <section className="py-16 border-t border-[#E8E6E1]">

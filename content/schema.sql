@@ -33,6 +33,8 @@ create table public.topics (
   slug text not null unique,
   description text,
   image_url text,
+  author text,
+  published_date date,
   sort_order int not null default 0,
   created_at timestamptz not null default now()
 );
@@ -114,6 +116,35 @@ $$;
 
 grant execute on function public.get_published_content() to anon, authenticated;
 
+-- All content (including drafts) — for admin view
+create or replace function get_all_content()
+returns json language sql security definer as $$
+  select coalesce(json_agg(t), '[]'::json)
+  from (
+    select c.*,
+      coalesce(
+        (select json_agg(topic_row)
+         from (
+           select tp.*,
+             coalesce(
+               (select json_agg(p)
+                from public.posts p
+                where p.topic_id = tp.id),
+               '[]'::json
+             ) as posts
+           from public.topics tp
+           where tp.column_id = c.id
+           order by tp.sort_order
+         ) topic_row),
+        '[]'::json
+      ) as topics
+    from public.columns c
+    order by c.sort_order
+  ) t;
+$$;
+
+grant execute on function public.get_all_content() to authenticated;
+
 -- ============================================================
 -- 5. SEED DATA
 -- ============================================================
@@ -126,12 +157,14 @@ values (
   0
 );
 
-insert into public.topics (column_id, title, slug, description, sort_order)
+insert into public.topics (column_id, title, slug, description, author, published_date, sort_order)
 values (
   (select id from public.columns where slug = 'ai-agents'),
   'Vercel Agents vs Claude Agents',
   'vercel-agents-vs-claude-agents',
   'An honest comparison of Vercel AI SDK 6 and Anthropic''s Claude Agent SDK — when to use each, and why the answer is often both.',
+  'Lighten AI',
+  '2026-01-15',
   0
 );
 

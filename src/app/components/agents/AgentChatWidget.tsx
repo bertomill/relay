@@ -22,6 +22,7 @@ export default function AgentChatWidget({ agent }: AgentChatWidgetProps) {
         agentIcon={agent.iconPath}
         agentName={agent.name}
         variant="embedded"
+        starterPrompts={agent.chatConfig.starterPrompts}
       />
       <div className="mt-3 text-center">
         <Link

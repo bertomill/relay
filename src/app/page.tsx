@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Navigation } from "./components/Navigation";
 import { Footer } from "./components/Footer";
 import { ContactForm } from "./components/ContactForm";
@@ -39,9 +40,9 @@ const WHO_WE_SERVE = [
 
 const METRICS = [
   { end: 50, suffix: "+", label: "Hours saved weekly" },
-  { end: 12, suffix: "+", label: "Firms served" },
-  { end: 98, suffix: "%", label: "Client satisfaction" },
-  { end: 3, suffix: "x", label: "Faster processing" },
+  { end: 2, suffix: "", label: "Firms served" },
+  { end: 100, suffix: "%", label: "Client satisfaction" },
+  { end: 24, suffix: "/7", label: "Always available" },
 ] as const;
 
 const RESULT_CARDS = [
@@ -132,11 +133,25 @@ export default function Home() {
                   </div>
                 </div>
               </AnimateIn>
+
+              {/* Hero illustration */}
+              <AnimateIn animation="fade-up" delay={200}>
+                <div className="mt-8 hidden lg:block">
+                  <Image
+                    src="/lighten-bots-transparent.png"
+                    alt="Friendly AI robots breaking apart a heavy boulder of tasks — documents, emails, checklists, and reports"
+                    width={400}
+                    height={400}
+                    className="w-[320px] h-auto opacity-90"
+                    priority
+                  />
+                </div>
+              </AnimateIn>
             </div>
 
             {/* Right: Contact Form */}
             <AnimateIn animation="fade-in" delay={200}>
-              <div id="contact" className="bg-white rounded-2xl p-6 shadow-xl shadow-[#6B8F71]/8 border border-[#E8E6E1]">
+              <div id="contact" className="bg-white rounded-[2rem] p-6 shadow-xl shadow-[#6B8F71]/8 border border-[#E8E6E1]">
                 <ContactForm />
               </div>
             </AnimateIn>
@@ -155,9 +170,9 @@ export default function Home() {
                 {AGENTS.map((agent, i) => (
                   <AnimateIn key={agent.name} animation="fade-up" delay={250 + i * 50}>
                     <div
-                      className="flex items-center gap-2.5 px-3 py-2.5 bg-white border border-[#E8E6E1] rounded-xl hover:border-[#6B8F71]/40 hover:shadow-sm transition-all duration-200"
+                      className="flex items-center gap-2.5 px-3 py-2.5 bg-white border border-[#E8E6E1] rounded-2xl hover:border-[#6B8F71]/40 hover:shadow-sm transition-all duration-200"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-[#6B8F71]/10 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-[#6B8F71]/10 flex items-center justify-center shrink-0">
                         <svg className="w-4 h-4 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={agent.icon} />
                         </svg>
@@ -178,7 +193,7 @@ export default function Home() {
                 <span className="text-sm text-[#888]">or book a call directly</span>
                 <div className="flex-1 h-px bg-[#E8E6E1]" />
               </div>
-              <div className="bg-white rounded-2xl shadow-xl shadow-[#6B8F71]/8 border border-[#E8E6E1] overflow-hidden">
+              <div className="bg-white rounded-3xl shadow-xl shadow-[#6B8F71]/8 border border-[#E8E6E1] overflow-hidden">
                 <CalendlyWidget />
               </div>
             </div>
@@ -222,8 +237,8 @@ export default function Home() {
         <div className="grid md:grid-cols-3 gap-6">
           {RESULT_CARDS.map((card, i) => (
             <AnimateIn key={card.title} animation="fade-up" delay={i * 100}>
-              <div className="group bg-white border border-[#E8E6E1] hover:border-[#6B8F71]/40 rounded-2xl p-8 transition-all duration-300 cursor-pointer hover:shadow-lg hover:shadow-[#6B8F71]/8">
-                <div className="w-12 h-12 rounded-xl bg-[#6B8F71]/10 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
+              <div className="group bg-white border border-[#E8E6E1] hover:border-[#6B8F71]/40 rounded-3xl p-8 transition-all duration-300 cursor-pointer hover:shadow-lg hover:shadow-[#6B8F71]/8">
+                <div className="w-12 h-12 rounded-2xl bg-[#6B8F71]/10 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
                   <svg className="w-6 h-6 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={card.icon} />
                   </svg>
@@ -252,7 +267,7 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
             {/* Problem */}
             <AnimateIn animation="slide-right">
-              <div className="bg-[#F5F4F1] rounded-2xl p-8 lg:p-10">
+              <div className="bg-[#F5F4F1] rounded-3xl p-8 lg:p-10">
                 <span className="inline-block text-xs font-semibold text-[#999] uppercase tracking-[0.15em] mb-4">The Problem</span>
                 <h3 className="text-2xl font-bold mb-4 text-[#1C1C1C]">Every hour on repetitive work is weight that slows everything down.</h3>
                 <p className="text-[#666] leading-relaxed mb-4">
@@ -264,7 +279,7 @@ export default function Home() {
 
             {/* Solution */}
             <AnimateIn animation="slide-left">
-              <div className="bg-white border border-[#E8E6E1] rounded-2xl p-8 lg:p-10">
+              <div className="bg-white border border-[#E8E6E1] rounded-3xl p-8 lg:p-10">
                 <span className="inline-block text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">What We Do</span>
                 <h3 className="text-2xl font-bold mb-4 text-[#1C1C1C]">Custom agents for how your team actually works.</h3>
                 <p className="text-[#666] leading-relaxed mb-4">
@@ -325,8 +340,8 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-6">
             {WHO_WE_SERVE.map((item, i) => (
               <AnimateIn key={item.title} animation="fade-up" delay={i * 100}>
-                <div className="bg-white border border-[#E8E6E1] rounded-2xl p-8 hover:border-[#6B8F71]/40 transition-all duration-300 hover:shadow-lg hover:shadow-[#6B8F71]/8">
-                  <div className="w-12 h-12 rounded-xl bg-[#6B8F71]/10 flex items-center justify-center mb-5">
+                <div className="bg-white border border-[#E8E6E1] rounded-3xl p-8 hover:border-[#6B8F71]/40 transition-all duration-300 hover:shadow-lg hover:shadow-[#6B8F71]/8">
+                  <div className="w-12 h-12 rounded-2xl bg-[#6B8F71]/10 flex items-center justify-center mb-5">
                     <svg className="w-6 h-6 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.icon} />
                     </svg>
@@ -344,7 +359,7 @@ export default function Home() {
       <section className="max-w-6xl mx-auto px-6 py-16 relative">
         <FeatherRise />
         <AnimateIn animation="fade-up">
-          <div className="bg-[#6B8F71] rounded-3xl p-10 lg:p-14 text-center text-white relative overflow-hidden">
+          <div className="bg-[#6B8F71] rounded-[2.5rem] p-10 lg:p-14 text-center text-white relative overflow-hidden">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to feel lighter?</h2>
             <p className="text-lg text-white/80 mb-8 max-w-xl mx-auto">
               Let&apos;s talk about what&apos;s weighing your team down — and how to lift it.
@@ -352,13 +367,13 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <a
                 href="#contact"
-                className="px-8 py-4 bg-white text-[#6B8F71] font-semibold rounded-xl hover:bg-white/90 transition-all duration-200 active:scale-[0.98]"
+                className="px-8 py-4 bg-white text-[#6B8F71] font-semibold rounded-full hover:bg-white/90 transition-all duration-200 active:scale-[0.98]"
               >
                 Start a Conversation
               </a>
               <a
                 href="#contact"
-                className="px-8 py-4 border-2 border-white text-white font-semibold rounded-xl hover:bg-white/10 transition-all duration-200 active:scale-[0.98]"
+                className="px-8 py-4 border-2 border-white text-white font-semibold rounded-full hover:bg-white/10 transition-all duration-200 active:scale-[0.98]"
               >
                 Book a Call
               </a>

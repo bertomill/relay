@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getAgentBySlug } from "@/lib/agents/data";
+import { useState } from "react";
 import { AnimateIn } from "@/app/components/AnimateIn";
 import FAQAccordion from "@/app/components/agents/FAQAccordion";
 import AgentChatWidget from "@/app/components/agents/AgentChatWidget";
@@ -12,6 +13,7 @@ export default function AgentShowcase() {
   const params = useParams();
   const slug = params.slug as string;
   const agent = getAgentBySlug(slug);
+  const [activeNode, setActiveNode] = useState<string | null>(null);
 
   if (!agent) {
     notFound();
@@ -101,21 +103,44 @@ export default function AgentShowcase() {
                         </svg>
                       </div>
                     )}
-                    <div className="flex flex-wrap justify-center gap-3">
-                      {layer.nodes.map((node, nodeIdx) => (
-                        <div
-                          key={nodeIdx}
-                          className={`rounded-lg px-4 py-2 text-sm font-medium ${
-                            node.type === "orchestrator"
-                              ? "bg-[#6B8F71]/10 border border-[#6B8F71]/30 text-[#6B8F71]"
-                              : node.type === "result"
-                              ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
-                              : "bg-[#F5F4F0] border border-[#E8E6E1] text-[#555] text-xs"
-                          }`}
-                        >
-                          {node.label}
-                        </div>
-                      ))}
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="flex flex-wrap justify-center gap-3">
+                        {layer.nodes.map((node, nodeIdx) => {
+                          const nodeKey = `${layerIdx}-${nodeIdx}`;
+                          const isActive = activeNode === nodeKey;
+                          return (
+                            <button
+                              key={nodeIdx}
+                              onClick={() =>
+                                setActiveNode(isActive ? null : nodeKey)
+                              }
+                              className={`rounded-lg px-4 py-2 text-sm font-medium transition-all cursor-pointer ${
+                                node.type === "orchestrator"
+                                  ? `bg-[#6B8F71]/10 border border-[#6B8F71]/30 text-[#6B8F71] ${isActive ? "ring-2 ring-[#6B8F71]/40" : "hover:bg-[#6B8F71]/15"}`
+                                  : node.type === "result"
+                                  ? `bg-emerald-50 border border-emerald-200 text-emerald-700 ${isActive ? "ring-2 ring-emerald-300" : "hover:bg-emerald-100"}`
+                                  : `bg-[#F5F4F0] border border-[#E8E6E1] text-[#555] text-xs ${isActive ? "ring-2 ring-[#6B8F71]/30" : "hover:bg-[#EDECE8]"}`
+                              }`}
+                            >
+                              {node.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {layer.nodes.map((node, nodeIdx) => {
+                        const nodeKey = `${layerIdx}-${nodeIdx}`;
+                        return (
+                          activeNode === nodeKey &&
+                          node.description && (
+                            <p
+                              key={`desc-${nodeIdx}`}
+                              className="text-sm text-[#555] max-w-md text-center animate-in fade-in slide-in-from-top-1 duration-200"
+                            >
+                              {node.description}
+                            </p>
+                          )
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
