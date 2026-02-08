@@ -1,12 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { FeatherLogo } from "./Logo";
 import { AuthButton } from "./AuthButton";
 
+const NAV_LINKS = [
+  { href: "/offer", label: "Offer" },
+  { href: "/about", label: "About" },
+  { href: "/learn", label: "Learn" },
+  { href: "/agents", label: "Agents" },
+  { href: "/content", label: "Content" },
+] as const;
+
 export function Navigation() {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -15,11 +26,28 @@ export function Navigation() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
+
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
+
   return (
     <>
       <nav
         className={`fixed top-0 left-0 right-0 z-50 border-b border-[#E8E6E1] bg-white/95 backdrop-blur-sm transition-all duration-300 ease-in-out ${
-          scrolled ? "py-3" : "py-5"
+          scrolled ? "py-2 md:py-3" : "py-3 md:py-5"
         }`}
       >
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
@@ -27,49 +55,101 @@ export function Navigation() {
             {FeatherLogo}
             <span
               className={`font-semibold tracking-tight text-[#1C1C1C] transition-all duration-300 ${
-                scrolled ? "text-xl" : "text-2xl"
+                scrolled ? "text-lg md:text-xl" : "text-xl md:text-2xl"
               }`}
             >
               Lighten AI
             </span>
           </Link>
-          <div className="flex items-center gap-8">
-            <Link
-              href="/offer"
-              className="text-sm text-[#666] hover:text-[#6B8F71] transition-colors duration-200 cursor-pointer"
-            >
-              Offer
-            </Link>
-            <Link
-              href="/about"
-              className="text-sm text-[#666] hover:text-[#6B8F71] transition-colors duration-200 cursor-pointer"
-            >
-              About
-            </Link>
-            <Link
-              href="/learn"
-              className="text-sm text-[#666] hover:text-[#6B8F71] transition-colors duration-200 cursor-pointer"
-            >
-              Learn
-            </Link>
-            <Link
-              href="/agents"
-              className="text-sm text-[#666] hover:text-[#6B8F71] transition-colors duration-200 cursor-pointer"
-            >
-              Agents
-            </Link>
-            <Link
-              href="/content"
-              className="text-sm text-[#666] hover:text-[#6B8F71] transition-colors duration-200 cursor-pointer"
-            >
-              Content
-            </Link>
-            <AuthButton />
+
+          {/* Desktop nav */}
+          <div className="hidden md:flex items-center gap-8">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-sm text-[#666] hover:text-[#6B8F71] transition-colors duration-200 cursor-pointer"
+              >
+                {link.label}
+              </Link>
+            ))}
+            <Suspense fallback={<div className="w-16" />}>
+              <AuthButton />
+            </Suspense>
           </div>
+
+          {/* Mobile hamburger button */}
+          <button
+            className="md:hidden flex items-center justify-center w-10 h-10 -mr-2 rounded-lg hover:bg-[#F5F4F1] transition-colors"
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          >
+            <svg
+              className="w-6 h-6 text-[#1C1C1C]"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+            >
+              {mobileOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              )}
+            </svg>
+          </button>
         </div>
       </nav>
+
+      {/* Mobile menu overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 md:hidden" onClick={closeMobile}>
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
+        </div>
+      )}
+
+      {/* Mobile menu drawer */}
+      <div
+        className={`fixed top-0 right-0 z-50 h-full w-72 bg-white shadow-xl border-l border-[#E8E6E1] transform transition-transform duration-300 ease-in-out md:hidden ${
+          mobileOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-end p-4">
+          <button
+            className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-[#F5F4F1] transition-colors"
+            onClick={closeMobile}
+            aria-label="Close menu"
+          >
+            <svg className="w-6 h-6 text-[#1C1C1C]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="flex flex-col px-6 pb-8 gap-2">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={closeMobile}
+              className={`text-base py-3 px-4 rounded-xl transition-colors duration-200 ${
+                pathname === link.href
+                  ? "text-[#6B8F71] bg-[#6B8F71]/8 font-medium"
+                  : "text-[#555] hover:text-[#6B8F71] hover:bg-[#F5F4F1]"
+              }`}
+            >
+              {link.label}
+            </Link>
+          ))}
+          <div className="mt-4 pt-4 border-t border-[#E8E6E1]">
+            <Suspense fallback={<div className="h-10" />}>
+              <AuthButton />
+            </Suspense>
+          </div>
+        </div>
+      </div>
+
       {/* Spacer matches the larger initial nav height */}
-      <div className="h-[82px]" />
+      <div className="h-[68px] md:h-[82px]" />
     </>
   );
 }

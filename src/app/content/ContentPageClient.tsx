@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -329,7 +329,8 @@ export function ContentPageClient({
   isAdminUser: boolean;
 }) {
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<"client" | "admin">("client");
+  const searchParams = useSearchParams();
+  const viewMode = isAdminUser && searchParams.get("view") === "admin" ? "admin" : "client";
   const [showCreator, setShowCreator] = useState(false);
   const [updatingPostId, setUpdatingPostId] = useState<string | null>(null);
   const [panelWidth, setPanelWidth] = useState(576); // default ~xl (max-w-xl = 36rem = 576px)
@@ -390,36 +391,12 @@ export function ContentPageClient({
 
   return (
     <>
-      {/* View toggle — only visible to admin */}
-      {isAdminUser && (
+      {/* Admin view indicator */}
+      {isAdminUser && isAdmin && (
         <div className="flex items-center gap-2 mb-8">
-          <div className="inline-flex rounded-xl border border-[#E8E6E1] bg-white p-1">
-            <button
-              onClick={() => setViewMode("client")}
-              className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
-                viewMode === "client"
-                  ? "bg-[#6B8F71] text-white shadow-sm"
-                  : "text-[#666] hover:text-[#1C1C1C]"
-              }`}
-            >
-              Client View
-            </button>
-            <button
-              onClick={() => setViewMode("admin")}
-              className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
-                viewMode === "admin"
-                  ? "bg-[#6B8F71] text-white shadow-sm"
-                  : "text-[#666] hover:text-[#1C1C1C]"
-              }`}
-            >
-              Admin View
-            </button>
-          </div>
-          {isAdmin && (
-            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl">
-              Showing drafts
-            </span>
-          )}
+          <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl">
+            Admin View — Showing drafts
+          </span>
         </div>
       )}
 

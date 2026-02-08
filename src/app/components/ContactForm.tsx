@@ -165,14 +165,14 @@ export function ContactForm() {
   // Intro screen — "Get in touch" CTA
   if (!started) {
     return (
-      <div className="text-center py-6">
-        <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-[#6B8F71]/10 flex items-center justify-center">
-          <svg className="w-7 h-7 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="text-center py-3 md:py-6">
+        <div className="w-11 h-11 md:w-14 md:h-14 mx-auto mb-3 md:mb-5 rounded-full bg-[#6B8F71]/10 flex items-center justify-center">
+          <svg className="w-5 h-5 md:w-7 md:h-7 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
           </svg>
         </div>
-        <h2 className="text-xl font-semibold text-[#1C1C1C] mb-2">Let&apos;s lighten the load</h2>
-        <p className="text-sm text-[#888] mb-6 max-w-xs mx-auto">
+        <h2 className="text-lg md:text-xl font-semibold text-[#1C1C1C] mb-1.5 md:mb-2">Let&apos;s lighten the load</h2>
+        <p className="text-sm text-[#888] mb-4 md:mb-6 max-w-xs mx-auto">
           Tell us where you&apos;re at. We&apos;ll show you how to lift it — takes about 2 minutes.
         </p>
         <button
@@ -181,7 +181,7 @@ export function ContactForm() {
         >
           Get in Touch
         </button>
-        <p className="text-xs text-[#aaa] mt-4">
+        <p className="text-xs text-[#aaa] mt-3 md:mt-4">
           No spam, ever. We&apos;ll reach out within 24 hours.
         </p>
       </div>

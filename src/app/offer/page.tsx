@@ -259,7 +259,7 @@ export default function OfferPage() {
             </div>
           </AnimateIn>
           <AnimateIn animation="fade-up" delay={100}>
-            <div className="bg-white rounded-[2rem] shadow-xl shadow-[#6B8F71]/8 border border-[#E8E6E1] overflow-hidden max-w-2xl mx-auto">
+            <div className="bg-white rounded-[2rem] shadow-xl shadow-[#6B8F71]/8 border border-[#E8E6E1] overflow-hidden max-w-3xl mx-auto">
               <CalendlyWidget />
             </div>
           </AnimateIn>

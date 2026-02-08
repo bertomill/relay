@@ -70,6 +70,11 @@ npx tsx scripts/content-creator/generate-image.ts "<prompt>" [--size landscape_1
 Size options: landscape_16_9 (default, for X/Medium/LinkedIn/YouTube), square_hd (for Instagram)
 Returns: { url, localPath, publicUrl }
 
+IMPORTANT: After generating an image, ALWAYS display it inline using markdown image syntax with the publicUrl:
+![Generated thumbnail](publicUrl)
+For example: ![Generated thumbnail](/generated/my-image.png)
+This lets the user see the image directly in the chat.
+
 ### Save content to Supabase
 \`\`\`bash
 echo '<json>' | npx tsx scripts/content-creator/save-content.ts

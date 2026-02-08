@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FeatherLogoSmall } from "./Logo";
+import FeedbackWidget from "./FeedbackWidget";
 
 export function Footer() {
   return (
@@ -15,6 +16,7 @@ export function Footer() {
           <span className="hover:text-[#666] transition-colors cursor-pointer">Terms</span>
         </div>
       </div>
+      <FeedbackWidget />
     </footer>
   );
 }

@@ -95,6 +95,7 @@ export default function AgentChat({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const titledSessions = useRef<Set<string>>(new Set());
 
   const isFull = variant === "full";
   const accent = "#6B8F71";
@@ -103,8 +104,18 @@ export default function AgentChat({
     const saved = localStorage.getItem(storageKey);
     if (saved) {
       const parsed = JSON.parse(saved);
-      setSessions(parsed.map((s: Session) => ({ ...s, createdAt: new Date(s.createdAt) })));
+      const restored = parsed.map((s: Session) => ({ ...s, createdAt: new Date(s.createdAt) }));
+      setSessions(restored);
+      // Mark all restored sessions as already titled
+      restored.forEach((s: Session) => titledSessions.current.add(s.id));
+      // Auto-resume the most recent session
+      if (restored.length > 0 && messages.length === 0 && !sessionId) {
+        const latest = restored[0];
+        setSessionId(latest.id);
+        setMessages(latest.messages);
+      }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
 
   useEffect(() => {
@@ -136,6 +147,49 @@ export default function AgentChat({
       });
     }
   }, [sessionId, messages]);
+
+  // Generate a title for the session after first exchange completes
+  useEffect(() => {
+    if (
+      isLoading ||
+      !sessionId ||
+      messages.length < 2 ||
+      titledSessions.current.has(sessionId)
+    ) {
+      return;
+    }
+    // Check that we have at least one user + one non-empty assistant message
+    const hasAssistantContent = messages.some(
+      (m) => m.role === "assistant" && m.content.length > 0
+    );
+    if (!hasAssistantContent) return;
+
+    titledSessions.current.add(sessionId);
+
+    const summaryMessages = messages
+      .filter((m) => m.content)
+      .slice(0, 3)
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    fetch("/api/summarize-title", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: summaryMessages }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.title) {
+          setSessions((prev) =>
+            prev.map((s) =>
+              s.id === sessionId ? { ...s, preview: data.title } : s
+            )
+          );
+        }
+      })
+      .catch(() => {
+        // Silent fail — keep the existing preview
+      });
+  }, [isLoading, sessionId, messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -456,7 +510,7 @@ export default function AgentChat({
   };
 
   return (
-    <div className={`flex flex-col ${isFull ? "flex-1 py-8" : "h-[500px]"}`}>
+    <div className={`flex flex-col ${isFull ? "flex-1 min-h-0 py-8" : "h-full"}`}>
       {/* Agent info bar (full variant only) */}
       {isFull && (
         <div className="mb-6 flex items-center gap-4">
@@ -569,7 +623,83 @@ export default function AgentChat({
       )}
 
       {/* Chat area */}
-      <div className={`bg-white border border-[#E8E6E1] rounded-2xl flex flex-col overflow-hidden ${isFull ? "flex-1" : "h-full"}`}>
+      <div className={`bg-white border border-[#E8E6E1] rounded-2xl flex flex-col overflow-hidden ${isFull ? "flex-1 min-h-0" : "h-full"}`}>
+        {/* Compact session bar (embedded variant) */}
+        {!isFull && (messages.length > 0 || sessions.length > 0) && (
+          <div className="flex items-center justify-between px-4 py-2 border-b border-[#E8E6E1] bg-[#FAFAF8]">
+            <div className="flex items-center gap-2">
+              {sessionId && (
+                <span className="text-[10px] text-[#888] font-mono bg-white px-1.5 py-0.5 rounded border border-[#E8E6E1]">
+                  {sessionId.slice(0, 8)}
+                </span>
+              )}
+              {isLoading && (
+                <span className="flex items-center gap-1 text-[10px] text-amber-600">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  {loadingText}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
+              {/* History dropdown */}
+              {sessions.length > 0 && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowSessions(!showSessions)}
+                    className="flex items-center gap-1 text-[10px] text-[#999] hover:text-[#6B8F71] px-2 py-1 rounded-lg hover:bg-[#F5F4F0] transition-colors"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    History ({sessions.length})
+                  </button>
+                  {showSessions && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setShowSessions(false)} />
+                      <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-[#E8E6E1] rounded-xl shadow-lg z-20 overflow-hidden">
+                        <div className="max-h-48 overflow-y-auto">
+                          {sessions.map((session) => (
+                            <button
+                              key={session.id}
+                              onClick={() => handleResumeSession(session)}
+                              className={`w-full px-3 py-2 text-left hover:bg-[#FAFAF8] transition-colors flex items-start gap-2 group ${
+                                sessionId === session.id ? "bg-[#FAFAF8]" : ""
+                              }`}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-[#1C1C1C] truncate">{session.preview}</p>
+                                <p className="text-[10px] text-[#999] mt-0.5">
+                                  {formatTimeAgo(new Date(session.createdAt))} · {session.messages.length} msgs
+                                </p>
+                              </div>
+                              <button
+                                onClick={(e) => handleDeleteSession(e, session)}
+                                className="opacity-0 group-hover:opacity-100 p-0.5 text-[#999] hover:text-red-500 transition-all"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+              <button
+                onClick={handleNewChat}
+                className="flex items-center gap-1 text-[10px] text-[#999] hover:text-[#6B8F71] px-2 py-1 rounded-lg hover:bg-[#F5F4F0] transition-colors"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                New
+              </button>
+            </div>
+          </div>
+        )}
         {/* Messages */}
         <div className="flex-1 p-6 overflow-y-auto space-y-4">
           {messages.length === 0 ? (
@@ -627,7 +757,40 @@ export default function AgentChat({
                         {message.content ? (
                           message.role === "assistant" ? (
                             <div className="text-sm prose prose-sm max-w-none prose-headings:text-[#1C1C1C] prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2 prose-p:text-[#444] prose-p:my-1.5 prose-p:leading-relaxed prose-a:text-[#6B8F71] prose-strong:text-[#1C1C1C] prose-li:text-[#444] prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2 prose-hr:border-[#E8E6E1] prose-hr:my-4 prose-code:text-[#6B8F71] prose-code:bg-[#6B8F71]/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-white prose-pre:border prose-pre:border-[#E8E6E1] prose-pre:rounded-lg prose-blockquote:border-[#6B8F71] prose-blockquote:text-[#555]">
-                              <ReactMarkdown>{message.content}</ReactMarkdown>
+                              <ReactMarkdown
+                                components={{
+                                  img: ({ src, alt }) => {
+                                    const imgSrc = typeof src === "string" ? src : "";
+                                    return (
+                                      <figure className="my-4">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                          src={imgSrc}
+                                          alt={alt || "Generated image"}
+                                          className="w-full rounded-xl border border-[#E8E6E1] shadow-sm"
+                                        />
+                                        <figcaption className="flex items-center gap-2 mt-2">
+                                          {alt && <span className="text-xs text-[#888]">{alt}</span>}
+                                          <a
+                                            href={imgSrc}
+                                            download
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 text-xs text-[#6B8F71] hover:text-[#5A7D60] transition-colors ml-auto"
+                                          >
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                            </svg>
+                                            Download
+                                          </a>
+                                        </figcaption>
+                                      </figure>
+                                    );
+                                  },
+                                }}
+                              >
+                                {message.content}
+                              </ReactMarkdown>
                             </div>
                           ) : (
                             <p className="text-sm whitespace-pre-wrap">{message.content}</p>

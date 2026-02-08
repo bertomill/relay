@@ -1,0 +1,103 @@
+<svg width="800" height="800" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Off-white background matching site -->
+  <rect width="800" height="800" fill="#FAFAF8"/>
+
+  <!-- Stack of documents (hand-drawn calligraphic style) -->
+  <!-- Bottom document -->
+  <path
+    d="M250 520 C252 518, 540 515, 545 520 C548 524, 550 600, 545 605 C540 610, 255 612, 250 607 C245 602, 248 524, 250 520Z"
+    stroke="#6B8F71"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    fill="#6B8F71"
+    fill-opacity="0.06"
+  />
+  <!-- Middle document -->
+  <path
+    d="M260 470 C263 467, 535 465, 538 470 C542 474, 543 555, 538 560 C533 564, 265 566, 260 561 C255 556, 257 474, 260 470Z"
+    stroke="#6B8F71"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    fill="#6B8F71"
+    fill-opacity="0.08"
+  />
+  <!-- Top document -->
+  <path
+    d="M270 420 C273 416, 528 414, 532 420 C536 425, 537 510, 532 515 C527 519, 275 521, 270 516 C265 511, 267 424, 270 420Z"
+    stroke="#6B8F71"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    fill="#6B8F71"
+    fill-opacity="0.10"
+  />
+
+  <!-- Line marks on top document (text lines, hand-drawn) -->
+  <path d="M300 450 C310 449, 470 448, 480 450" stroke="#6B8F71" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <path d="M300 470 C308 469, 440 468, 450 470" stroke="#6B8F71" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <path d="M300 490 C312 489, 420 488, 430 490" stroke="#6B8F71" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+
+  <!-- Clock (hand-drawn circle with hands) -->
+  <path
+    d="M400 330 C435 328, 470 345, 472 380 C474 415, 440 445, 405 447 C370 449, 335 430, 330 395 C325 360, 365 332, 400 330Z"
+    stroke="#6B8F71"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    fill="#6B8F71"
+    fill-opacity="0.06"
+  />
+  <!-- Clock center dot -->
+  <circle cx="400" cy="388" r="4" fill="#6B8F71" opacity="0.7"/>
+  <!-- Hour hand -->
+  <path d="M400 388 C399 375, 415 358, 418 355" stroke="#6B8F71" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Minute hand -->
+  <path d="M400 388 C410 385, 425 382, 430 380" stroke="#6B8F71" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Small tick marks on clock (hand-drawn, just a few) -->
+  <path d="M400 338 L400 348" stroke="#6B8F71" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <path d="M440 388 L430 388" stroke="#6B8F71" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <path d="M400 430 L400 440" stroke="#6B8F71" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <path d="M358 388 L368 388" stroke="#6B8F71" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+
+  <!-- Feathers beginning to lift off (suggesting upward motion) -->
+  <!-- Feather 1 - just starting to separate, upper left -->
+  <g transform="translate(290, 340) rotate(-15) scale(1.2)" opacity="0.35">
+    <path
+      d="M21 3C17 3 13 7 10 12C7 17 6 21 6 25L8 23C9 20 11 16 14 12C17 8 20 6 23 6L21 3Z"
+      fill="#6B8F71"
+    />
+    <path
+      d="M6 25C6 25 8 24 11 21C14 18 17 14 19 10C21 6 21 3 21 3"
+      stroke="#6B8F71"
+      stroke-width="2"
+      stroke-linecap="round"
+    />
+  </g>
+
+  <!-- Feather 2 - higher up, more faded -->
+  <g transform="translate(460, 280) rotate(20) scale(1.0)" opacity="0.22">
+    <path
+      d="M21 3C17 3 13 7 10 12C7 17 6 21 6 25L8 23C9 20 11 16 14 12C17 8 20 6 23 6L21 3Z"
+      fill="#6B8F71"
+    />
+    <path
+      d="M6 25C6 25 8 24 11 21C14 18 17 14 19 10C21 6 21 3 21 3"
+      stroke="#6B8F71"
+      stroke-width="2"
+      stroke-linecap="round"
+    />
+  </g>
+
+  <!-- Feather 3 - highest, most faded, almost gone -->
+  <g transform="translate(370, 210) rotate(-30) scale(0.8)" opacity="0.12">
+    <path
+      d="M21 3C17 3 13 7 10 12C7 17 6 21 6 25L8 23C9 20 11 16 14 12C17 8 20 6 23 6L21 3Z"
+      fill="#6B8F71"
+    />
+    <path
+      d="M6 25C6 25 8 24 11 21C14 18 17 14 19 10C21 6 21 3 21 3"
+      stroke="#6B8F71"
+      stroke-width="2"
+      stroke-linecap="round"
+    />
+  </g>
+</svg>
