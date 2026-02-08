@@ -106,7 +106,7 @@ export default function AboutPage() {
         {/* Mission Statement */}
         <section className="py-16 border-t border-[#E8E6E1]">
           <AnimateIn animation="fade-up">
-            <div className="relative rounded-3xl p-10 lg:p-14 overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(107,143,113,0.08) 0%, rgba(107,143,113,0.04) 100%)" }}>
+            <div className="relative rounded-[2rem] p-10 lg:p-14 overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(107,143,113,0.08) 0%, rgba(107,143,113,0.04) 100%)" }}>
               {/* Decorative quote mark */}
               <span className="absolute top-6 left-8 text-[#6B8F71]/15 text-[8rem] font-serif leading-none select-none pointer-events-none">&ldquo;</span>
               <div className="max-w-3xl mx-auto text-center relative z-10">
@@ -136,9 +136,9 @@ export default function AboutPage() {
             {VALUES.map((value, i) => (
               <AnimateIn key={value.title} animation="fade-up" delay={i * 100}>
                 <div
-                  className="bg-white border border-[#E8E6E1] rounded-2xl p-8 hover:border-[#6B8F71]/40 transition-all duration-300"
+                  className="bg-white border border-[#E8E6E1] rounded-3xl p-8 hover:border-[#6B8F71]/40 transition-all duration-300"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-[#6B8F71]/10 flex items-center justify-center mb-5">
+                  <div className="w-12 h-12 rounded-2xl bg-[#6B8F71]/10 flex items-center justify-center mb-5">
                     <svg className="w-6 h-6 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={value.icon} />
                     </svg>
@@ -165,7 +165,7 @@ export default function AboutPage() {
               {TEAM.map((member) => (
                 <div
                   key={member.name}
-                  className="bg-white border border-[#E8E6E1] rounded-2xl p-8"
+                  className="bg-white border border-[#E8E6E1] rounded-3xl p-8"
                 >
                   <div className="w-16 h-16 rounded-full bg-[#6B8F71]/10 flex items-center justify-center mb-5">
                     <svg className="w-8 h-8 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,14 +184,14 @@ export default function AboutPage() {
         {/* CTA */}
         <section className="py-16 border-t border-[#E8E6E1]">
           <AnimateIn animation="fade-up">
-            <div className="bg-[#6B8F71] rounded-3xl p-10 lg:p-14 text-center text-white">
+            <div className="bg-[#6B8F71] rounded-[2rem] p-10 lg:p-14 text-center text-white">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to lighten your load?</h2>
               <p className="text-lg text-white/80 mb-8 max-w-xl mx-auto">
                 Let&apos;s talk about how we can help you get back to doing what you do best.
               </p>
               <Link
                 href="/"
-                className="inline-block px-8 py-4 bg-white text-[#6B8F71] font-semibold rounded-xl hover:bg-white/90 transition-all duration-200 cursor-pointer active:scale-[0.98]"
+                className="inline-block px-8 py-4 bg-white text-[#6B8F71] font-semibold rounded-2xl hover:bg-white/90 transition-all duration-200 cursor-pointer active:scale-[0.98]"
               >
                 Get in touch
               </Link>

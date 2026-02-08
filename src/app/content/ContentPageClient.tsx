@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -70,7 +70,7 @@ function TopicCard({
   const hasAnyPublished = publishedByPlatform.size > 0;
 
   return (
-    <div className="bg-white border border-[#E8E6E1] rounded-2xl overflow-hidden hover:border-[#6B8F71]/40 transition-all duration-300">
+    <div className="bg-white border border-[#E8E6E1] rounded-3xl overflow-hidden hover:border-[#6B8F71]/40 transition-all duration-300">
       {topic.image_url && (
         <Link href={`/content/${columnSlug}/${topic.slug}`} className="block">
           <div className="relative w-full h-48 md:h-56">
@@ -119,36 +119,54 @@ function TopicCard({
             const published = publishedByPlatform.get(key);
             const post = allByPlatform.get(key);
 
-            if (published?.url) {
+            if (published && (published.url || key === "website")) {
+              const isWebsite = key === "website";
+              const href = isWebsite
+                ? `/content/${columnSlug}/${topic.slug}`
+                : published.url!;
+
               return (
                 <div key={key} className="inline-flex items-center gap-1">
-                  <a
-                    href={published.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#6B8F71]/10 text-[#6B8F71] text-sm font-medium hover:bg-[#6B8F71]/20 transition-colors"
-                  >
-                    <PlatformIcon platformKey={key} />
-                    {PLATFORMS[key].name}
-                    <svg
-                      className="w-3.5 h-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                  {isWebsite ? (
+                    <Link
+                      href={href}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#6B8F71]/10 text-[#6B8F71] text-sm font-medium hover:bg-[#6B8F71]/20 transition-colors"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25"
-                      />
-                    </svg>
-                  </a>
+                      <PlatformIcon platformKey={key} />
+                      Read Article
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                      </svg>
+                    </Link>
+                  ) : (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#6B8F71]/10 text-[#6B8F71] text-sm font-medium hover:bg-[#6B8F71]/20 transition-colors"
+                    >
+                      <PlatformIcon platformKey={key} />
+                      {PLATFORMS[key].name}
+                      <svg
+                        className="w-3.5 h-3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25"
+                        />
+                      </svg>
+                    </a>
+                  )}
                   {isAdmin && (
                     <button
                       onClick={() => onToggleStatus(published)}
                       disabled={updatingPostId === published.id}
-                      className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-[#999] hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs text-[#999] hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
                       title="Unpublish"
                     >
                       {updatingPostId === published.id ? (
@@ -172,7 +190,7 @@ function TopicCard({
               return (
                 <span
                   key={key}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-sm"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm"
                 >
                   <PlatformIcon platformKey={key} />
                   {PLATFORMS[key].name}
@@ -197,7 +215,7 @@ function TopicCard({
               return (
                 <span
                   key={key}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F5F4F1] text-[#999] text-sm"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F5F4F1] text-[#999] text-sm"
                 >
                   <PlatformIcon platformKey={key} />
                   Coming soon
@@ -314,6 +332,29 @@ export function ContentPageClient({
   const [viewMode, setViewMode] = useState<"client" | "admin">("client");
   const [showCreator, setShowCreator] = useState(false);
   const [updatingPostId, setUpdatingPostId] = useState<string | null>(null);
+  const [panelWidth, setPanelWidth] = useState(576); // default ~xl (max-w-xl = 36rem = 576px)
+  const isDragging = useRef(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      const newWidth = window.innerWidth - e.clientX;
+      setPanelWidth(Math.max(400, Math.min(newWidth, window.innerWidth - 100)));
+    };
+    const handleMouseUp = () => {
+      if (isDragging.current) {
+        isDragging.current = false;
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      }
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
 
   const isAdmin = viewMode === "admin";
   const columns = isAdmin && allColumns ? allColumns : publishedColumns;
@@ -352,10 +393,10 @@ export function ContentPageClient({
       {/* View toggle — only visible to admin */}
       {isAdminUser && (
         <div className="flex items-center gap-2 mb-8">
-          <div className="inline-flex rounded-lg border border-[#E8E6E1] bg-white p-1">
+          <div className="inline-flex rounded-xl border border-[#E8E6E1] bg-white p-1">
             <button
               onClick={() => setViewMode("client")}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+              className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
                 viewMode === "client"
                   ? "bg-[#6B8F71] text-white shadow-sm"
                   : "text-[#666] hover:text-[#1C1C1C]"
@@ -365,7 +406,7 @@ export function ContentPageClient({
             </button>
             <button
               onClick={() => setViewMode("admin")}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+              className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
                 viewMode === "admin"
                   ? "bg-[#6B8F71] text-white shadow-sm"
                   : "text-[#666] hover:text-[#1C1C1C]"
@@ -375,7 +416,7 @@ export function ContentPageClient({
             </button>
           </div>
           {isAdmin && (
-            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md">
+            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl">
               Showing drafts
             </span>
           )}
@@ -420,10 +461,25 @@ export function ContentPageClient({
                 onClick={() => setShowCreator(false)}
               />
               {/* Panel */}
-              <div className="fixed right-0 top-0 z-50 h-full w-full max-w-xl bg-[#FAFAF8] border-l border-[#E8E6E1] shadow-2xl flex flex-col">
+              <div
+                className="fixed right-0 top-0 z-50 h-full bg-[#FAFAF8] border-l border-[#E8E6E1] shadow-2xl flex flex-col"
+                style={{ width: panelWidth }}
+              >
+                {/* Drag handle */}
+                <div
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    isDragging.current = true;
+                    document.body.style.cursor = "col-resize";
+                    document.body.style.userSelect = "none";
+                  }}
+                  className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize z-10 group"
+                >
+                  <div className="absolute left-0 top-0 bottom-0 w-1 group-hover:bg-[#6B8F71]/30 transition-colors" />
+                </div>
                 <div className="flex items-center justify-between px-6 py-4 border-b border-[#E8E6E1]">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#6B8F71]/10 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-xl bg-[#6B8F71]/10 flex items-center justify-center">
                       <svg className="w-4 h-4 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                       </svg>
@@ -432,7 +488,7 @@ export function ContentPageClient({
                   </div>
                   <button
                     onClick={() => setShowCreator(false)}
-                    className="p-2 text-[#999] hover:text-[#1C1C1C] transition-colors rounded-lg hover:bg-[#E8E6E1]/50"
+                    className="p-2 text-[#999] hover:text-[#1C1C1C] transition-colors rounded-xl hover:bg-[#E8E6E1]/50"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />

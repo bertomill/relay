@@ -49,7 +49,15 @@ export const PLATFORMS: Record<string, PlatformMeta> = {
     iconPath:
       "M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z",
   },
+  website: {
+    key: "website",
+    name: "Website",
+    handle: "lightenai.com",
+    url: "https://lightenai.com/content",
+    iconPath:
+      "M12 21a9 9 0 100-18 9 9 0 000 18zm0-18c2.5 0 4.5 4.03 4.5 9s-2 9-4.5 9-4.5-4.03-4.5-9 2-9 4.5-9zM3 12h18",
+  },
 };
 
 /** Ordered list of platform keys for consistent display */
-export const PLATFORM_ORDER = ["x", "medium", "linkedin", "instagram", "youtube"] as const;
+export const PLATFORM_ORDER = ["website", "x", "medium", "linkedin", "instagram", "youtube"] as const;

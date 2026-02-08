@@ -1,8 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import fs from "fs/promises";
-import path from "path";
 import ReactMarkdown from "react-markdown";
 import { Navigation } from "@/app/components/Navigation";
 import { Footer } from "@/app/components/Footer";
@@ -27,15 +25,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-async function getArticleMarkdown(topicSlug: string): Promise<string | null> {
-  try {
-    const filePath = path.join(process.cwd(), "content", "drafts", topicSlug, "medium-blog.md");
-    return await fs.readFile(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-}
-
 export default async function TopicDetailPage({ params }: PageProps) {
   const { columnSlug, topicSlug } = await params;
   const result = await getTopicBySlug(columnSlug, topicSlug);
@@ -43,7 +32,11 @@ export default async function TopicDetailPage({ params }: PageProps) {
   if (!result) notFound();
 
   const { column, topic } = result;
-  const markdown = await getArticleMarkdown(topicSlug);
+
+  // Get article body from the "website" post, or fall back to "medium" post body
+  const websitePost = topic.posts.find((p) => p.platform === "website");
+  const mediumPost = topic.posts.find((p) => p.platform === "medium");
+  const articleBody = websitePost?.body ?? mediumPost?.body ?? null;
 
   const publishedByPlatform = new Map(
     topic.posts
@@ -113,7 +106,7 @@ export default async function TopicDetailPage({ params }: PageProps) {
                     href={published.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#6B8F71]/10 text-[#6B8F71] text-sm font-medium hover:bg-[#6B8F71]/20 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#6B8F71]/10 text-[#6B8F71] text-sm font-medium hover:bg-[#6B8F71]/20 transition-colors"
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d={meta.iconPath} />
@@ -130,9 +123,9 @@ export default async function TopicDetailPage({ params }: PageProps) {
         </header>
 
         {/* Article body */}
-        {markdown ? (
+        {articleBody ? (
           <article className="py-12 prose prose-lg max-w-none prose-headings:text-[#1C1C1C] prose-headings:font-bold prose-p:text-[#444] prose-p:leading-relaxed prose-a:text-[#6B8F71] prose-a:no-underline hover:prose-a:underline prose-strong:text-[#1C1C1C] prose-li:text-[#444] prose-th:text-[#1C1C1C] prose-td:text-[#444] prose-hr:border-[#E8E6E1]">
-            <ReactMarkdown>{markdown}</ReactMarkdown>
+            <ReactMarkdown>{articleBody}</ReactMarkdown>
           </article>
         ) : (
           <div className="py-16 text-center">

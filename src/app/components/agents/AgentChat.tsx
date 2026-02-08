@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 
 interface QuestionOption {
   label: string;
@@ -623,16 +624,40 @@ export default function AgentChat({
                             : "bg-[#F5F4F0] text-[#1C1C1C]"
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">
-                          {message.content || (message.role === "assistant" && isLoading ? (
+                        {message.content ? (
+                          message.role === "assistant" ? (
+                            <div className="text-sm prose prose-sm max-w-none prose-headings:text-[#1C1C1C] prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2 prose-p:text-[#444] prose-p:my-1.5 prose-p:leading-relaxed prose-a:text-[#6B8F71] prose-strong:text-[#1C1C1C] prose-li:text-[#444] prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2 prose-hr:border-[#E8E6E1] prose-hr:my-4 prose-code:text-[#6B8F71] prose-code:bg-[#6B8F71]/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-white prose-pre:border prose-pre:border-[#E8E6E1] prose-pre:rounded-lg prose-blockquote:border-[#6B8F71] prose-blockquote:text-[#555]">
+                              <ReactMarkdown>{message.content}</ReactMarkdown>
+                            </div>
+                          ) : (
+                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          )
+                        ) : (
+                          message.role === "assistant" && isLoading ? (
                             <span className="inline-flex items-center gap-1">
                               <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-[#999]" style={{ animationDelay: "0ms" }} />
                               <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-[#999]" style={{ animationDelay: "150ms" }} />
                               <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-[#999]" style={{ animationDelay: "300ms" }} />
                             </span>
-                          ) : "")}
-                        </p>
+                          ) : null
+                        )}
                       </div>
+
+                      {/* Copy button for assistant messages with content */}
+                      {message.role === "assistant" && message.content && !isLoading && (
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(message.content);
+                          }}
+                          className="self-start flex items-center gap-1 text-xs text-[#999] hover:text-[#6B8F71] hover:bg-[#F5F4F0] px-2 py-1 rounded-lg transition-colors"
+                          title="Copy to clipboard"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+                          </svg>
+                          Copy
+                        </button>
+                      )}
 
                       {/* Question UI */}
                       {message.pendingQuestion && (

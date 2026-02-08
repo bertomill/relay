@@ -67,7 +67,7 @@ function LoginForm() {
             </span>
           </Link>
         </div>
-        <div className="bg-white border border-[#E8E6E1] rounded-2xl p-8">
+        <div className="bg-white border border-[#E8E6E1] rounded-3xl p-8">
           <div className="w-12 h-12 bg-[#6B8F71]/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-6 h-6 text-[#6B8F71]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -98,7 +98,7 @@ function LoginForm() {
         </h1>
       </div>
 
-      <div className="bg-white border border-[#E8E6E1] rounded-2xl p-6">
+      <div className="bg-white border border-[#E8E6E1] rounded-3xl p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm text-[#666] mb-2">Email</label>
@@ -107,7 +107,7 @@ function LoginForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-[#FAFAF8] border border-[#E8E6E1] rounded-lg text-[#1C1C1C] placeholder-[#999] focus:outline-none focus:border-[#6B8F71] transition-colors text-sm"
+              className="w-full px-4 py-3 bg-[#FAFAF8] border border-[#E8E6E1] rounded-2xl text-[#1C1C1C] placeholder-[#999] focus:outline-none focus:border-[#6B8F71] transition-colors text-sm"
               placeholder="your@email.com"
             />
           </div>
@@ -118,7 +118,7 @@ function LoginForm() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-[#FAFAF8] border border-[#E8E6E1] rounded-lg text-[#1C1C1C] placeholder-[#999] focus:outline-none focus:border-[#6B8F71] transition-colors text-sm"
+              className="w-full px-4 py-3 bg-[#FAFAF8] border border-[#E8E6E1] rounded-2xl text-[#1C1C1C] placeholder-[#999] focus:outline-none focus:border-[#6B8F71] transition-colors text-sm"
               placeholder="••••••••"
               minLength={6}
             />
@@ -129,7 +129,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 bg-[#D97757] text-white font-semibold rounded-lg hover:bg-[#c4684a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-[#D97757] text-white font-semibold rounded-2xl hover:bg-[#c4684a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading
               ? mode === "signin"

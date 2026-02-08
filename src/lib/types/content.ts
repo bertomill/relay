@@ -25,8 +25,9 @@ export interface Topic {
 export interface Post {
   id: string;
   topic_id: string;
-  platform: "x" | "medium" | "linkedin" | "instagram" | "youtube";
+  platform: "website" | "x" | "medium" | "linkedin" | "instagram" | "youtube";
   title: string;
+  body: string | null;
   url: string | null;
   excerpt: string | null;
   status: "draft" | "published";

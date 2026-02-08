@@ -114,9 +114,9 @@ export default function OfferPage() {
           <div className="grid md:grid-cols-2 gap-6">
             {GAP_EXAMPLES.map((gap, i) => (
               <AnimateIn key={gap.area} animation="fade-up" delay={i * 100}>
-                <div className="bg-white border border-[#E8E6E1] rounded-2xl p-8 hover:border-[#6B8F71]/40 transition-all duration-300">
+                <div className="bg-white border border-[#E8E6E1] rounded-3xl p-8 hover:border-[#6B8F71]/40 transition-all duration-300">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-[#6B8F71]/10 flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-[#6B8F71]/10 flex items-center justify-center shrink-0">
                       <svg className="w-6 h-6 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={gap.icon} />
                       </svg>
@@ -132,7 +132,7 @@ export default function OfferPage() {
           </div>
 
           <AnimateIn animation="fade-up" delay={400}>
-            <div className="mt-10 bg-[#F5F4F1] rounded-2xl p-8 lg:p-10">
+            <div className="mt-10 bg-[#F5F4F1] rounded-3xl p-8 lg:p-10">
               <p className="text-lg text-[#1C1C1C] font-semibold mb-2">
                 The real question isn&apos;t &ldquo;Can we afford to invest in AI?&rdquo;
               </p>
@@ -160,11 +160,11 @@ export default function OfferPage() {
           <div className="space-y-8">
             {PROCESS_STEPS.map((step, i) => (
               <AnimateIn key={step.step} animation={i % 2 === 0 ? "slide-right" : "slide-left"} delay={i * 100}>
-                <div className="bg-white border border-[#E8E6E1] rounded-2xl p-8 lg:p-10 hover:border-[#6B8F71]/40 transition-all duration-300 hover:shadow-lg hover:shadow-[#6B8F71]/8">
+                <div className="bg-white border border-[#E8E6E1] rounded-3xl p-8 lg:p-10 hover:border-[#6B8F71]/40 transition-all duration-300 hover:shadow-lg hover:shadow-[#6B8F71]/8">
                   <div className="grid lg:grid-cols-[1fr,1.2fr] gap-8 items-start">
                     <div>
                       <div className="flex items-center gap-4 mb-4">
-                        <div className="w-12 h-12 rounded-xl bg-[#6B8F71]/10 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-2xl bg-[#6B8F71]/10 flex items-center justify-center">
                           <svg className="w-6 h-6 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={step.icon} />
                           </svg>
@@ -174,7 +174,7 @@ export default function OfferPage() {
                       <h3 className="text-2xl font-bold mb-3 text-[#1C1C1C]">{step.title}</h3>
                       <p className="text-[#555] leading-relaxed">{step.description}</p>
                     </div>
-                    <div className="bg-[#FAFAF8] rounded-xl p-6">
+                    <div className="bg-[#FAFAF8] rounded-2xl p-6">
                       <p className="text-xs font-semibold text-[#999] uppercase tracking-[0.15em] mb-4">What this includes</p>
                       <ul className="space-y-3">
                         {step.details.map((detail) => (
@@ -197,7 +197,7 @@ export default function OfferPage() {
         {/* ROI Framing */}
         <section className="py-16 border-t border-[#E8E6E1]">
           <AnimateIn animation="fade-up">
-            <div className="relative rounded-3xl p-10 lg:p-14 overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(107,143,113,0.08) 0%, rgba(107,143,113,0.04) 100%)" }}>
+            <div className="relative rounded-[2rem] p-10 lg:p-14 overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(107,143,113,0.08) 0%, rgba(107,143,113,0.04) 100%)" }}>
               <div className="max-w-3xl mx-auto text-center relative z-10">
                 <span className="inline-block text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">The Math</span>
                 <h2 className="text-2xl md:text-3xl font-bold mb-6 text-[#1C1C1C] leading-relaxed">
@@ -236,7 +236,7 @@ export default function OfferPage() {
                   "You want measurable ROI, not vague promises",
                   "You're ready to invest in strategy, not just software",
                 ].map((item) => (
-                  <div key={item} className="flex items-start gap-3 bg-white border border-[#E8E6E1] rounded-xl p-4">
+                  <div key={item} className="flex items-start gap-3 bg-white border border-[#E8E6E1] rounded-2xl p-4">
                     <svg className="w-5 h-5 text-[#6B8F71] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12.75l6 6 9-13.5" />
                     </svg>
@@ -259,7 +259,7 @@ export default function OfferPage() {
             </div>
           </AnimateIn>
           <AnimateIn animation="fade-up" delay={100}>
-            <div className="bg-white rounded-3xl shadow-xl shadow-[#6B8F71]/8 border border-[#E8E6E1] overflow-hidden max-w-2xl mx-auto">
+            <div className="bg-white rounded-[2rem] shadow-xl shadow-[#6B8F71]/8 border border-[#E8E6E1] overflow-hidden max-w-2xl mx-auto">
               <CalendlyWidget />
             </div>
           </AnimateIn>

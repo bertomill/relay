@@ -42,8 +42,9 @@ create table public.topics (
 create table public.posts (
   id uuid primary key default gen_random_uuid(),
   topic_id uuid not null references public.topics(id) on delete cascade,
-  platform text not null check (platform in ('x', 'medium', 'linkedin', 'instagram', 'youtube')),
+  platform text not null check (platform in ('website', 'x', 'medium', 'linkedin', 'instagram', 'youtube')),
   title text not null,
+  body text,
   url text,
   excerpt text,
   status text not null default 'draft' check (status in ('draft', 'published')),

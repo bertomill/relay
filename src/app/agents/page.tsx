@@ -28,10 +28,10 @@ export default function Agents() {
             <Link
               key={agent.id}
               href={`/agents/${agent.id}`}
-              className="group bg-white border border-[#E8E6E1] rounded-xl p-6 hover:border-[#6B8F71]/50 transition-all hover:shadow-lg hover:shadow-[#6B8F71]/5"
+              className="group bg-white border border-[#E8E6E1] rounded-2xl p-6 hover:border-[#6B8F71]/50 transition-all hover:shadow-lg hover:shadow-[#6B8F71]/5"
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="w-10 h-10 rounded-lg bg-[#6B8F71]/10 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-[#6B8F71]/10 flex items-center justify-center">
                   <svg className="w-5 h-5 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={agent.iconPath} />
                   </svg>
@@ -53,8 +53,8 @@ export default function Agents() {
           ))}
 
           {/* Add new agent card */}
-          <div className="bg-[#FAFAF8] border border-dashed border-[#D5D3CE] rounded-xl p-6 flex flex-col items-center justify-center text-center min-h-[180px] hover:border-[#999] transition-colors cursor-pointer">
-            <div className="w-10 h-10 rounded-lg bg-[#E8E6E1] flex items-center justify-center mb-3">
+          <div className="bg-[#FAFAF8] border border-dashed border-[#D5D3CE] rounded-2xl p-6 flex flex-col items-center justify-center text-center min-h-[180px] hover:border-[#999] transition-colors cursor-pointer">
+            <div className="w-10 h-10 rounded-xl bg-[#E8E6E1] flex items-center justify-center mb-3">
               <svg className="w-5 h-5 text-[#999]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
@@ -77,7 +77,7 @@ export default function Agents() {
             </p>
           </div>
 
-          <div className="bg-white border border-[#E8E6E1] rounded-xl overflow-hidden">
+          <div className="bg-white border border-[#E8E6E1] rounded-2xl overflow-hidden">
             {/* Problem / Solution */}
             <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[#E8E6E1]">
               <div className="p-6">
@@ -116,7 +116,7 @@ export default function Agents() {
             <div className="border-t border-[#E8E6E1] p-6">
               <p className="text-xs font-medium text-[#999] mb-4">Architecture</p>
               <div className="flex flex-col items-center gap-3">
-                <div className="bg-[#6B8F71]/10 border border-[#6B8F71]/30 rounded-lg px-4 py-2 text-sm font-medium text-[#6B8F71]">
+                <div className="bg-[#6B8F71]/10 border border-[#6B8F71]/30 rounded-xl px-4 py-2 text-sm font-medium text-[#6B8F71]">
                   Scout Orchestrator
                 </div>
                 <div className="flex flex-col items-center">
@@ -126,13 +126,13 @@ export default function Agents() {
                   </svg>
                 </div>
                 <div className="flex flex-wrap justify-center gap-3">
-                  <div className="bg-[#F5F4F0] border border-[#E8E6E1] rounded-lg px-3 py-1.5 text-xs text-[#555]">
+                  <div className="bg-[#F5F4F0] border border-[#E8E6E1] rounded-xl px-3 py-1.5 text-xs text-[#555]">
                     web-researcher
                   </div>
-                  <div className="bg-[#F5F4F0] border border-[#E8E6E1] rounded-lg px-3 py-1.5 text-xs text-[#555]">
+                  <div className="bg-[#F5F4F0] border border-[#E8E6E1] rounded-xl px-3 py-1.5 text-xs text-[#555]">
                     web-researcher
                   </div>
-                  <div className="bg-[#F5F4F0] border border-[#E8E6E1] rounded-lg px-3 py-1.5 text-xs text-[#555]">
+                  <div className="bg-[#F5F4F0] border border-[#E8E6E1] rounded-xl px-3 py-1.5 text-xs text-[#555]">
                     web-researcher
                   </div>
                 </div>
@@ -143,10 +143,10 @@ export default function Agents() {
                   </svg>
                 </div>
                 <div className="flex flex-wrap justify-center gap-3">
-                  <div className="bg-[#F5F4F0] border border-[#E8E6E1] rounded-lg px-3 py-1.5 text-xs text-[#555]">
+                  <div className="bg-[#F5F4F0] border border-[#E8E6E1] rounded-xl px-3 py-1.5 text-xs text-[#555]">
                     fact-checker
                   </div>
-                  <div className="bg-[#F5F4F0] border border-[#E8E6E1] rounded-lg px-3 py-1.5 text-xs text-[#555]">
+                  <div className="bg-[#F5F4F0] border border-[#E8E6E1] rounded-xl px-3 py-1.5 text-xs text-[#555]">
                     synthesizer
                   </div>
                 </div>
@@ -156,7 +156,7 @@ export default function Agents() {
                     <path d="M6 9L1.5 4.5h9L6 9z" />
                   </svg>
                 </div>
-                <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 text-sm font-medium text-emerald-700">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 text-sm font-medium text-emerald-700">
                   Structured Research Report
                 </div>
               </div>
@@ -170,7 +170,7 @@ export default function Agents() {
               </div>
               <Link
                 href="/agents/scout"
-                className="px-4 py-2 bg-[#6B8F71] text-white font-semibold rounded-lg hover:bg-[#5A7D60] transition-colors text-sm"
+                className="px-4 py-2 bg-[#6B8F71] text-white font-semibold rounded-xl hover:bg-[#5A7D60] transition-colors text-sm"
               >
                 Try Scout →
               </Link>

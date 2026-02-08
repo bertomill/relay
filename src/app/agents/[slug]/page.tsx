@@ -25,7 +25,7 @@ export default function AgentShowcase() {
       <AnimateIn animation="fade-up">
         <div className="mb-16">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-2xl bg-[#6B8F71]/10 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-3xl bg-[#6B8F71]/10 flex items-center justify-center">
               <svg className="w-8 h-8 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={agent.iconPath} />
               </svg>
@@ -49,13 +49,13 @@ export default function AgentShowcase() {
           <div className="mt-6 flex items-center gap-4">
             <Link
               href={`/agents/${agent.id}/chat`}
-              className="px-5 py-2.5 bg-[#6B8F71] text-white font-semibold rounded-lg hover:bg-[#5A7D60] transition-colors text-sm"
+              className="px-5 py-2.5 bg-[#6B8F71] text-white font-semibold rounded-xl hover:bg-[#5A7D60] transition-colors text-sm"
             >
               Open Full Chat
             </Link>
             <a
               href="#try-it"
-              className="px-5 py-2.5 text-sm text-[#666] hover:text-[#6B8F71] transition-colors border border-[#E8E6E1] rounded-lg hover:border-[#6B8F71]/50"
+              className="px-5 py-2.5 text-sm text-[#666] hover:text-[#6B8F71] transition-colors border border-[#E8E6E1] rounded-xl hover:border-[#6B8F71]/50"
             >
               Try it below
             </a>
@@ -71,9 +71,9 @@ export default function AgentShowcase() {
             {agent.capabilities.map((cap, i) => (
               <div
                 key={i}
-                className="bg-white border border-[#E8E6E1] rounded-xl p-5"
+                className="bg-white border border-[#E8E6E1] rounded-2xl p-5"
               >
-                <div className="w-10 h-10 rounded-lg bg-[#6B8F71]/10 flex items-center justify-center mb-3">
+                <div className="w-10 h-10 rounded-xl bg-[#6B8F71]/10 flex items-center justify-center mb-3">
                   <svg className="w-5 h-5 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={cap.icon} />
                   </svg>
@@ -91,7 +91,7 @@ export default function AgentShowcase() {
         <AnimateIn animation="fade-up" delay={200}>
           <div className="mb-16">
             <h2 className="text-2xl font-bold tracking-tight mb-6 text-[#1C1C1C]">Architecture</h2>
-            <div className="bg-white border border-[#E8E6E1] rounded-xl p-6">
+            <div className="bg-white border border-[#E8E6E1] rounded-2xl p-6">
               <div className="flex flex-col items-center gap-3">
                 {agent.architecture.map((layer, layerIdx) => (
                   <div key={layerIdx} className="contents">
@@ -114,7 +114,7 @@ export default function AgentShowcase() {
                               onClick={() =>
                                 setActiveNode(isActive ? null : nodeKey)
                               }
-                              className={`rounded-lg px-4 py-2 text-sm font-medium transition-all cursor-pointer ${
+                              className={`rounded-xl px-4 py-2 text-sm font-medium transition-all cursor-pointer ${
                                 node.type === "orchestrator"
                                   ? `bg-[#6B8F71]/10 border border-[#6B8F71]/30 text-[#6B8F71] ${isActive ? "ring-2 ring-[#6B8F71]/40" : "hover:bg-[#6B8F71]/15"}`
                                   : node.type === "result"

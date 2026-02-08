@@ -67,7 +67,7 @@ export default async function ContentPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   title={`${p.name} — ${p.handle}`}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-[#E8E6E1] text-[#555] hover:border-[#6B8F71]/40 hover:text-[#6B8F71] transition-all duration-200"
+                  className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white border border-[#E8E6E1] text-[#555] hover:border-[#6B8F71]/40 hover:text-[#6B8F71] transition-all duration-200"
                 >
                   <svg
                     className="w-5 h-5"
@@ -94,7 +94,7 @@ export default async function ContentPage() {
 
         {/* CTA */}
         <section className="py-16 border-t border-[#E8E6E1]">
-          <div className="bg-[#6B8F71] rounded-3xl p-10 lg:p-14 text-center text-white">
+          <div className="bg-[#6B8F71] rounded-[2rem] p-10 lg:p-14 text-center text-white">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Want to stay in the loop?
             </h2>
@@ -103,7 +103,7 @@ export default async function ContentPage() {
             </p>
             <Link
               href="/"
-              className="inline-block px-8 py-4 bg-white text-[#6B8F71] font-semibold rounded-xl hover:bg-white/90 transition-all duration-200 cursor-pointer active:scale-[0.98]"
+              className="inline-block px-8 py-4 bg-white text-[#6B8F71] font-semibold rounded-2xl hover:bg-white/90 transition-all duration-200 cursor-pointer active:scale-[0.98]"
             >
               Get in touch
             </Link>

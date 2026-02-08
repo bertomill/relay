@@ -17,7 +17,7 @@ export default function FAQAccordion({ items }: FAQAccordionProps) {
         return (
           <div
             key={index}
-            className="bg-white border border-[#E8E6E1] rounded-xl overflow-hidden"
+            className="bg-white border border-[#E8E6E1] rounded-2xl overflow-hidden"
           >
             <button
               onClick={() => setOpenIndex(isOpen ? null : index)}
