@@ -115,23 +115,53 @@ Keep responses well-structured. When presenting drafts, show just the message te
                     })}\n\n`
                   )
                 );
-              } else if (
-                block.type === "tool_use" &&
-                block.name === "Task"
-              ) {
-                controller.enqueue(
-                  encoder.encode(
-                    `data: ${JSON.stringify({
-                      type: "subagent_start",
-                      agentType: block.input?.subagent_type || "unknown",
-                      description: block.input?.description || "Working...",
-                      rawMessage: msg,
-                    })}\n\n`
-                  )
-                );
+              } else if (block.type === "tool_use") {
+                if (block.name === "Task") {
+                  controller.enqueue(
+                    encoder.encode(
+                      `data: ${JSON.stringify({
+                        type: "subagent_start",
+                        agentType: block.input?.subagent_type || "unknown",
+                        description: block.input?.description || "Working...",
+                        rawMessage: msg,
+                      })}\n\n`
+                    )
+                  );
+                }
+
+                // Emit status updates for tool use
+                const statusMap: Record<string, string> = {
+                  Skill: "Loading outreach guidelines...",
+                  WebSearch: "Researching this person...",
+                  WebFetch: "Reading their profile...",
+                  AskUserQuestion: "Preparing questions...",
+                };
+                const status = statusMap[block.name as string];
+                if (status) {
+                  controller.enqueue(
+                    encoder.encode(
+                      `data: ${JSON.stringify({
+                        type: "status",
+                        status,
+                      })}\n\n`
+                    )
+                  );
+                }
               }
             }
           } else {
+            // Emit "Thinking..." when the agent receives tool results and is about to reason
+            if (msg.type === "result") {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: "status",
+                    status: "Thinking...",
+                  })}\n\n`
+                )
+              );
+            }
+
             controller.enqueue(
               encoder.encode(
                 `data: ${JSON.stringify({

@@ -193,7 +193,7 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
   );
 
   const markInquiriesReviewed = useCallback(() => {
-    update((prev) => ({ ...prev, inquiriesReviewed: true }));
+    update((prev) => ({ ...prev, inquiriesReviewed: !prev.inquiriesReviewed }));
   }, [update]);
 
   const updateOutreachSlot = useCallback(
@@ -219,15 +219,15 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
   );
 
   const markContentCreated = useCallback(() => {
-    update((prev) => ({ ...prev, contentCreated: true }));
+    update((prev) => ({ ...prev, contentCreated: !prev.contentCreated }));
   }, [update]);
 
   const markLearningCompleted = useCallback(() => {
-    update((prev) => ({ ...prev, learningCompleted: true }));
+    update((prev) => ({ ...prev, learningCompleted: !prev.learningCompleted }));
   }, [update]);
 
   const markWebsiteImproved = useCallback(() => {
-    update((prev) => ({ ...prev, websiteImproved: true }));
+    update((prev) => ({ ...prev, websiteImproved: !prev.websiteImproved }));
   }, [update]);
 
   // Outreach step is complete when 3+ of 5 slots are done

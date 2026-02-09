@@ -38,6 +38,8 @@ const CATEGORY_CONFIG: Record<OutreachCategory, {
   icon: string;
   optional?: boolean;
   sourceTag: string;
+  searchQuery?: string;
+  searchFilters?: string[];
 }> = {
   notification: {
     label: "Notification Lead",
@@ -53,7 +55,14 @@ const CATEGORY_CONFIG: Record<OutreachCategory, {
   },
   search: {
     label: "Search Find",
-    instruction: "Search LinkedIn for AI + Toronto + Founder",
+    instruction: "Paste the query below into LinkedIn People search, apply filters, and connect with someone",
+    searchQuery: "Founder CEO Owner",
+    searchFilters: [
+      "Connections: 2nd + 3rd+ (prioritize 2nd — mutual connections = warm intro)",
+      "Location: Greater Toronto Area, Canada",
+      "Industry: Professional Services, Real Estate, Healthcare, or Legal",
+      "Skip anyone already in tech/AI — they don't need you",
+    ],
     icon: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z",
     sourceTag: "daily_search",
   },
@@ -83,6 +92,7 @@ export default function Step2Outreach({
   const doneCount = slots.filter((s) => s.done).length;
   const [expandedSlot, setExpandedSlot] = useState<number | null>(null);
   const [agentChatSlot, setAgentChatSlot] = useState<number | null>(null);
+  const [copiedQuery, setCopiedQuery] = useState(false);
 
   const persistToSupabase = (slot: OutreachSlot) => {
     const catConfig = CATEGORY_CONFIG[slot.category];
@@ -192,6 +202,44 @@ export default function Step2Outreach({
                     <span className="text-[9px] text-[#999] uppercase tracking-wider">optional</span>
                   )}
                 </div>
+
+                {/* Copyable search query */}
+                {catConfig.searchQuery && (
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(catConfig.searchQuery!);
+                      setCopiedQuery(true);
+                      setTimeout(() => setCopiedQuery(false), 2000);
+                    }}
+                    className="mx-3 mb-1.5 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-700 hover:bg-blue-100 transition-colors w-fit"
+                    title="Copy search query"
+                  >
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      {copiedQuery ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      )}
+                    </svg>
+                    <span className="font-mono">{catConfig.searchQuery}</span>
+                    <span className="text-blue-400">{copiedQuery ? "Copied!" : "Copy"}</span>
+                  </button>
+                )}
+
+                {/* Search filter tips */}
+                {catConfig.searchFilters && !slot.done && (
+                  <div className="mx-3 mb-2 px-3 py-2 rounded-lg bg-[#FAFAF8] border border-[#E8E6E1]">
+                    <p className="text-[10px] font-semibold text-[#999] uppercase tracking-wider mb-1.5">Recommended filters</p>
+                    <ul className="space-y-1">
+                      {catConfig.searchFilters.map((filter, fi) => (
+                        <li key={fi} className="flex items-start gap-1.5 text-xs text-[#666]">
+                          <span className="text-[#6B8F71] mt-0.5 shrink-0">&#8250;</span>
+                          {filter}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {/* Main row */}
                 <div className="flex items-center gap-3 px-3 pb-3">

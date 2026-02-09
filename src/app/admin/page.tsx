@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useDailyProgress, getTodayString } from "./hooks/useDailyProgress";
 import MorningProgress from "./components/MorningProgress";
@@ -74,13 +74,16 @@ export default function AdminDashboard() {
     setSelectedDate(getTodayString());
   }, []);
 
-  // Auto-expand first incomplete step (only for today)
+  // Auto-expand first incomplete step on initial load only
+  const hasAutoExpanded = useRef(false);
   useEffect(() => {
-    if (!isLoading && isToday) {
+    if (!isLoading && isToday && !hasAutoExpanded.current) {
+      hasAutoExpanded.current = true;
       const firstIncomplete = stepsComplete.findIndex((s) => !s);
       setExpandedStep(firstIncomplete === -1 ? null : firstIncomplete);
     } else if (!isToday) {
       setExpandedStep(null);
+      hasAutoExpanded.current = false;
     }
   }, [isLoading, stepsComplete, isToday]);
 
@@ -136,24 +139,28 @@ export default function AdminDashboard() {
   }, []);
 
   const handleInquiriesComplete = useCallback(() => {
+    const wasComplete = stepsComplete[0];
     markInquiriesReviewed();
-    advanceToNext(0);
-  }, [markInquiriesReviewed, advanceToNext]);
+    if (!wasComplete) advanceToNext(0);
+  }, [markInquiriesReviewed, advanceToNext, stepsComplete]);
 
   const handleContentComplete = useCallback(() => {
+    const wasComplete = stepsComplete[2];
     markContentCreated();
-    advanceToNext(2);
-  }, [markContentCreated, advanceToNext]);
+    if (!wasComplete) advanceToNext(2);
+  }, [markContentCreated, advanceToNext, stepsComplete]);
 
   const handleLearningComplete = useCallback(() => {
+    const wasComplete = stepsComplete[3];
     markLearningCompleted();
-    advanceToNext(3);
-  }, [markLearningCompleted, advanceToNext]);
+    if (!wasComplete) advanceToNext(3);
+  }, [markLearningCompleted, advanceToNext, stepsComplete]);
 
   const handleImproveComplete = useCallback(() => {
+    const wasComplete = stepsComplete[4];
     markWebsiteImproved();
-    advanceToNext(4);
-  }, [markWebsiteImproved, advanceToNext]);
+    if (!wasComplete) advanceToNext(4);
+  }, [markWebsiteImproved, advanceToNext, stepsComplete]);
 
   // Greeting based on time of day
   const getGreeting = () => {

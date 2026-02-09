@@ -92,6 +92,7 @@ export default function AgentChat({
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string[]>>({});
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [statusText, setStatusText] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -272,6 +273,8 @@ export default function AgentChat({
     }
 
     setInput("");
+    const textarea = formRef.current?.querySelector("textarea");
+    if (textarea) textarea.style.height = "auto";
     setIsLoading(true);
 
     setMessages((prev) => [...prev, {
@@ -323,7 +326,12 @@ export default function AgentChat({
                 setSessionId(parsed.sessionId);
               }
 
+              if (parsed.type === "status" && parsed.status) {
+                setStatusText(parsed.status);
+              }
+
               if (parsed.type === "text" && parsed.text) {
+                setStatusText(null);
                 setMessages((prev) => {
                   const newMessages = [...prev];
                   const lastMessage = newMessages[newMessages.length - 1];
@@ -429,6 +437,7 @@ export default function AgentChat({
       });
     } finally {
       setIsLoading(false);
+      setStatusText(null);
     }
   };
 
@@ -616,7 +625,7 @@ export default function AgentChat({
 
             <span className="flex items-center gap-1.5 text-xs text-[#888] bg-white px-3 py-1.5 rounded-full border border-[#E8E6E1]">
               <span className={`w-1.5 h-1.5 rounded-full ${isLoading ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`} />
-              {isLoading ? loadingText : "Online"}
+              {isLoading ? (statusText || loadingText) : "Online"}
             </span>
           </div>
         </div>
@@ -634,9 +643,9 @@ export default function AgentChat({
                 </span>
               )}
               {isLoading && (
-                <span className="flex items-center gap-1 text-[10px] text-amber-600">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                  {loadingText}
+                <span className="flex items-center gap-1 text-[10px] text-[#6B8F71]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#6B8F71] animate-pulse" />
+                  {statusText || loadingText}
                 </span>
               )}
             </div>
@@ -797,14 +806,31 @@ export default function AgentChat({
                           )
                         ) : (
                           message.role === "assistant" && isLoading ? (
-                            <span className="inline-flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-[#999]" style={{ animationDelay: "0ms" }} />
-                              <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-[#999]" style={{ animationDelay: "150ms" }} />
-                              <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-[#999]" style={{ animationDelay: "300ms" }} />
+                            <span className="inline-flex items-center gap-2">
+                              <span className="inline-flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-[#6B8F71]" style={{ animationDelay: "0ms" }} />
+                                <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-[#6B8F71]" style={{ animationDelay: "150ms" }} />
+                                <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-[#6B8F71]" style={{ animationDelay: "300ms" }} />
+                              </span>
+                              {statusText && (
+                                <span className="text-xs text-[#6B8F71] animate-pulse">{statusText}</span>
+                              )}
                             </span>
                           ) : null
                         )}
                       </div>
+
+                      {/* Status indicator while agent is working between text outputs */}
+                      {message.role === "assistant" && message.content && isLoading && index === messages.length - 1 && statusText && (
+                        <div className="flex items-center gap-2 mt-1 ml-1">
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-1 h-1 rounded-full animate-bounce bg-[#6B8F71]" style={{ animationDelay: "0ms" }} />
+                            <span className="w-1 h-1 rounded-full animate-bounce bg-[#6B8F71]" style={{ animationDelay: "150ms" }} />
+                            <span className="w-1 h-1 rounded-full animate-bounce bg-[#6B8F71]" style={{ animationDelay: "300ms" }} />
+                          </span>
+                          <span className="text-xs text-[#6B8F71] animate-pulse">{statusText}</span>
+                        </div>
+                      )}
 
                       {/* Copy button for assistant messages with content */}
                       {message.role === "assistant" && message.content && !isLoading && (
@@ -1022,13 +1048,23 @@ export default function AgentChat({
                 </button>
               </>
             )}
-            <input
-              type="text"
+            <textarea
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                setInput(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = e.target.scrollHeight + "px";
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  formRef.current?.requestSubmit();
+                }
+              }}
               placeholder={placeholder}
               disabled={isLoading}
-              className="flex-1 px-4 py-3 bg-[#FAFAF8] border border-[#E8E6E1] rounded-xl text-[#1C1C1C] placeholder-[#999] focus:outline-none focus:border-[#6B8F71] transition-colors text-sm disabled:opacity-50"
+              rows={1}
+              className="flex-1 px-4 py-3 bg-[#FAFAF8] border border-[#E8E6E1] rounded-xl text-[#1C1C1C] placeholder-[#999] focus:outline-none focus:border-[#6B8F71] transition-colors text-sm disabled:opacity-50 resize-none max-h-32 overflow-y-auto"
             />
             <button
               type="submit"
