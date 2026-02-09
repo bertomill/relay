@@ -8,6 +8,8 @@ const AgentChat = dynamic(() => import("@/app/components/agents/AgentChat"), {
   ssr: false,
 });
 
+const CONTENT_ICON = "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10";
+
 interface ContentIdea {
   id: string;
   title: string;
@@ -28,6 +30,7 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [selectedIdea, setSelectedIdea] = useState<ContentIdea | null>(null);
+  const [showChat, setShowChat] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -208,31 +211,70 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
         )}
       </div>
 
-      {/* Agent chat */}
-      <div className="rounded-lg border border-[#E8E6E1] overflow-hidden" style={{ height: "500px" }}>
-        <AgentChat
-          agentId="content-creator"
-          apiEndpoint="/api/agents/content-creator"
-          storageKey="morning-linkedin-sessions"
-          placeholder="Describe your LinkedIn post idea..."
-          emptyStateTitle={selectedIdea ? `Draft: ${selectedIdea.title}` : "Create today's LinkedIn post"}
-          emptyStateDescription={
-            selectedIdea
-              ? (selectedIdea.description || "Click the prompt below to start writing this post.")
-              : "Pick an idea above or describe a new one. I'll help with writing and formatting."
-          }
-          loadingText="Drafting..."
-          agentIcon="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
-          agentName="Content Creator"
-          variant="embedded"
-          starterPrompts={buildStarterPrompts()}
-          fileUpload={{
-            accept: "audio/*,video/*,image/*",
-            maxSizeMB: 100,
-            endpoint: "/api/upload",
-          }}
-        />
-      </div>
+      {/* Open Content Creator button */}
+      <button
+        onClick={() => setShowChat(true)}
+        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[#6B8F71]/30 bg-[#6B8F71]/5 text-[#6B8F71] text-sm font-medium hover:bg-[#6B8F71]/10 hover:border-[#6B8F71]/50 transition-colors duration-200"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d={CONTENT_ICON} />
+        </svg>
+        {selectedIdea ? `Draft: ${selectedIdea.title}` : "Open Content Creator"}
+      </button>
+
+      {/* Full-screen agent chat overlay */}
+      {showChat && (
+        <div className="fixed inset-0 z-50 bg-[#FAFAF8] flex flex-col">
+          {/* Header bar */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-[#E8E6E1] bg-white shrink-0">
+            <button
+              onClick={() => setShowChat(false)}
+              className="flex items-center gap-1.5 text-sm text-[#666] hover:text-[#1C1C1C] transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <svg className="w-3.5 h-3.5 text-[#6B8F71] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d={CONTENT_ICON} />
+                </svg>
+                <span className="text-sm font-medium text-[#1C1C1C] truncate">
+                  {selectedIdea ? selectedIdea.title : "LinkedIn Content Creator"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Chat area — fills remaining height */}
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden px-4">
+            <AgentChat
+              agentId="content-creator"
+              apiEndpoint="/api/agents/content-creator"
+              storageKey="morning-linkedin-sessions"
+              placeholder="Describe your LinkedIn post idea..."
+              emptyStateTitle={selectedIdea ? `Draft: ${selectedIdea.title}` : "Create today's LinkedIn post"}
+              emptyStateDescription={
+                selectedIdea
+                  ? (selectedIdea.description || "Click the prompt below to start writing this post.")
+                  : "Pick an idea above or describe a new one. I'll help with writing and formatting."
+              }
+              loadingText="Drafting..."
+              agentIcon={CONTENT_ICON}
+              agentName="Content Creator"
+              variant="full"
+              starterPrompts={buildStarterPrompts()}
+              fileUpload={{
+                accept: "audio/*,video/*,image/*",
+                maxSizeMB: 100,
+                endpoint: "/api/upload",
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {!isComplete && (
         <button
