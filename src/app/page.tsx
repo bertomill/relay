@@ -11,79 +11,77 @@ import { FeatherRise } from "./components/FeatherRise";
 import { AgentsGrid } from "./components/AgentsGrid";
 
 // Hoisted static data - avoids recreation on every render
-const AGENTS = [
-  { name: "Data Entry", description: "Automates structured data input across spreadsheets, CRMs, and databases — eliminating manual keying errors.", icon: "M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" },
-  { name: "Compliance Docs", description: "Generates, reviews, and files compliance documents so your team stays audit-ready without the busywork.", icon: "M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" },
-  { name: "Client Follow-ups", description: "Sends timely, personalized follow-ups so no lead or client request ever falls through the cracks.", icon: "M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" },
-  { name: "Document Processing", description: "Extracts, classifies, and routes documents — turning hours of manual review into seconds.", icon: "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" },
-  { name: "Reporting", description: "Pulls data from multiple sources and builds clear, ready-to-share reports automatically.", icon: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" },
-  { name: "Email Management", description: "Triages, drafts, and schedules emails — keeping your inbox under control without lifting a finger.", icon: "M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" },
+const AI_SYSTEMS = [
+  { name: "Content Engine", description: "AI generates product descriptions, collection pages, email flows, and social content — all in your brand voice.", icon: "M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" },
+  { name: "Customer Support AI", description: "Smart chatbots handle FAQs, order status, returns, and sizing questions 24/7 — your team focuses on complex issues.", icon: "M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" },
+  { name: "Marketing Automation", description: "AI-powered ad copy, SEO optimization, campaign automation, and personalization — right message, right time.", icon: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" },
+  { name: "Operations Intelligence", description: "Inventory forecasting, order automation, and sales analytics — data-driven decisions without a data team.", icon: "M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" },
 ] as const;
 
 const WHO_WE_SERVE = [
   {
-    title: "Professional Services",
-    description: "Law firms, accounting practices, and consultancies drowning in compliance and client admin.",
-    icon: "M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z",
+    title: "Shopify Brands Scaling Fast",
+    description: "You\u2019re growing but can\u2019t hire fast enough. AI systems let you 3x content output without adding headcount.",
+    icon: "M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z",
   },
   {
-    title: "Growing Teams",
-    description: "Startups and SMBs scaling fast but not ready to hire for every operational gap.",
-    icon: "M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z",
+    title: "DTC Founders ($10K\u2013$500K/mo)",
+    description: "You\u2019re doing well but wearing too many hats. We take content, support, and marketing off your plate.",
+    icon: "M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z",
   },
   {
-    title: "Operations Leaders",
-    description: "COOs and ops managers looking to automate workflows without a massive IT overhaul.",
-    icon: "M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75",
+    title: "AI-Curious, No Time to Build",
+    description: "You know AI can help but you don\u2019t have time to figure it out. We build the systems and train your team.",
+    icon: "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z",
   },
 ] as const;
 
 const METRICS = [
-  { end: 50, suffix: "+", label: "Hours saved weekly" },
-  { end: 2, suffix: "", label: "Firms served" },
-  { end: 100, suffix: "%", label: "Client satisfaction" },
-  { end: 24, suffix: "/7", label: "Always available" },
+  { end: 200, suffix: "+", label: "AI systems built" },
+  { end: 3, suffix: "x", label: "Content output" },
+  { end: 70, suffix: "%", label: "Less production time" },
+  { end: 24, suffix: "/7", label: "Customer support" },
 ] as const;
 
 const RESULT_CARDS = [
   {
-    metric: { end: 15, suffix: "+" },
-    metricLabel: "hours saved per partner weekly",
-    title: "Partners move faster",
-    description: "More time for strategy, clients, and the work that actually grows your firm.",
-    icon: "M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z",
+    metric: { end: 3, suffix: "x" },
+    metricLabel: "content output",
+    title: "Launch products faster",
+    description: "Product descriptions, email flows, and social content generated in your brand voice — not generic AI slop.",
+    icon: "M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z",
   },
   {
-    metric: { end: 40, suffix: "%" },
-    metricLabel: "less operational overhead",
-    title: "Managers breathe easier",
-    description: "Scale output without scaling stress. Your team does more, not more hours.",
-    icon: "M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z",
+    metric: { end: 70, suffix: "%" },
+    metricLabel: "faster production time",
+    title: "Support on autopilot",
+    description: "AI handles FAQs, order status, and returns around the clock. Your team only steps in when it matters.",
+    icon: "M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z",
   },
   {
     metric: { end: 10, suffix: "x" },
-    metricLabel: "faster document processing",
-    title: "Staff do meaningful work",
-    description: "Less busywork, more growth. The kind of work people actually want to do.",
-    icon: "M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z",
+    metricLabel: "product listings per day",
+    title: "Grow without hiring",
+    description: "Scale content, marketing, and operations with AI systems — not new headcount.",
+    icon: "M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z",
   },
 ] as const;
 
 const HOW_IT_WORKS = [
   {
     step: 1,
-    title: "Tell us what weighs you down",
-    description: "We listen to your team, map your workflows, and find the tasks draining the most time.",
+    title: "Store audit",
+    description: "We map your workflows, identify bottlenecks, and find where AI creates the biggest impact for your store.",
   },
   {
     step: 2,
-    title: "We build your custom agents",
-    description: "Tailored AI agents designed around your processes — not the other way around.",
+    title: "Custom AI build",
+    description: "Systems trained on your brand voice, products, and customers \u2014 not generic templates.",
   },
   {
     step: 3,
-    title: "Your team gets lighter, fast",
-    description: "Deploy in days, not months. See measurable time savings from week one.",
+    title: "Launch & optimize",
+    description: "Plugged into your Shopify stack. As your fractional AI officer, we refine and expand monthly.",
   },
 ] as const;
 
@@ -105,14 +103,15 @@ export default function Home() {
             {/* Left: Headline only */}
             <div className="flex flex-col justify-center">
               <AnimateIn animation="fade-up">
+                <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-3">Fractional AI Officer for Shopify Brands</p>
                 <h1 className="text-3xl md:text-5xl xl:text-[3.5rem] font-bold tracking-tight leading-[1.1] mb-3 md:mb-4 text-[#1C1C1C]">
-                  Work should feel{" "}
-                  <span className="text-[#6B8F71]">lighter.</span>
+                  Scale your store with AI.{" "}
+                  <span className="text-[#6B8F71]">Not more headcount.</span>
                 </h1>
               </AnimateIn>
               <AnimateIn animation="fade-up" delay={100}>
                 <p className="text-base md:text-xl text-[#555] leading-relaxed mb-4 md:mb-6">
-                  We build AI agents that carry the load — so you can move faster, think bigger, and do more of what matters.
+                  We embed as your fractional AI officer and build content engines, customer support bots, marketing automation, and operations intelligence — all custom-built for your Shopify store.
                 </p>
               </AnimateIn>
 
@@ -123,13 +122,13 @@ export default function Home() {
                     <svg className="w-5 h-5 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
                     </svg>
-                    <span>Custom-built for your firm</span>
+                    <span>Built for Shopify brands</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <svg className="w-5 h-5 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>Hours back, every week</span>
+                    <span>200+ AI systems delivered</span>
                   </div>
                 </div>
               </AnimateIn>
@@ -151,8 +150,8 @@ export default function Home() {
           {/* Left: Agents list */}
           <AnimateIn animation="fade-up" delay={200}>
             <div>
-              <p className="text-xs font-semibold text-[#999] uppercase tracking-[0.15em] mb-4">Our Agents</p>
-              <AgentsGrid agents={AGENTS} />
+              <p className="text-xs font-semibold text-[#999] uppercase tracking-[0.15em] mb-4">AI Systems We Build</p>
+              <AgentsGrid agents={AI_SYSTEMS} />
             </div>
           </AnimateIn>
 
@@ -200,8 +199,8 @@ export default function Home() {
         <FeatherAccent position="right" size={48} />
         <AnimateIn animation="fade-up">
           <div className="mb-10">
-            <span className="inline-block text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">The Results</span>
-            <h2 className="text-3xl md:text-4xl font-bold text-[#1C1C1C]">Real impact, measured in hours.</h2>
+            <span className="inline-block text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">Expected Impact</span>
+            <h2 className="text-3xl md:text-4xl font-bold text-[#1C1C1C]">Real results for real stores.</h2>
           </div>
         </AnimateIn>
 
@@ -227,7 +226,7 @@ export default function Home() {
 
         <AnimateIn animation="fade-up" delay={300}>
           <p className="text-lg text-[#555] mt-10 max-w-2xl">
-            A lighter firm is a better firm — more responsive, more profitable, and somewhere people actually want to be.
+            You should be building your brand and talking to customers — not grinding out product descriptions and email sequences every week.
           </p>
         </AnimateIn>
       </section>
@@ -239,12 +238,12 @@ export default function Home() {
             {/* Problem */}
             <AnimateIn animation="slide-right">
               <div className="bg-[#F5F4F1] rounded-[2rem] p-8 lg:p-10">
-                <span className="inline-block text-xs font-semibold text-[#999] uppercase tracking-[0.15em] mb-4">The Problem</span>
-                <h3 className="text-2xl font-bold mb-4 text-[#1C1C1C]">Every hour on repetitive work is weight that slows everything down.</h3>
+                <span className="inline-block text-xs font-semibold text-[#999] uppercase tracking-[0.15em] mb-4">Sound Familiar?</span>
+                <h3 className="text-2xl font-bold mb-4 text-[#1C1C1C]">You&apos;re doing everything manually — and it&apos;s holding you back.</h3>
                 <p className="text-[#666] leading-relaxed mb-4">
-                  Compliance, manual data entry, routine client requests — it&apos;s all weight you&apos;re carrying that keeps you from the work that matters.
+                  Writing product descriptions one at a time. Customer support tickets piling up overnight. Marketing that feels inconsistent because nobody has time. You tried ChatGPT but everything sounds generic.
                 </p>
-                <p className="text-[#1C1C1C] font-semibold">You didn&apos;t build your practice to grind. You built it to grow.</p>
+                <p className="text-[#1C1C1C] font-semibold">You need a system — not another tool to figure out.</p>
               </div>
             </AnimateIn>
 
@@ -252,11 +251,11 @@ export default function Home() {
             <AnimateIn animation="slide-left">
               <div className="bg-white border border-[#E8E6E1] rounded-[2rem] p-8 lg:p-10">
                 <span className="inline-block text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">What We Do</span>
-                <h3 className="text-2xl font-bold mb-4 text-[#1C1C1C]">Custom agents for how your team actually works.</h3>
+                <h3 className="text-2xl font-bold mb-4 text-[#1C1C1C]">AI systems built around your brand, your store, your voice.</h3>
                 <p className="text-[#666] leading-relaxed mb-4">
-                  Lighten AI designs and deploys AI agents tailored to your firm&apos;s workflows — document intake, client correspondence, first-pass analysis.
+                  Lighten AI embeds as your fractional AI officer — building content engines, support bots, marketing automation, and operations intelligence custom-fit to your Shopify store.
                 </p>
-                <p className="text-[#1C1C1C] font-semibold">Not generic chatbots. Custom agents trained on how your team actually works.</p>
+                <p className="text-[#1C1C1C] font-semibold">Not generic chatbots. Custom AI trained on your brand voice, products, and customers.</p>
               </div>
             </AnimateIn>
           </div>
@@ -274,7 +273,7 @@ export default function Home() {
         <AnimateIn animation="fade-up">
           <div className="max-w-3xl mx-auto text-center mb-12">
             <span className="inline-block text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">How It Works</span>
-            <h2 className="text-3xl md:text-4xl font-bold text-[#1C1C1C]">Three steps to a lighter team.</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-[#1C1C1C]">Three steps to a lighter store.</h2>
           </div>
         </AnimateIn>
 
@@ -303,7 +302,7 @@ export default function Home() {
             <div className="max-w-3xl mx-auto text-center mb-12">
               <span className="inline-block text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">Who We Serve</span>
               <h2 className="text-3xl md:text-4xl font-bold mb-6 text-[#1C1C1C]">
-                Businesses ready to punch above their weight.
+                Shopify brands ready to scale smarter.
               </h2>
             </div>
           </AnimateIn>
@@ -331,9 +330,9 @@ export default function Home() {
         <FeatherRise />
         <AnimateIn animation="fade-up">
           <div className="bg-[#6B8F71] rounded-[2rem] sm:rounded-[3rem] p-8 sm:p-10 lg:p-14 text-center text-white relative overflow-hidden">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to feel lighter?</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Let&apos;s audit your Shopify store — free.</h2>
             <p className="text-lg text-white/80 mb-8 max-w-xl mx-auto">
-              Let&apos;s talk about what&apos;s weighing your team down — and how to lift it.
+              30 minutes. We&apos;ll show you exactly where AI fits your brand and how to scale without hiring.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <a
@@ -349,6 +348,16 @@ export default function Home() {
                 Book a Call
               </a>
             </div>
+            <a
+              href="/lighten-ai-one-pager.pdf"
+              download
+              className="inline-flex items-center gap-2 mt-4 text-sm text-white/70 hover:text-white transition-colors duration-200"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Download our one-pager (PDF)
+            </a>
           </div>
         </AnimateIn>
       </section>
