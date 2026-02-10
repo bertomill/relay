@@ -219,62 +219,6 @@ body {
   animation: light-sweep 15s ease-in-out infinite;
 }
 
-/* Feature illustration animations */
-@keyframes illus-float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-@keyframes illus-pulse {
-  0%, 100% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes illus-draw {
-  from {
-    stroke-dashoffset: 300;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes typing-dot {
-  0%, 60%, 100% {
-    transform: translateY(0);
-    opacity: 0.3;
-  }
-  30% {
-    transform: translateY(-4px);
-    opacity: 0.7;
-  }
-}
-
-.animate-illus-float {
-  animation: illus-float 6s ease-in-out infinite;
-}
-
-.animate-illus-pulse {
-  animation: illus-pulse 3s ease-in-out infinite;
-}
-
-.animate-illus-draw {
-  stroke-dasharray: 300;
-  animation: illus-draw 2.5s ease-out forwards;
-}
-
-.animate-typing-dot {
-  animation: typing-dot 1.4s ease-in-out infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up,
   .animate-fade-in,
@@ -287,11 +231,7 @@ body {
   .animate-feather-spin,
   .animate-light-pulse,
   .animate-light-drift,
-  .animate-light-sweep,
-  .animate-illus-float,
-  .animate-illus-pulse,
-  .animate-illus-draw,
-  .animate-typing-dot {
+  .animate-light-sweep {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;

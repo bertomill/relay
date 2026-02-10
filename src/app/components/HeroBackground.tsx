@@ -30,9 +30,9 @@ export function HeroBackground() {
       <video
         ref={videoRef}
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
-          videoLoaded ? "opacity-30" : "opacity-0"
+          videoLoaded ? "opacity-50" : "opacity-0"
         }`}
-        src="/hero-video.mp4"
+        src="/videos/hero-video.mp4"
         autoPlay
         loop
         muted

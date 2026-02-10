@@ -86,8 +86,8 @@ export default function Home() {
           </AnimateIn>
 
           <AnimateIn animation="fade-up" delay={50}>
-            <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl leading-[1.05] tracking-tight mb-6">
-              Scale <span className="italic text-[#6B8F71]">lighter.</span>
+            <h1 className="font-sans font-light text-5xl md:text-7xl lg:text-8xl leading-[1.05] tracking-tight mb-6">
+              Scale <span className="text-[#6B8F71]">lighter.</span>
             </h1>
           </AnimateIn>
 

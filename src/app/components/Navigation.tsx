@@ -45,11 +45,14 @@ export function Navigation() {
   return (
     <>
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm transition-all duration-300 ease-in-out border-b border-[#E8E6E1]/60 ${
-          scrolled ? "py-3" : "py-4 md:py-5"
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${
+          scrolled
+            ? "bg-white/90 backdrop-blur-md border-b border-[#E8E6E1]/60 py-3"
+            : "bg-transparent py-5 md:py-6"
         }`}
       >
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
+          {/* Left: Logo */}
           <Link href="/" className="flex items-center gap-2.5">
             {FeatherLogo}
             <span className="font-semibold tracking-tight text-[#1C1C1C] text-lg">
@@ -57,8 +60,8 @@ export function Navigation() {
             </span>
           </Link>
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-8">
+          {/* Center: Nav links */}
+          <div className="hidden md:flex items-center gap-10 absolute left-1/2 -translate-x-1/2">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
@@ -72,15 +75,22 @@ export function Navigation() {
                 {link.label}
               </Link>
             ))}
-            <Link
-              href="/offer"
-              className="bg-[#1C1C1C] text-white text-xs font-semibold tracking-[0.1em] uppercase px-5 py-2.5 rounded-full hover:bg-[#333] transition-colors duration-200"
-            >
-              GET STARTED
-            </Link>
+          </div>
+
+          {/* Right: Auth + CTA */}
+          <div className="hidden md:flex items-center gap-5">
             <Suspense fallback={<div className="w-8" />}>
               <AuthButton />
             </Suspense>
+            <Link
+              href="#contact"
+              className="border border-[#1C1C1C] text-[#1C1C1C] text-xs font-semibold tracking-[0.1em] uppercase px-5 py-2.5 rounded-full hover:bg-[#1C1C1C] hover:text-white transition-colors duration-200 flex items-center gap-2"
+            >
+              GET STARTED
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
+              </svg>
+            </Link>
           </div>
 
           {/* Mobile hamburger button */}
@@ -146,9 +156,9 @@ export function Navigation() {
             </Link>
           ))}
           <Link
-            href="/offer"
+            href="#contact"
             onClick={closeMobile}
-            className="mt-4 bg-[#1C1C1C] text-white text-xs font-semibold tracking-[0.1em] uppercase px-5 py-3 rounded-full text-center hover:bg-[#333] transition-colors duration-200"
+            className="mt-4 border border-[#1C1C1C] text-[#1C1C1C] text-xs font-semibold tracking-[0.1em] uppercase px-5 py-3 rounded-full text-center hover:bg-[#1C1C1C] hover:text-white transition-colors duration-200"
           >
             GET STARTED
           </Link>
@@ -161,7 +171,7 @@ export function Navigation() {
       </div>
 
       {/* Spacer */}
-      <div className="h-[60px] md:h-[68px]" />
+      <div className="h-[60px] md:h-[76px]" />
     </>
   );
 }

@@ -61,26 +61,22 @@ export function AuthButton() {
   }
 
   if (user) {
+    const initial = (user.email?.[0] ?? "U").toUpperCase();
     return (
-      <div className="flex items-center gap-3">
-        {isAdminUser && (
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-1 text-sm text-[#6B8F71] hover:text-[#5A7D60] font-medium transition-colors duration-200"
-            >
-              Admin
-              <svg
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {dropdownOpen && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-[#E8E6E1] rounded-xl shadow-lg py-1 z-50">
+      <div className="relative" ref={dropdownRef}>
+        <button
+          onClick={() => setDropdownOpen(!dropdownOpen)}
+          className="w-8 h-8 rounded-full bg-[#6B8F71] text-white text-xs font-semibold flex items-center justify-center hover:bg-[#5A7D60] transition-colors duration-200"
+        >
+          {initial}
+        </button>
+        {dropdownOpen && (
+          <div className="absolute right-0 top-full mt-2 w-52 bg-white border border-[#E8E6E1] rounded-xl shadow-lg py-1 z-50">
+            <div className="px-4 py-2 border-b border-[#E8E6E1]">
+              <p className="text-xs text-[#999] truncate">{user.email}</p>
+            </div>
+            {isAdminUser && (
+              <>
                 <Link
                   href="/admin"
                   onClick={() => setDropdownOpen(false)}
@@ -88,10 +84,6 @@ export function AuthButton() {
                 >
                   Dashboard
                 </Link>
-                <div className="border-t border-[#E8E6E1] my-1" />
-                <div className="px-4 py-1.5">
-                  <span className="text-xs font-medium text-[#999] uppercase tracking-wide">Content</span>
-                </div>
                 <Link
                   href="/content"
                   onClick={() => setDropdownOpen(false)}
@@ -114,19 +106,18 @@ export function AuthButton() {
                 >
                   Admin View
                 </Link>
-              </div>
+              </>
             )}
+            <div className="border-t border-[#E8E6E1] mt-1">
+              <button
+                onClick={() => { setDropdownOpen(false); handleSignOut(); }}
+                className="block w-full text-left px-4 py-2 text-sm text-[#666] hover:text-red-500 hover:bg-[#F5F4F1] transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
           </div>
         )}
-        <span className="text-sm text-[#666] hidden sm:inline">
-          {user.email}
-        </span>
-        <button
-          onClick={handleSignOut}
-          className="text-sm text-[#666] hover:text-[#6B8F71] transition-colors duration-200"
-        >
-          Sign Out
-        </button>
       </div>
     );
   }
