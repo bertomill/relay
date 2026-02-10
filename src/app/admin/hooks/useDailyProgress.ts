@@ -200,3 +200,21 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
 
 export { getTodayString };
 export type { DailyProgressState };
+
+// Types used by Step2Outreach
+export type OutreachType = "warm" | "cold" | "referral" | "";
+export type OutreachCategory = "notification" | "feed" | "search" | "inquiry" | "reengage";
+
+export interface OutreachSlot {
+  done: boolean;
+  name: string;
+  type: OutreachType;
+  category: OutreachCategory;
+  linkedinUrl: string;
+  notes: string;
+}
+
+export interface EngagementSlot {
+  done: boolean;
+  targetName: string;
+}
