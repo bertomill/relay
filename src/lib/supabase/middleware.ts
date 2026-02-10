@@ -34,8 +34,9 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Protect /admin routes - must be logged in as admin
+  const ADMIN_EMAILS = ["bertmill19@gmail.com"];
   if (request.nextUrl.pathname.startsWith("/admin")) {
-    if (!user || user.app_metadata?.is_admin !== true) {
+    if (!user || !ADMIN_EMAILS.includes(user.email ?? "")) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
       url.searchParams.set("redirectTo", request.nextUrl.pathname);
