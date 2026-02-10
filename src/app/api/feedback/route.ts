@@ -43,9 +43,14 @@ export async function POST(request: NextRequest) {
       .select();
 
     if (error) {
-      console.error("Supabase error:", error.message, error.details, error.hint);
+      console.error("Supabase error:", error.message, error.details, error.hint, error.code);
       return NextResponse.json(
-        { error: `Database error: ${error.message}` },
+        {
+          error: `Database error: ${error.message}`,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        },
         { status: 500 }
       );
     }
@@ -77,7 +82,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("API error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

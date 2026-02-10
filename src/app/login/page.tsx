@@ -38,7 +38,7 @@ function LoginForm() {
         }
         setSignupSuccess(true);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
@@ -46,6 +46,9 @@ function LoginForm() {
           setError(error.message);
           return;
         }
+        console.log("Sign in successful, user:", data.user?.email);
+        console.log("app_metadata:", data.user?.app_metadata);
+        console.log("Redirecting to:", redirectTo);
         router.push(redirectTo);
         router.refresh();
       }

@@ -15,6 +15,7 @@ export default function FeedbackWidget() {
   const [category, setCategory] = useState("improvement");
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [errorDetail, setErrorDetail] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +35,12 @@ export default function FeedbackWidget() {
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to submit");
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(
+          body ? JSON.stringify(body) : `HTTP ${res.status}`
+        );
+      }
 
       setStatus("success");
       setMessage("");
@@ -44,7 +50,8 @@ export default function FeedbackWidget() {
         setIsOpen(false);
         setStatus("idle");
       }, 2000);
-    } catch {
+    } catch (err) {
+      setErrorDetail(err instanceof Error ? err.message : "Unknown error");
       setStatus("error");
     }
   };
@@ -131,7 +138,14 @@ export default function FeedbackWidget() {
               </div>
 
               {status === "error" && (
-                <p className="text-xs text-red-500">Something went wrong. Please try again.</p>
+                <div className="text-xs text-red-500 space-y-1">
+                  <p>Something went wrong. Please try again.</p>
+                  {errorDetail && (
+                    <pre className="bg-red-50 rounded p-2 overflow-x-auto whitespace-pre-wrap break-all text-[10px] text-red-600 max-h-24 overflow-y-auto">
+                      {errorDetail}
+                    </pre>
+                  )}
+                </div>
               )}
 
               <button

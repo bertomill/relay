@@ -1,8 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { getTodayLesson, type QuizQuestion } from "../data/lessons";
-import Link from "next/link";
+import dynamic from "next/dynamic";
+
+const AgentChat = dynamic(() => import("@/app/components/agents/AgentChat"), {
+  ssr: false,
+});
+
+const LEARN_ICON = "M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5";
 
 interface Step4LearnProps {
   onComplete: () => void;
@@ -10,194 +15,94 @@ interface Step4LearnProps {
 }
 
 export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) {
-  const lesson = getTodayLesson();
-  const [answers, setAnswers] = useState<(number | null)[]>(
-    lesson.quiz.map(() => null)
-  );
-  const [submitted, setSubmitted] = useState(false);
-
-  const allCorrect = submitted && lesson.quiz.every((q, i) => answers[i] === q.correctIndex);
-  const allAnswered = answers.every((a) => a !== null);
-
-  const handleSelect = (questionIndex: number, optionIndex: number) => {
-    if (submitted) return;
-    setAnswers((prev) => {
-      const next = [...prev];
-      next[questionIndex] = optionIndex;
-      return next;
-    });
-  };
-
-  const handleSubmit = () => {
-    if (!allAnswered) return;
-    setSubmitted(true);
-  };
-
-  const handleRetry = () => {
-    setAnswers(lesson.quiz.map(() => null));
-    setSubmitted(false);
-  };
+  const [showChat, setShowChat] = useState(false);
 
   return (
     <div>
-      {/* Concept badge */}
-      <div className="flex items-center gap-2 mb-4">
-        <span className="px-2.5 py-1 rounded-md bg-[#6B8F71]/10 text-xs font-medium text-[#6B8F71]">
-          {lesson.concept}
-        </span>
-        <h4 className="text-sm font-semibold text-[#1C1C1C]">{lesson.title}</h4>
-      </div>
-
-      {/* Reading section */}
-      <div className="mb-6 text-sm text-[#444] leading-relaxed space-y-3">
-        {lesson.reading.split("\n\n").map((paragraph, i) => (
-          <p key={i}>
-            {paragraph.split(/(\*\*[^*]+\*\*|`[^`]+`)/).map((part, j) => {
-              if (part.startsWith("**") && part.endsWith("**")) {
-                return <strong key={j} className="font-semibold text-[#1C1C1C]">{part.slice(2, -2)}</strong>;
-              }
-              if (part.startsWith("`") && part.endsWith("`")) {
-                return <code key={j} className="px-1.5 py-0.5 rounded bg-[#F0EFEC] text-[#1C1C1C] text-xs font-mono">{part.slice(1, -1)}</code>;
-              }
-              return part;
-            })}
-          </p>
-        ))}
-      </div>
-
-      {/* Quiz */}
-      <div className="border-t border-[#F0EFEC] pt-5">
-        <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">
-          Quick Quiz
-        </p>
-
-        <div className="space-y-5">
-          {lesson.quiz.map((q: QuizQuestion, qi: number) => (
-            <QuizQuestionCard
-              key={qi}
-              question={q}
-              questionIndex={qi}
-              selectedAnswer={answers[qi]}
-              submitted={submitted}
-              onSelect={handleSelect}
-            />
-          ))}
-        </div>
-
-        {!submitted && (
-          <button
-            onClick={handleSubmit}
-            disabled={!allAnswered}
-            className="mt-5 w-full px-4 py-2.5 rounded-lg bg-[#6B8F71] text-white text-sm font-medium hover:bg-[#5A7D60] disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-200"
-          >
-            Check Answers
-          </button>
-        )}
-
-        {submitted && !allCorrect && (
-          <div className="mt-5">
-            <p className="text-sm text-[#999] mb-2">
-              {lesson.quiz.filter((q, i) => answers[i] === q.correctIndex).length} of {lesson.quiz.length} correct. Review the explanations and try again!
-            </p>
-            <button
-              onClick={handleRetry}
-              className="w-full px-4 py-2.5 rounded-lg border border-[#E8E6E1] text-sm font-medium text-[#666] hover:border-[#6B8F71] hover:text-[#6B8F71] transition-colors duration-200"
-            >
-              Retry Quiz
-            </button>
-          </div>
-        )}
-
-        {allCorrect && (
-          <div className="mt-5">
-            <div className="py-3 text-center rounded-lg bg-[#6B8F71]/5 mb-4">
-              <p className="text-sm text-[#6B8F71] font-medium">All correct! Nice work.</p>
-            </div>
-
-            {/* Build challenge */}
-            <div className="p-4 rounded-lg border border-[#E8E6E1] bg-[#FAFAF8]">
-              <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-2">
-                Build Challenge
-              </p>
-              <p className="text-sm text-[#666] mb-3">{lesson.buildChallenge}</p>
-              <Link
-                href={`/agents/ray/chat`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#6B8F71] text-white text-xs font-medium hover:bg-[#5A7D60] transition-colors duration-200"
-              >
-                Open Ray to Build
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                </svg>
-              </Link>
-            </div>
-
-            {!isComplete && (
-              <button
-                onClick={onComplete}
-                className="mt-4 w-full px-4 py-2.5 rounded-lg bg-[#6B8F71] text-white text-sm font-medium hover:bg-[#5A7D60] transition-colors duration-200"
-              >
-                Mark Learning Complete
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function QuizQuestionCard({
-  question,
-  questionIndex,
-  selectedAnswer,
-  submitted,
-  onSelect,
-}: {
-  question: QuizQuestion;
-  questionIndex: number;
-  selectedAnswer: number | null;
-  submitted: boolean;
-  onSelect: (qi: number, oi: number) => void;
-}) {
-  return (
-    <div>
-      <p className="text-sm font-medium text-[#1C1C1C] mb-2">
-        {questionIndex + 1}. {question.question}
+      {/* Description */}
+      <p className="text-sm text-[#666] mb-4 leading-relaxed">
+        Test your knowledge of the Claude Agents SDK with an AI-powered quiz. The tutor
+        researches the latest docs, then asks 5 interactive questions — with instant
+        feedback and practical tips after each answer.
       </p>
-      <div className="space-y-1.5">
-        {question.options.map((option, oi) => {
-          const isSelected = selectedAnswer === oi;
-          const isCorrect = oi === question.correctIndex;
-          let style = "border-[#E8E6E1] hover:border-[#6B8F71]/40";
 
-          if (isSelected && !submitted) {
-            style = "border-[#6B8F71] bg-[#6B8F71]/5";
-          } else if (submitted && isCorrect) {
-            style = "border-[#6B8F71] bg-[#6B8F71]/5";
-          } else if (submitted && isSelected && !isCorrect) {
-            style = "border-red-300 bg-red-50";
-          }
+      {/* Start Quiz button */}
+      <button
+        onClick={() => setShowChat(true)}
+        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[#6B8F71]/30 bg-[#6B8F71]/5 text-[#6B8F71] text-sm font-medium hover:bg-[#6B8F71]/10 hover:border-[#6B8F71]/50 transition-colors duration-200"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d={LEARN_ICON} />
+        </svg>
+        Start SDK Quiz
+      </button>
 
-          return (
+      {/* Full-screen agent chat overlay */}
+      {showChat && (
+        <div className="fixed inset-0 z-50 bg-[#FAFAF8] flex flex-col">
+          {/* Header bar */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-[#E8E6E1] bg-white shrink-0">
             <button
-              key={oi}
-              onClick={() => onSelect(questionIndex, oi)}
-              disabled={submitted}
-              className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors duration-200 ${style} ${
-                submitted ? "cursor-default" : "cursor-pointer"
-              }`}
+              onClick={() => setShowChat(false)}
+              className="flex items-center gap-1.5 text-sm text-[#666] hover:text-[#1C1C1C] transition-colors"
             >
-              <span className={submitted && isCorrect ? "text-[#6B8F71] font-medium" : "text-[#444]"}>
-                {option}
-              </span>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
             </button>
-          );
-        })}
-      </div>
-      {submitted && selectedAnswer !== null && (
-        <p className={`text-xs mt-1.5 ${selectedAnswer === question.correctIndex ? "text-[#6B8F71]" : "text-red-500"}`}>
-          {question.explanation}
-        </p>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <svg className="w-3.5 h-3.5 text-[#6B8F71] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d={LEARN_ICON} />
+                </svg>
+                <span className="text-sm font-medium text-[#1C1C1C] truncate">
+                  SDK Tutor
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Chat area */}
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden px-4">
+            <AgentChat
+              agentId="sdk-tutor"
+              apiEndpoint="/api/agents/sdk-tutor"
+              storageKey="sdk-tutor-sessions"
+              placeholder="Ask about the Claude Agents SDK..."
+              emptyStateTitle="Claude Agents SDK Quiz"
+              emptyStateDescription="I'll research the latest SDK docs, then quiz you with 5 interactive questions. Ready?"
+              loadingText="Researching..."
+              agentIcon={LEARN_ICON}
+              agentName="SDK Tutor"
+              variant="full"
+              starterPrompts={[
+                "Start today's quiz",
+                "Quiz me on advanced topics",
+                "What's new in the SDK?",
+              ]}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Mark complete / undo */}
+      {!isComplete && (
+        <button
+          onClick={onComplete}
+          className="mt-3 w-full px-4 py-2.5 rounded-lg bg-[#6B8F71] text-white text-sm font-medium hover:bg-[#5A7D60] transition-colors duration-200"
+        >
+          Mark Learning Complete
+        </button>
+      )}
+
+      {isComplete && (
+        <button
+          onClick={onComplete}
+          className="mt-3 w-full py-2.5 text-center rounded-lg bg-[#6B8F71]/5 hover:bg-[#6B8F71]/10 transition-colors"
+        >
+          <p className="text-sm text-[#6B8F71] font-medium">Learning complete! (click to undo)</p>
+        </button>
       )}
     </div>
   );
