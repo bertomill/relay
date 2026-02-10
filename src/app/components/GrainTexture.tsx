@@ -2,7 +2,19 @@
 
 import { useEffect, useRef } from "react";
 
-function generateNoise(width: number, height: number): string {
+// Brand greens: #6B8F71 (main) and #5A7D60 (darker hover)
+const BASE = { r: 107, g: 143, b: 113 }; // #6B8F71
+const DARK = { r: 90, g: 125, b: 96 };   // #5A7D60
+
+/**
+ * density: 0–1, fraction of pixels that become the darker speckle.
+ * Most pixels stay the base green; only `density` % become the darker accent.
+ */
+function generateGreenNoise(
+  width: number,
+  height: number,
+  density: number,
+): string {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -13,10 +25,11 @@ function generateNoise(width: number, height: number): string {
   const data = imageData.data;
 
   for (let i = 0; i < data.length; i += 4) {
-    const value = Math.random() * 255;
-    data[i] = value;
-    data[i + 1] = value;
-    data[i + 2] = value;
+    const speckle = Math.random() < density;
+    const c = speckle ? DARK : BASE;
+    data[i] = c.r;
+    data[i + 1] = c.g;
+    data[i + 2] = c.b;
     data[i + 3] = 255;
   }
 
@@ -24,31 +37,27 @@ function generateNoise(width: number, height: number): string {
   return canvas.toDataURL("image/png");
 }
 
-export function GrainTexture({
-  opacity = 0.12,
-  blendMode = "overlay",
-}: {
-  opacity?: number;
-  blendMode?: string;
-}) {
+export function GrainTexture({ density = 0.3 }: { density?: number }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const noiseUrl = generateNoise(256, 256);
+    const noiseUrl = generateGreenNoise(200, 200, density);
     el.style.backgroundImage = `url(${noiseUrl})`;
-  }, []);
+  }, [density]);
 
   return (
     <div
       ref={ref}
       aria-hidden
-      className="pointer-events-none absolute inset-0 z-[1] bg-repeat"
       style={{
-        opacity,
-        mixBlendMode: blendMode as React.CSSProperties["mixBlendMode"],
-        backgroundSize: "256px 256px",
+        position: "absolute",
+        inset: 0,
+        zIndex: 1,
+        pointerEvents: "none",
+        backgroundRepeat: "repeat",
+        backgroundSize: "200px 200px",
       }}
     />
   );

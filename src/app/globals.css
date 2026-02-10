@@ -222,13 +222,7 @@ body {
 /* Grainy green sections */
 .grain-green {
   position: relative;
-  background-color: #6B8F71;
   overflow: hidden;
-}
-
-.grain-green > * {
-  position: relative;
-  z-index: 2;
 }
 
 @media (prefers-reduced-motion: reduce) {

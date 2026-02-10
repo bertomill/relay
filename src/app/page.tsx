@@ -136,9 +136,9 @@ export default function Home() {
       </section>
 
       {/* ─── DARK METRICS BAR ─── */}
-      <section className="grain-green">
-        <GrainTexture />
-        <div className="max-w-6xl mx-auto px-6 py-16">
+      <section className="grain-green bg-[#6B8F71]">
+        <GrainTexture density={0.2} />
+        <div className="relative z-10 max-w-6xl mx-auto px-6 py-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {METRICS.map((metric, i) => (
               <AnimateIn key={metric.label} animation="fade-up" delay={i * 100}>
@@ -190,9 +190,9 @@ export default function Home() {
       })}
 
       {/* ─── DARK SECTION: WHAT WE BUILD ─── */}
-      <section className="grain-green text-white">
-        <GrainTexture />
-        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
+      <section className="grain-green bg-[#6B8F71] text-white">
+        <GrainTexture density={0.45} />
+        <div className="relative z-10 max-w-6xl mx-auto px-6 py-20 md:py-28">
           <AnimateIn animation="fade-up">
             <div className="text-center mb-16">
               <p className="text-xs font-semibold text-white/70 uppercase tracking-[0.15em] mb-4">WHAT WE BUILD</p>
@@ -285,9 +285,9 @@ export default function Home() {
       </section>
 
       {/* ─── FINAL CTA ─── */}
-      <section className="grain-green text-white">
-        <GrainTexture />
-        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28 text-center">
+      <section className="grain-green bg-[#6B8F71] text-white">
+        <GrainTexture density={0.3} />
+        <div className="relative z-10 max-w-6xl mx-auto px-6 py-20 md:py-28 text-center">
           <AnimateIn animation="fade-up">
             <h2 className="font-serif text-3xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tight mb-6">
               Ready to scale<br className="hidden md:block" /> <span className="italic text-white/90">without the overhead?</span>
