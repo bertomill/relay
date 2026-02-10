@@ -6,7 +6,7 @@ import { CalendlyWidget } from "../components/CalendlyWidget";
 
 export const metadata: Metadata = {
   title: "Our Offer | Lighten AI",
-  description: "See how Lighten AI helps businesses recover lost time and profit with a clear AI strategy — from assessment to advisory.",
+  description: "See how Lighten AI helps Shopify brands scale with a clear AI strategy — from assessment to advisory.",
 };
 
 const PROCESS_STEPS = [
@@ -74,39 +74,37 @@ const GAP_EXAMPLES = [
 export default function OfferPage() {
   return (
     <div className="min-h-screen bg-[#FAFAF8] text-[#1C1C1C] relative overflow-x-hidden">
-      {/* Soft background gradients */}
-      <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#6B8F71] opacity-[0.06] blur-[150px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#D4E5D7] opacity-[0.15] blur-[120px] rounded-full pointer-events-none" />
-
       <Navigation />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 py-8 min-h-screen flex flex-col">
-        {/* Hero */}
-        <section className="py-16 lg:py-24">
-          <AnimateIn animation="fade-up">
-            <div className="max-w-3xl">
-              <span className="inline-block text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">How We Work</span>
-              <h1 className="text-4xl md:text-5xl xl:text-[3.5rem] font-bold tracking-tight leading-[1.1] mb-6 text-[#1C1C1C]">
-                Stop losing money to work{" "}
-                <span className="text-[#6B8F71]">nobody should be doing.</span>
-              </h1>
-              <p className="text-lg md:text-xl text-[#555] leading-relaxed">
-                Most businesses are bleeding time and profit on repetitive tasks they don&apos;t even realize are costing them. We find the gaps, build the strategy, and stay in your corner to make sure the ROI is real.
-              </p>
-            </div>
-          </AnimateIn>
-        </section>
+      {/* ─── HERO ─── */}
+      <section className="max-w-6xl mx-auto px-6 pt-16 pb-20 md:pt-24 md:pb-28 lg:pt-32 lg:pb-36">
+        <AnimateIn animation="fade-up">
+          <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-6">HOW WE WORK</p>
+        </AnimateIn>
+        <AnimateIn animation="fade-up" delay={50}>
+          <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl leading-[1.05] tracking-tight mb-8 max-w-4xl">
+            Stop losing money to work{" "}
+            <span className="italic text-[#6B8F71]">nobody should be doing.</span>
+          </h1>
+        </AnimateIn>
+        <AnimateIn animation="fade-up" delay={100}>
+          <p className="text-lg md:text-xl text-[#555] leading-relaxed max-w-2xl">
+            Most businesses are bleeding time and profit on repetitive tasks they don&apos;t even realize are costing them. We find the gaps, build the strategy, and stay in your corner to make sure the ROI is real.
+          </p>
+        </AnimateIn>
+      </section>
 
-        {/* The Cost of Doing Nothing */}
-        <section className="py-16 border-t border-[#E8E6E1]">
+      {/* ─── DARK SECTION: THE COST OF DOING NOTHING ─── */}
+      <section className="bg-[#1C1C1C] text-white">
+        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
           <AnimateIn animation="fade-up">
-            <div className="max-w-3xl mb-12">
-              <span className="inline-block text-xs font-semibold text-[#999] uppercase tracking-[0.15em] mb-4">The Hidden Cost</span>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6 text-[#1C1C1C]">
-                Every inefficiency has a price tag. Most businesses just haven&apos;t calculated it yet.
+            <div className="max-w-3xl mb-16">
+              <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">THE HIDDEN COST</p>
+              <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">
+                Every inefficiency has a price tag.
               </h2>
-              <p className="text-[#555] leading-relaxed">
-                When we sit down with clients, we consistently uncover six figures of wasted time, missed revenue, and operational drag that&apos;s been hiding in plain sight. Here&apos;s where it usually lives:
+              <p className="text-white/60 leading-relaxed text-lg">
+                When we sit down with clients, we consistently uncover six figures of wasted time, missed revenue, and operational drag hiding in plain sight.
               </p>
             </div>
           </AnimateIn>
@@ -114,16 +112,16 @@ export default function OfferPage() {
           <div className="grid md:grid-cols-2 gap-6">
             {GAP_EXAMPLES.map((gap, i) => (
               <AnimateIn key={gap.area} animation="fade-up" delay={i * 100}>
-                <div className="bg-white border border-[#E8E6E1] rounded-3xl p-8 hover:border-[#6B8F71]/40 transition-all duration-300">
+                <div className="border border-white/10 rounded-2xl p-8 hover:border-[#6B8F71]/40 transition-all duration-300 hover:bg-white/5">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-[#6B8F71]/10 flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-[#6B8F71]/20 flex items-center justify-center shrink-0">
                       <svg className="w-6 h-6 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={gap.icon} />
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold mb-2 text-[#1C1C1C]">{gap.area}</h3>
-                      <p className="text-[#666] leading-relaxed">{gap.cost}</p>
+                      <h3 className="text-lg font-semibold mb-2">{gap.area}</h3>
+                      <p className="text-white/60 leading-relaxed">{gap.cost}</p>
                     </div>
                   </div>
                 </div>
@@ -132,134 +130,134 @@ export default function OfferPage() {
           </div>
 
           <AnimateIn animation="fade-up" delay={400}>
-            <div className="mt-10 bg-[#F5F4F1] rounded-3xl p-8 lg:p-10">
-              <p className="text-lg text-[#1C1C1C] font-semibold mb-2">
+            <div className="mt-12 border border-white/10 rounded-2xl p-8 lg:p-10">
+              <p className="text-xl font-serif mb-2">
                 The real question isn&apos;t &ldquo;Can we afford to invest in AI?&rdquo;
               </p>
-              <p className="text-[#555] leading-relaxed">
-                It&apos;s &ldquo;Can we afford not to?&rdquo; The gap between where you are and where you could be is costing you every single month. Our job is to show you exactly how much — and then close it.
+              <p className="text-white/60 leading-relaxed">
+                It&apos;s &ldquo;Can we afford not to?&rdquo; The gap between where you are and where you could be is costing you every single month.
               </p>
             </div>
           </AnimateIn>
-        </section>
+        </div>
+      </section>
 
-        {/* 3-Step Process */}
-        <section className="py-16 border-t border-[#E8E6E1]">
-          <AnimateIn animation="fade-up">
-            <div className="max-w-3xl mx-auto text-center mb-16">
-              <span className="inline-block text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">Our Process</span>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6 text-[#1C1C1C]">
-                Three steps to a lighter business.
-              </h2>
-              <p className="text-[#555] leading-relaxed">
-                No guesswork. No generic playbooks. A tailored process that starts with understanding your business and ends with measurable results.
-              </p>
-            </div>
-          </AnimateIn>
+      {/* ─── PROCESS STEPS ─── */}
+      <section className="max-w-6xl mx-auto px-6 py-20 md:py-28">
+        <AnimateIn animation="fade-up">
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">OUR PROCESS</p>
+            <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">
+              Three steps to a lighter business.
+            </h2>
+            <p className="text-[#555] text-lg leading-relaxed">
+              No guesswork. No generic playbooks. A tailored process that starts with understanding your business and ends with measurable results.
+            </p>
+          </div>
+        </AnimateIn>
 
-          <div className="space-y-8">
-            {PROCESS_STEPS.map((step, i) => (
-              <AnimateIn key={step.step} animation={i % 2 === 0 ? "slide-right" : "slide-left"} delay={i * 100}>
-                <div className="bg-white border border-[#E8E6E1] rounded-3xl p-8 lg:p-10 hover:border-[#6B8F71]/40 transition-all duration-300 hover:shadow-lg hover:shadow-[#6B8F71]/8">
-                  <div className="grid lg:grid-cols-[1fr,1.2fr] gap-8 items-start">
-                    <div>
-                      <div className="flex items-center gap-4 mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-[#6B8F71]/10 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={step.icon} />
-                          </svg>
-                        </div>
-                        <span className="text-sm font-bold text-[#6B8F71] tracking-wide">{step.step}</span>
+        <div className="space-y-8">
+          {PROCESS_STEPS.map((step, i) => (
+            <AnimateIn key={step.step} animation={i % 2 === 0 ? "slide-right" : "slide-left"} delay={i * 100}>
+              <div className="bg-white border border-[#E8E6E1] rounded-2xl p-8 lg:p-10 hover:border-[#6B8F71]/40 transition-all duration-300">
+                <div className="grid lg:grid-cols-[1fr,1.2fr] gap-8 items-start">
+                  <div>
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 rounded-full bg-[#1C1C1C] text-white flex items-center justify-center font-serif text-lg">
+                        {step.step}
                       </div>
-                      <h3 className="text-2xl font-bold mb-3 text-[#1C1C1C]">{step.title}</h3>
-                      <p className="text-[#555] leading-relaxed">{step.description}</p>
                     </div>
-                    <div className="bg-[#FAFAF8] rounded-2xl p-6">
-                      <p className="text-xs font-semibold text-[#999] uppercase tracking-[0.15em] mb-4">What this includes</p>
-                      <ul className="space-y-3">
-                        {step.details.map((detail) => (
-                          <li key={detail} className="flex items-start gap-3">
-                            <svg className="w-5 h-5 text-[#6B8F71] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12.75l6 6 9-13.5" />
-                            </svg>
-                            <span className="text-[#555] text-sm leading-relaxed">{detail}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                    <h3 className="font-serif text-2xl md:text-3xl mb-3">{step.title}</h3>
+                    <p className="text-[#555] leading-relaxed">{step.description}</p>
+                  </div>
+                  <div className="bg-[#FAFAF8] rounded-xl p-6">
+                    <p className="text-xs font-semibold text-[#999] uppercase tracking-[0.15em] mb-4">What this includes</p>
+                    <ul className="space-y-3">
+                      {step.details.map((detail) => (
+                        <li key={detail} className="flex items-start gap-3">
+                          <svg className="w-5 h-5 text-[#6B8F71] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                          <span className="text-[#555] text-sm leading-relaxed">{detail}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
-              </AnimateIn>
-            ))}
-          </div>
-        </section>
-
-        {/* ROI Framing */}
-        <section className="py-16 border-t border-[#E8E6E1]">
-          <AnimateIn animation="fade-up">
-            <div className="relative rounded-[2rem] p-10 lg:p-14 overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(107,143,113,0.08) 0%, rgba(107,143,113,0.04) 100%)" }}>
-              <div className="max-w-3xl mx-auto text-center relative z-10">
-                <span className="inline-block text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">The Math</span>
-                <h2 className="text-2xl md:text-3xl font-bold mb-6 text-[#1C1C1C] leading-relaxed">
-                  Our clients typically see 10x+ return on their investment within the first year.
-                </h2>
-                <p className="text-[#555] leading-relaxed mb-8">
-                  When you put a dollar amount on the time wasted, the deals missed, and the overhead you&apos;re carrying — the decision to invest in a clear AI strategy isn&apos;t even close. It pays for itself many times over.
-                </p>
-                <div className="w-16 h-1 bg-[#6B8F71] rounded-full mx-auto" />
               </div>
+            </AnimateIn>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── DARK SECTION: ROI FRAMING ─── */}
+      <section className="bg-[#1C1C1C] text-white">
+        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
+          <AnimateIn animation="fade-up">
+            <div className="max-w-3xl mx-auto text-center">
+              <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">THE MATH</p>
+              <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">
+                Our clients typically see 10x+ return within the first year.
+              </h2>
+              <p className="text-white/60 text-lg leading-relaxed mb-10">
+                When you put a dollar amount on the time wasted, the deals missed, and the overhead you&apos;re carrying — the decision to invest in a clear AI strategy isn&apos;t even close.
+              </p>
+              <div className="w-16 h-px bg-[#6B8F71] mx-auto" />
             </div>
           </AnimateIn>
-        </section>
+        </div>
+      </section>
 
-        {/* Who This Is For */}
-        <section className="py-16 border-t border-[#E8E6E1]">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
-            <AnimateIn animation="fade-up">
-              <div>
-                <span className="inline-block text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">Is This For You?</span>
-                <h2 className="text-3xl md:text-4xl font-bold mb-6 text-[#1C1C1C]">
-                  This is for businesses ready to stop guessing and start moving.
-                </h2>
-                <p className="text-[#555] leading-relaxed">
-                  We work best with teams that know they need AI but don&apos;t know where to start — and want a strategic partner, not another tool to manage.
-                </p>
-              </div>
-            </AnimateIn>
-
-            <AnimateIn animation="fade-up" delay={100}>
-              <div className="space-y-4">
-                {[
-                  "You're spending more time on admin than on your actual expertise",
-                  "You know AI could help but aren't sure where to start",
-                  "You've tried tools before but they didn't stick",
-                  "You want measurable ROI, not vague promises",
-                  "You're ready to invest in strategy, not just software",
-                ].map((item) => (
-                  <div key={item} className="flex items-start gap-3 bg-white border border-[#E8E6E1] rounded-2xl p-4">
-                    <svg className="w-5 h-5 text-[#6B8F71] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12.75l6 6 9-13.5" />
-                    </svg>
-                    <span className="text-[#555] leading-relaxed">{item}</span>
-                  </div>
-                ))}
-              </div>
-            </AnimateIn>
-          </div>
-        </section>
-
-        {/* CTA + Calendly */}
-        <section className="py-16 border-t border-[#E8E6E1]">
+      {/* ─── WHO THIS IS FOR ─── */}
+      <section className="max-w-6xl mx-auto px-6 py-20 md:py-28">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20">
           <AnimateIn animation="fade-up">
-            <div className="text-center mb-10">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[#1C1C1C]">Start with the Assessment.</h2>
-              <p className="text-lg text-[#555] max-w-xl mx-auto">
+            <div>
+              <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">IS THIS FOR YOU?</p>
+              <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">
+                For businesses ready to stop guessing.
+              </h2>
+              <p className="text-[#555] text-lg leading-relaxed">
+                We work best with teams that know they need AI but don&apos;t know where to start — and want a strategic partner, not another tool to manage.
+              </p>
+            </div>
+          </AnimateIn>
+
+          <AnimateIn animation="fade-up" delay={100}>
+            <div className="space-y-4">
+              {[
+                "You're spending more time on admin than on your actual expertise",
+                "You know AI could help but aren't sure where to start",
+                "You've tried tools before but they didn't stick",
+                "You want measurable ROI, not vague promises",
+                "You're ready to invest in strategy, not just software",
+              ].map((item) => (
+                <div key={item} className="flex items-start gap-3 bg-white border border-[#E8E6E1] rounded-xl p-4">
+                  <svg className="w-5 h-5 text-[#6B8F71] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                  <span className="text-[#555] leading-relaxed">{item}</span>
+                </div>
+              ))}
+            </div>
+          </AnimateIn>
+        </div>
+      </section>
+
+      {/* ─── CTA + CALENDLY ─── */}
+      <section className="bg-[#F5F4F1]/50">
+        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
+          <AnimateIn animation="fade-up">
+            <div className="text-center mb-12">
+              <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">NEXT STEP</p>
+              <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-4">Start with the Assessment.</h2>
+              <p className="text-lg text-[#555] max-w-xl mx-auto mb-6">
                 Book a call and we&apos;ll show you exactly where your business is leaving money on the table — and what to do about it.
               </p>
               <a
                 href="/lighten-ai-one-pager.pdf"
                 download
-                className="inline-flex items-center gap-2 mt-4 text-sm text-[#6B8F71] hover:text-[#5A7D60] font-medium transition-colors duration-200"
+                className="inline-flex items-center gap-2 text-sm text-[#6B8F71] hover:text-[#5A7D60] font-medium transition-colors duration-200"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -269,12 +267,15 @@ export default function OfferPage() {
             </div>
           </AnimateIn>
           <AnimateIn animation="fade-up" delay={100}>
-            <div className="bg-white rounded-[2rem] shadow-xl shadow-[#6B8F71]/8 border border-[#E8E6E1] overflow-hidden max-w-3xl mx-auto">
+            <div className="bg-white rounded-2xl border border-[#E8E6E1] overflow-hidden max-w-3xl mx-auto">
               <CalendlyWidget />
             </div>
           </AnimateIn>
-        </section>
+        </div>
+      </section>
 
+      {/* Footer */}
+      <div className="max-w-6xl mx-auto px-6">
         <Footer />
       </div>
     </div>

@@ -7,11 +7,10 @@ import { FeatherLogo } from "./Logo";
 import { AuthButton } from "./AuthButton";
 
 const NAV_LINKS = [
-  { href: "/offer", label: "Offer" },
-  { href: "/about", label: "About" },
-  { href: "/learn", label: "Learn" },
-  { href: "/agents", label: "Agents" },
-  { href: "/content", label: "Content" },
+  { href: "/offer", label: "OFFER" },
+  { href: "/about", label: "ABOUT" },
+  { href: "/learn", label: "LEARN" },
+  { href: "/agents", label: "AGENTS" },
 ] as const;
 
 export function Navigation() {
@@ -46,18 +45,14 @@ export function Navigation() {
   return (
     <>
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 border-b border-[#E8E6E1] bg-white/95 backdrop-blur-sm transition-all duration-300 ease-in-out ${
-          scrolled ? "py-2 md:py-3" : "py-3 md:py-5"
+        className={`fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm transition-all duration-300 ease-in-out border-b border-[#E8E6E1]/60 ${
+          scrolled ? "py-3" : "py-4 md:py-5"
         }`}
       >
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             {FeatherLogo}
-            <span
-              className={`font-semibold tracking-tight text-[#1C1C1C] transition-all duration-300 ${
-                scrolled ? "text-lg md:text-xl" : "text-xl md:text-2xl"
-              }`}
-            >
+            <span className="font-semibold tracking-tight text-[#1C1C1C] text-lg">
               Lighten AI
             </span>
           </Link>
@@ -68,24 +63,34 @@ export function Navigation() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm text-[#666] hover:text-[#6B8F71] transition-colors duration-200 cursor-pointer"
+                className={`text-xs tracking-[0.15em] font-medium transition-colors duration-200 cursor-pointer ${
+                  pathname === link.href
+                    ? "text-[#1C1C1C]"
+                    : "text-[#888] hover:text-[#1C1C1C]"
+                }`}
               >
                 {link.label}
               </Link>
             ))}
-            <Suspense fallback={<div className="w-16" />}>
+            <Link
+              href="/offer"
+              className="bg-[#1C1C1C] text-white text-xs font-semibold tracking-[0.1em] uppercase px-5 py-2.5 rounded-full hover:bg-[#333] transition-colors duration-200"
+            >
+              GET STARTED
+            </Link>
+            <Suspense fallback={<div className="w-8" />}>
               <AuthButton />
             </Suspense>
           </div>
 
           {/* Mobile hamburger button */}
           <button
-            className="md:hidden flex items-center justify-center w-10 h-10 -mr-2 rounded-lg hover:bg-[#F5F4F1] transition-colors"
+            className="md:hidden flex items-center justify-center w-10 h-10 -mr-2"
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
           >
             <svg
-              className="w-6 h-6 text-[#1C1C1C]"
+              className="w-5 h-5 text-[#1C1C1C]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -116,30 +121,37 @@ export function Navigation() {
       >
         <div className="flex items-center justify-end p-4">
           <button
-            className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-[#F5F4F1] transition-colors"
+            className="flex items-center justify-center w-10 h-10"
             onClick={closeMobile}
             aria-label="Close menu"
           >
-            <svg className="w-6 h-6 text-[#1C1C1C]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <svg className="w-5 h-5 text-[#1C1C1C]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <div className="flex flex-col px-6 pb-8 gap-2">
+        <div className="flex flex-col px-6 pb-8 gap-1">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               onClick={closeMobile}
-              className={`text-base py-3 px-4 rounded-xl transition-colors duration-200 ${
+              className={`text-xs tracking-[0.15em] font-medium py-3 px-4 rounded-lg transition-colors duration-200 ${
                 pathname === link.href
-                  ? "text-[#6B8F71] bg-[#6B8F71]/8 font-medium"
-                  : "text-[#555] hover:text-[#6B8F71] hover:bg-[#F5F4F1]"
+                  ? "text-[#1C1C1C] bg-[#F5F4F1]"
+                  : "text-[#888] hover:text-[#1C1C1C] hover:bg-[#F5F4F1]"
               }`}
             >
               {link.label}
             </Link>
           ))}
+          <Link
+            href="/offer"
+            onClick={closeMobile}
+            className="mt-4 bg-[#1C1C1C] text-white text-xs font-semibold tracking-[0.1em] uppercase px-5 py-3 rounded-full text-center hover:bg-[#333] transition-colors duration-200"
+          >
+            GET STARTED
+          </Link>
           <div className="mt-4 pt-4 border-t border-[#E8E6E1]">
             <Suspense fallback={<div className="h-10" />}>
               <AuthButton />
@@ -148,8 +160,8 @@ export function Navigation() {
         </div>
       </div>
 
-      {/* Spacer matches the larger initial nav height */}
-      <div className="h-[68px] md:h-[82px]" />
+      {/* Spacer */}
+      <div className="h-[60px] md:h-[68px]" />
     </>
   );
 }

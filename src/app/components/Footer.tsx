@@ -2,16 +2,57 @@ import Link from "next/link";
 import { FeatherLogoSmall } from "./Logo";
 import FeedbackWidget from "./FeedbackWidget";
 
+const FOOTER_LINKS = {
+  Product: [
+    { href: "/agents", label: "AI Agents" },
+    { href: "/offer", label: "Our Offer" },
+    { href: "/content", label: "Content" },
+  ],
+  Company: [
+    { href: "/about", label: "About" },
+    { href: "/learn", label: "Learn" },
+  ],
+} as const;
+
 export function Footer() {
   return (
-    <footer className="pt-12 pb-6 border-t border-[#E8E6E1]">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-2.5">
-          {FeatherLogoSmall}
-          <span className="text-sm text-[#888]">&copy; 2025 Lighten AI</span>
+    <footer className="border-t border-[#E8E6E1] pt-16 pb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
+        {/* Brand column */}
+        <div className="col-span-2 md:col-span-2">
+          <div className="flex items-center gap-2 mb-4">
+            {FeatherLogoSmall}
+            <span className="font-semibold text-[#1C1C1C] text-base">Lighten AI</span>
+          </div>
+          <p className="text-sm text-[#888] leading-relaxed max-w-xs">
+            AI systems built for Shopify brands. Scale content, support, and operations without adding headcount.
+          </p>
         </div>
-        <div className="flex items-center gap-6 text-sm text-[#999]">
-          <Link href="/about" className="hover:text-[#666] transition-colors cursor-pointer">About</Link>
+
+        {/* Link columns */}
+        {Object.entries(FOOTER_LINKS).map(([category, links]) => (
+          <div key={category}>
+            <p className="text-xs font-semibold text-[#999] uppercase tracking-[0.15em] mb-4">{category}</p>
+            <ul className="space-y-3">
+              {links.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-[#666] hover:text-[#1C1C1C] transition-colors duration-200"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      {/* Bottom bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-[#E8E6E1]">
+        <span className="text-xs text-[#999]">&copy; {new Date().getFullYear()} Lighten AI. All rights reserved.</span>
+        <div className="flex items-center gap-6 text-xs text-[#999]">
           <span className="hover:text-[#666] transition-colors cursor-pointer">Privacy</span>
           <span className="hover:text-[#666] transition-colors cursor-pointer">Terms</span>
         </div>
