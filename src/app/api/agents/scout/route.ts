@@ -1,6 +1,10 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { NextRequest } from "next/server";
 
+// Vercel deployment config
+export const runtime = "nodejs";
+export const maxDuration = 300; // 5 minutes (Vercel Pro plan max)
+
 export async function POST(request: NextRequest) {
   const { message, sessionId } = await request.json();
 

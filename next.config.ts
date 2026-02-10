@@ -15,6 +15,9 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "100mb",
     },
   },
+  // Keep the Agent SDK out of webpack bundling — it spawns a subprocess
+  // and includes wasm files that must remain intact on disk
+  serverExternalPackages: ["@anthropic-ai/claude-agent-sdk"],
 };
 
 export default nextConfig;
