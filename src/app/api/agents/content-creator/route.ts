@@ -15,101 +15,89 @@ export async function POST(request: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       const rawMessages: unknown[] = [];
+      const seenMsgIds = new Set<string>();
+      let allSentText = "";
 
       try {
         const options: Record<string, unknown> = {
           allowedTools: [
-            "Skill",
             "Read",
             "Glob",
             "Grep",
             "WebSearch",
             "WebFetch",
-            "AskUserQuestion",
             "Bash",
             "Write",
           ],
           permissionMode: "bypassPermissions",
           settingSources: ["project"],
           cwd: process.cwd(),
-          systemPrompt: `You are the Lighten AI Content Creator, a specialized agent for drafting multi-platform content.
+          systemPrompt: `You are the Lighten AI Content Creator. Your job is to draft content quickly and well.
 
-Your primary job is to help the admin create content for Lighten AI's content system. You have access to the "content-creator" Skill which contains platform-specific writing guidelines and the content database schema.
+## CRITICAL: The user's first message already contains everything you need
 
-IMPORTANT: When the user asks you to create or draft content, ALWAYS invoke the content-creator Skill first to load the full platform guidelines and brand voice.
+The admin dashboard pre-loads context into the starter prompt:
+- **Platform** (LinkedIn, X, or both) — already specified
+- **Target audience** (e.g. "Shopify merchants") — already specified if set
+- **Topic/idea** and optional context — already specified
 
-## What you do:
-- Draft content for X (Twitter), Medium, LinkedIn, Instagram, and YouTube
-- Transcribe uploaded audio/video recordings
-- Generate thumbnail and social card images
-- Save final drafts to Supabase
-- Adapt tone and format for each platform
-- Follow Lighten AI's brand voice (knowledgeable but approachable)
+DO NOT ask clarifying questions about platform, audience, or topic. This information is in the message. Go straight to drafting.
 
-## Uploaded Files
+## Workflow
 
-When a user uploads a file, you will see markers like:
-  [Uploaded: recording.mp3 (audio/mpeg) at /absolute/path/to/file]
+1. **Research first.** ALWAYS run 1-2 WebSearch queries before drafting. Find recent stats, trends, data points, or real examples related to the topic and audience. This makes the content credible and valuable, not generic. Search for things like "[topic] statistics 2025 2026", "[topic] [audience] trends", or "[topic] case study results".
+2. **Then draft.** Weave the research into your post naturally (cite specific numbers, name real companies/tools, reference real trends). Output ONLY the post content. No preamble like "Here's your draft:", no options menu, no "Want me to refine?" footer. Just clean, copy-paste-ready text.
+3. **Then generate an image.** Run generate-image.ts to create a thumbnail. Pick a descriptive visual prompt that matches the post topic (no text in images). Display the image inline.
+4. **Then offer X cross-post.** After the image, ask: "Want me to draft an X post to promote this?" If they say yes, draft a punchy tweet or short thread that teases the article. Output it clean and copy-paste-ready.
+5. **Transcribe if uploaded.** If the user uploaded audio/video, run transcribe.ts first, then draft from the transcript.
 
-Use the file path with the appropriate script command below.
+## Platform Guidelines
 
-## Script Commands
+### LinkedIn
+Professional tone. Hook opener, business value focus, thought leadership angle. 200-500 words. End with a question or CTA. Short paragraphs. Bold key phrases for skimmability.
 
-All scripts are run via Bash and output JSON to stdout.
+### X (Twitter)
+Punchy thread-style. Hook in first line. Short paragraphs. Use line breaks. No hashtags unless asked. Max ~280 chars per tweet in a thread. Mark tweet breaks with ---.
+
+## Brand Voice
+- **Tone**: Knowledgeable but approachable. Not corporate-speak.
+- **Audience**: Business owners and operators exploring AI automation
+- **Key themes**: AI making work lighter, practical automation, demystifying AI
+- **Brand name**: "Lighten AI" (always capitalize both words)
+- **Avoid**: Hype, buzzwords, overpromising, "revolutionary", "game-changing"
+- **NEVER use em dashes (—).** Use commas, periods, colons, or parentheses instead.
+
+## Script Commands (use only when needed)
 
 ### Transcribe audio/video
 \`\`\`bash
 npx tsx scripts/content-creator/transcribe.ts <file-path>
 \`\`\`
-Returns: { text, segments }
 
-### Generate images
+### Generate images (auto-generate after every draft)
 \`\`\`bash
 npx tsx scripts/content-creator/generate-image.ts "<prompt>" [--size landscape_16_9] [--save-as filename]
 \`\`\`
-Size options: landscape_16_9 (default, for X/Medium/LinkedIn/YouTube), square_hd (for Instagram)
-Returns: { url, localPath, publicUrl }
+After generating, display inline: ![Generated thumbnail](publicUrl)
+Use landscape_16_9 for LinkedIn/X/Medium/YouTube, square_hd for Instagram.
 
-IMPORTANT: After generating an image, ALWAYS display it inline using markdown image syntax with the publicUrl:
-![Generated thumbnail](publicUrl)
-For example: ![Generated thumbnail](/generated/my-image.png)
-This lets the user see the image directly in the chat.
-
-### Save content to Supabase
+### Save content to Supabase (only after user says to save)
 \`\`\`bash
 echo '<json>' | npx tsx scripts/content-creator/save-content.ts
 \`\`\`
-Input JSON: { column: {title, slug, description}, topic: {title, slug, description, image_url, author}, posts: [{platform, title, excerpt}] }
-Returns: { success, columnId, topicId, postIds }
+JSON format: { column: {title, slug, description}, topic: {title, slug, description, image_url, author}, posts: [{platform, title, excerpt}] }
 
 ### List existing content
 \`\`\`bash
 npx tsx scripts/content-creator/list-content.ts
 \`\`\`
-Returns: Array of columns with their topics
 
-## Full Workflow (follow these steps):
-
-1. **Intake**: Greet and understand what the user wants to create content about
-2. **Clarify**: Use AskUserQuestion to ask about target platforms, angle, audience, and tone
-3. **Transcribe**: If the user uploaded audio/video, run transcribe.ts to get the transcript
-4. **List existing content**: Run list-content.ts to see what columns/topics already exist
-5. **Research**: Use WebSearch/WebFetch to gather relevant data and verify facts
-6. **Load guidelines**: Invoke the content-creator Skill to load platform-specific guidelines
-7. **Draft**: Write platform-specific content following the loaded guidelines
-8. **Generate images**: Run generate-image.ts to create thumbnails/social cards. Use landscape_16_9 for X/Medium/LinkedIn/YouTube and square_hd for Instagram
-9. **Present & review**: Show all drafts clearly labeled by platform for user approval
-10. **Save**: After user approval, run save-content.ts to save drafts to Supabase. Confirm with the saved IDs.
-
-## Tools:
-- Skill: Load the content-creator skill for platform guidelines and brand voice
-- AskUserQuestion: Ask clarifying questions with clickable options (ALWAYS use this tool instead of typing questions)
-- WebSearch / WebFetch: Research topics for accuracy and freshness
-- Read / Glob / Grep: Reference existing content in the codebase
-- Bash: Run transcription, image generation, save, and list scripts
-- Write: Write files when needed
-
-Keep responses well-structured with clear platform labels. Be creative but stay on-brand.`,
+## Key rules
+- NEVER use AskUserQuestion — it does not work in this context
+- ALWAYS research before drafting. 1-2 targeted web searches. Real data makes the content worth reading.
+- Output ONLY the post content. No meta-commentary, no "here's your draft", no options menu. The user will copy-paste your output directly into LinkedIn/Medium
+- After the draft, ALWAYS generate a thumbnail image automatically
+- When the user asks for changes, output the FULL revised post (not just the diff)`,
         };
 
         if (sessionId) {
@@ -150,31 +138,55 @@ Keep responses well-structured with clear platform labels. Be creative but stay 
           }
 
           if (msg.type === "assistant" && msg.message?.content) {
+            // Skip entire message if we've already processed this message ID
+            const msgId = msg.message?.id;
+            if (msgId && seenMsgIds.has(msgId)) {
+              continue;
+            }
+            if (msgId) seenMsgIds.add(msgId);
+
             for (const block of msg.message.content) {
               if (block.type === "text") {
-                controller.enqueue(
-                  encoder.encode(
-                    `data: ${JSON.stringify({
-                      type: "text",
-                      text: block.text,
-                      rawMessage: msg,
-                    })}\n\n`
-                  )
-                );
-              } else if (
-                block.type === "tool_use" &&
-                block.name === "AskUserQuestion"
-              ) {
-                controller.enqueue(
-                  encoder.encode(
-                    `data: ${JSON.stringify({
-                      type: "ask_user_question",
-                      toolUseId: block.id,
-                      questions: block.input?.questions || [],
-                      rawMessage: msg,
-                    })}\n\n`
-                  )
-                );
+                let textToSend = block.text;
+
+                // Deduplicate: the agent often repeats earlier output across turns
+                if (allSentText.length > 0 && textToSend.startsWith(allSentText)) {
+                  // New text contains all previous text as prefix — only send the delta
+                  textToSend = textToSend.slice(allSentText.length);
+                } else if (allSentText.length > 0 && allSentText.endsWith(textToSend)) {
+                  // New text is a suffix of what we already sent — skip entirely
+                  textToSend = "";
+                } else if (allSentText.length > 0 && allSentText.includes(textToSend) && textToSend.length > 50) {
+                  // Entire text block is a substring of what we already sent — skip
+                  textToSend = "";
+                } else if (allSentText.length > 0 && textToSend.length > 100) {
+                  // Check for partial overlap: does sentText end with the beginning of newText?
+                  // Only check last 500 chars to keep this fast
+                  const tail = allSentText.slice(-500);
+                  const maxCheck = Math.min(tail.length, textToSend.length);
+                  let overlap = 0;
+                  for (let i = 1; i <= maxCheck; i++) {
+                    if (tail.slice(-i) === textToSend.slice(0, i)) {
+                      overlap = i;
+                    }
+                  }
+                  if (overlap > 50) {
+                    textToSend = textToSend.slice(overlap);
+                  }
+                }
+
+                if (textToSend) {
+                  allSentText += textToSend;
+                  controller.enqueue(
+                    encoder.encode(
+                      `data: ${JSON.stringify({
+                        type: "text",
+                        text: textToSend,
+                        rawMessage: msg,
+                      })}\n\n`
+                    )
+                  );
+                }
               } else if (
                 block.type === "tool_use" &&
                 block.name === "Task"

@@ -67,6 +67,7 @@ interface AgentChatProps {
   variant: "full" | "embedded";
   starterPrompts?: string[];
   fileUpload?: FileUploadConfig;
+  initialPrompt?: string;
 }
 
 export default function AgentChat({
@@ -81,6 +82,7 @@ export default function AgentChat({
   variant,
   starterPrompts = [],
   fileUpload,
+  initialPrompt,
 }: AgentChatProps) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -93,10 +95,12 @@ export default function AgentChat({
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [statusText, setStatusText] = useState<string | null>(null);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const titledSessions = useRef<Set<string>>(new Set());
+  const hasAutoSent = useRef(false);
 
   const isFull = variant === "full";
   const accent = "#6B8F71";
@@ -109,8 +113,8 @@ export default function AgentChat({
       setSessions(restored);
       // Mark all restored sessions as already titled
       restored.forEach((s: Session) => titledSessions.current.add(s.id));
-      // Auto-resume the most recent session
-      if (restored.length > 0 && messages.length === 0 && !sessionId) {
+      // Auto-resume the most recent session (skip if initialPrompt will auto-send)
+      if (restored.length > 0 && messages.length === 0 && !sessionId && !initialPrompt) {
         const latest = restored[0];
         setSessionId(latest.id);
         setMessages(latest.messages);
@@ -118,6 +122,20 @@ export default function AgentChat({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
+
+  // Auto-send initialPrompt on mount (e.g. when opened from a platform card with context)
+  useEffect(() => {
+    if (initialPrompt && !hasAutoSent.current) {
+      hasAutoSent.current = true;
+      setInput(initialPrompt);
+      setTimeout(() => {
+        if (formRef.current) {
+          formRef.current.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+        }
+      }, 100);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPrompt]);
 
   useEffect(() => {
     if (sessions.length > 0) {
@@ -832,20 +850,75 @@ export default function AgentChat({
                         </div>
                       )}
 
-                      {/* Copy button for assistant messages with content */}
+                      {/* Copy buttons for assistant messages */}
                       {message.role === "assistant" && message.content && !isLoading && (
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(message.content);
-                          }}
-                          className="self-start flex items-center gap-1 text-xs text-[#999] hover:text-[#6B8F71] hover:bg-[#F5F4F0] px-2 py-1 rounded-lg transition-colors"
-                          title="Copy to clipboard"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
-                          </svg>
-                          Copy
-                        </button>
+                        <div className="self-start flex items-center gap-2">
+                          {/* Copy as plain text (for LinkedIn) */}
+                          <button
+                            onClick={() => {
+                              // Strip markdown formatting for plain text paste
+                              const plain = message.content
+                                .replace(/^#{1,6}\s+/gm, "")          // headings
+                                .replace(/\*\*(.+?)\*\*/g, "$1")      // bold
+                                .replace(/\*(.+?)\*/g, "$1")          // italic
+                                .replace(/`(.+?)`/g, "$1")            // inline code
+                                .replace(/^\s*[-*]\s+/gm, "- ")       // normalize list markers
+                                .replace(/\[(.+?)\]\(.+?\)/g, "$1")   // links → text only
+                                .replace(/^---+$/gm, "")              // horizontal rules
+                                .replace(/!\[.*?\]\(.*?\)/g, "")      // remove images
+                                .replace(/\n{3,}/g, "\n\n")           // collapse extra newlines
+                                .trim();
+                              navigator.clipboard.writeText(plain);
+                              setCopiedIndex(index * 10);
+                              setTimeout(() => setCopiedIndex(null), 2000);
+                            }}
+                            className="flex items-center gap-1.5 text-xs font-medium text-[#666] hover:text-[#6B8F71] bg-[#FAFAF8] hover:bg-[#6B8F71]/10 border border-[#E8E6E1] hover:border-[#6B8F71]/30 px-3 py-1.5 rounded-lg transition-all"
+                            title="Copy as plain text (for LinkedIn)"
+                          >
+                            {copiedIndex === index * 10 ? (
+                              <>
+                                <svg className="w-3.5 h-3.5 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span className="text-[#6B8F71]">Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                </svg>
+                                Copy Text
+                              </>
+                            )}
+                          </button>
+
+                          {/* Copy as markdown (for Medium) */}
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(message.content);
+                              setCopiedIndex(index * 10 + 1);
+                              setTimeout(() => setCopiedIndex(null), 2000);
+                            }}
+                            className="flex items-center gap-1.5 text-xs font-medium text-[#666] hover:text-[#6B8F71] bg-[#FAFAF8] hover:bg-[#6B8F71]/10 border border-[#E8E6E1] hover:border-[#6B8F71]/30 px-3 py-1.5 rounded-lg transition-all"
+                            title="Copy as markdown (for Medium)"
+                          >
+                            {copiedIndex === index * 10 + 1 ? (
+                              <>
+                                <svg className="w-3.5 h-3.5 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span className="text-[#6B8F71]">Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+                                </svg>
+                                Copy Markdown
+                              </>
+                            )}
+                          </button>
+                        </div>
                       )}
 
                       {/* Question UI */}
@@ -1056,7 +1129,7 @@ export default function AgentChat({
                 e.target.style.height = e.target.scrollHeight + "px";
               }}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                   e.preventDefault();
                   formRef.current?.requestSubmit();
                 }

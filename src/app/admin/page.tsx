@@ -267,7 +267,7 @@ export default function AdminDashboard() {
         <StepCard
           stepNumber={2}
           label="Create"
-          title="Build LinkedIn Content"
+          title="Create Content"
           timeEstimate="~25 min"
           isComplete={stepsComplete[1]}
           isExpanded={expandedStep === 1}
