@@ -3,28 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-type OutreachType = "warm" | "cold" | "referral" | "";
-type OutreachCategory = "notification" | "feed" | "search" | "inquiry" | "reengage";
-
-interface OutreachSlot {
-  name: string;
-  done: boolean;
-  type: OutreachType;
-  linkedinUrl: string;
-  notes: string;
-  category: OutreachCategory;
-}
-
-interface EngagementSlot {
-  targetName: string;
-  done: boolean;
-}
-
 interface DailyProgressState {
   date: string;
   inquiriesReviewed: boolean;
-  outreachSlots: [OutreachSlot, OutreachSlot, OutreachSlot, OutreachSlot, OutreachSlot];
-  engagementSlots: [EngagementSlot, EngagementSlot, EngagementSlot];
   contentCreated: boolean;
   learningCompleted: boolean;
   websiteImproved: boolean;
@@ -40,18 +21,6 @@ function getDefaultState(date: string): DailyProgressState {
   return {
     date,
     inquiriesReviewed: false,
-    outreachSlots: [
-      { name: "", done: false, type: "warm", linkedinUrl: "", notes: "", category: "notification" },
-      { name: "", done: false, type: "", linkedinUrl: "", notes: "", category: "feed" },
-      { name: "", done: false, type: "cold", linkedinUrl: "", notes: "", category: "search" },
-      { name: "", done: false, type: "warm", linkedinUrl: "", notes: "", category: "inquiry" },
-      { name: "", done: false, type: "", linkedinUrl: "", notes: "", category: "reengage" },
-    ],
-    engagementSlots: [
-      { targetName: "", done: false },
-      { targetName: "", done: false },
-      { targetName: "", done: false },
-    ],
     contentCreated: false,
     learningCompleted: false,
     websiteImproved: false,
@@ -59,12 +28,10 @@ function getDefaultState(date: string): DailyProgressState {
 }
 
 function isValidState(parsed: Record<string, unknown>): boolean {
-  if (!parsed.outreachSlots || !Array.isArray(parsed.outreachSlots)) return false;
-  if (parsed.outreachSlots.length !== 5) return false;
-  if (!parsed.outreachSlots.every((s: Record<string, unknown>) => "category" in s)) return false;
-  if (!parsed.engagementSlots || !Array.isArray(parsed.engagementSlots)) return false;
-  if (parsed.engagementSlots.length !== 3) return false;
-  return true;
+  return typeof parsed.inquiriesReviewed === "boolean" &&
+    typeof parsed.contentCreated === "boolean" &&
+    typeof parsed.learningCompleted === "boolean" &&
+    typeof parsed.websiteImproved === "boolean";
 }
 
 function loadFromLocalStorage(date: string): DailyProgressState | null {
@@ -196,28 +163,6 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     update((prev) => ({ ...prev, inquiriesReviewed: !prev.inquiriesReviewed }));
   }, [update]);
 
-  const updateOutreachSlot = useCallback(
-    (index: 0 | 1 | 2 | 3 | 4, slot: Partial<OutreachSlot>) => {
-      update((prev) => {
-        const slots = [...prev.outreachSlots] as DailyProgressState["outreachSlots"];
-        slots[index] = { ...slots[index], ...slot };
-        return { ...prev, outreachSlots: slots };
-      });
-    },
-    [update]
-  );
-
-  const updateEngagementSlot = useCallback(
-    (index: 0 | 1 | 2, slot: Partial<EngagementSlot>) => {
-      update((prev) => {
-        const slots = [...prev.engagementSlots] as DailyProgressState["engagementSlots"];
-        slots[index] = { ...slots[index], ...slot };
-        return { ...prev, engagementSlots: slots };
-      });
-    },
-    [update]
-  );
-
   const markContentCreated = useCallback(() => {
     update((prev) => ({ ...prev, contentCreated: !prev.contentCreated }));
   }, [update]);
@@ -230,39 +175,23 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     update((prev) => ({ ...prev, websiteImproved: !prev.websiteImproved }));
   }, [update]);
 
-  // Outreach step is complete when 3+ of 5 slots are done
-  const outreachDoneCount = progress.outreachSlots.filter((s) => s.done).length;
-  const outreachComplete = outreachDoneCount >= 3;
-  const engagementDoneCount = progress.engagementSlots.filter((s) => s.done).length;
-
-  const completedCount = [
-    progress.inquiriesReviewed,
-    outreachComplete,
-    progress.contentCreated,
-    progress.learningCompleted,
-    progress.websiteImproved,
-  ].filter(Boolean).length;
-
   const stepsComplete = [
     progress.inquiriesReviewed,
-    outreachComplete,
     progress.contentCreated,
     progress.learningCompleted,
     progress.websiteImproved,
   ];
 
+  const completedCount = stepsComplete.filter(Boolean).length;
+
   return {
     progress,
     stepsComplete,
     completedCount,
-    totalSteps: 5,
-    outreachDoneCount,
-    engagementDoneCount,
+    totalSteps: 4,
     isToday,
     isLoadingProgress,
     markInquiriesReviewed,
-    updateOutreachSlot,
-    updateEngagementSlot,
     markContentCreated,
     markLearningCompleted,
     markWebsiteImproved,
@@ -270,4 +199,4 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
 }
 
 export { getTodayString };
-export type { OutreachSlot, OutreachType, OutreachCategory, EngagementSlot, DailyProgressState };
+export type { DailyProgressState };

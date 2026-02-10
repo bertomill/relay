@@ -6,15 +6,10 @@ import { useDailyProgress, getTodayString } from "./hooks/useDailyProgress";
 import MorningProgress from "./components/MorningProgress";
 import StepCard from "./components/StepCard";
 import Step1Inquiries from "./components/Step1Inquiries";
-import Step2Outreach from "./components/Step2Outreach";
 import Step3Content from "./components/Step3Content";
 import Step4Learn from "./components/Step4Learn";
 import Step5Improve from "./components/Step5Improve";
 
-interface SuggestedContact {
-  name: string;
-  email: string;
-}
 
 function formatDateDisplay(dateStr: string): string {
   const [year, month, day] = dateStr.split("-").map(Number);
@@ -38,7 +33,6 @@ export default function AdminDashboard() {
   const [expandedStep, setExpandedStep] = useState<number | null>(null);
   const [newInquiryCount, setNewInquiryCount] = useState(0);
   const [feedbackCount, setFeedbackCount] = useState(0);
-  const [suggestedContacts, setSuggestedContacts] = useState<SuggestedContact[]>([]);
   const [selectedDate, setSelectedDate] = useState(getTodayString);
   const supabase = createClient();
 
@@ -47,12 +41,8 @@ export default function AdminDashboard() {
     stepsComplete,
     completedCount,
     totalSteps,
-    outreachDoneCount,
-    engagementDoneCount,
     isToday,
     markInquiriesReviewed,
-    updateOutreachSlot,
-    updateEngagementSlot,
     markContentCreated,
     markLearningCompleted,
     markWebsiteImproved,
@@ -92,22 +82,6 @@ export default function AdminDashboard() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          // Fetch recent inquiries for suggested contacts
-          const { data } = await supabase
-            .from("inquiries")
-            .select("email, first_name, last_name")
-            .order("created_at", { ascending: false })
-            .limit(5);
-
-          if (data) {
-            setSuggestedContacts(
-              data.map((d) => ({
-                name: [d.first_name, d.last_name].filter(Boolean).join(" "),
-                email: d.email,
-              }))
-            );
-          }
-
           // Fetch unaddressed feedback count
           const { count: fbCount } = await supabase
             .from("feedback")
@@ -131,7 +105,7 @@ export default function AdminDashboard() {
 
   const advanceToNext = useCallback((currentStep: number) => {
     const next = currentStep + 1;
-    if (next < 5) {
+    if (next < 4) {
       setExpandedStep(next);
     } else {
       setExpandedStep(null);
@@ -145,21 +119,21 @@ export default function AdminDashboard() {
   }, [markInquiriesReviewed, advanceToNext, stepsComplete]);
 
   const handleContentComplete = useCallback(() => {
-    const wasComplete = stepsComplete[2];
+    const wasComplete = stepsComplete[1];
     markContentCreated();
-    if (!wasComplete) advanceToNext(2);
+    if (!wasComplete) advanceToNext(1);
   }, [markContentCreated, advanceToNext, stepsComplete]);
 
   const handleLearningComplete = useCallback(() => {
-    const wasComplete = stepsComplete[3];
+    const wasComplete = stepsComplete[2];
     markLearningCompleted();
-    if (!wasComplete) advanceToNext(3);
+    if (!wasComplete) advanceToNext(2);
   }, [markLearningCompleted, advanceToNext, stepsComplete]);
 
   const handleImproveComplete = useCallback(() => {
-    const wasComplete = stepsComplete[4];
+    const wasComplete = stepsComplete[3];
     markWebsiteImproved();
-    if (!wasComplete) advanceToNext(4);
+    if (!wasComplete) advanceToNext(3);
   }, [markWebsiteImproved, advanceToNext, stepsComplete]);
 
   // Greeting based on time of day
@@ -258,7 +232,7 @@ export default function AdminDashboard() {
             {isToday ? "Morning routine complete!" : "This day was completed!"}
           </h2>
           <p className="text-sm text-[#666]">
-            {isToday ? "Great start to your day. Everything's handled." : `All 5 steps were completed on ${formatDateDisplay(selectedDate)}.`}
+            {isToday ? "Great start to your day. Everything's handled." : `All 4 steps were completed on ${formatDateDisplay(selectedDate)}.`}
           </p>
         </div>
       )}
@@ -289,79 +263,49 @@ export default function AdminDashboard() {
           />
         </StepCard>
 
-        {/* Step 2: Outreach */}
+        {/* Step 2: Content */}
         <StepCard
           stepNumber={2}
-          label="Outreach"
-          title="Daily LinkedIn Playbook"
-          timeEstimate="~20 min"
-          isComplete={stepsComplete[1]}
-          isExpanded={expandedStep === 1}
-          onToggle={() => toggleStep(1)}
-          badge={
-            !stepsComplete[1] ? (
-              <span className="text-xs text-[#999]">
-                {outreachDoneCount}/5 outreach · {engagementDoneCount}/3 engaged
-              </span>
-            ) : (
-              <span className="text-xs text-[#999]">
-                {outreachDoneCount}/5 · {engagementDoneCount}/3
-              </span>
-            )
-          }
-        >
-          <Step2Outreach
-            slots={progress.outreachSlots}
-            onUpdateSlot={updateOutreachSlot}
-            engagementSlots={progress.engagementSlots}
-            onUpdateEngagement={updateEngagementSlot}
-            suggestedContacts={suggestedContacts}
-          />
-        </StepCard>
-
-        {/* Step 3: Content */}
-        <StepCard
-          stepNumber={3}
           label="Create"
           title="Build LinkedIn Content"
           timeEstimate="~25 min"
+          isComplete={stepsComplete[1]}
+          isExpanded={expandedStep === 1}
+          onToggle={() => toggleStep(1)}
+        >
+          <Step3Content
+            onComplete={handleContentComplete}
+            isComplete={stepsComplete[1]}
+          />
+        </StepCard>
+
+        {/* Step 3: Learn */}
+        <StepCard
+          stepNumber={3}
+          label="Learn"
+          title="Learn & Build Agents"
+          timeEstimate="~15 min"
           isComplete={stepsComplete[2]}
           isExpanded={expandedStep === 2}
           onToggle={() => toggleStep(2)}
         >
-          <Step3Content
-            onComplete={handleContentComplete}
+          <Step4Learn
+            onComplete={handleLearningComplete}
             isComplete={stepsComplete[2]}
           />
         </StepCard>
 
-        {/* Step 4: Learn */}
+        {/* Step 4: Improve */}
         <StepCard
           stepNumber={4}
-          label="Learn"
-          title="Learn & Build Agents"
-          timeEstimate="~15 min"
-          isComplete={stepsComplete[3]}
-          isExpanded={expandedStep === 3}
-          onToggle={() => toggleStep(3)}
-        >
-          <Step4Learn
-            onComplete={handleLearningComplete}
-            isComplete={stepsComplete[3]}
-          />
-        </StepCard>
-
-        {/* Step 5: Improve */}
-        <StepCard
-          stepNumber={5}
           label="Improve"
           title="Improve the Website"
           timeEstimate="~10 min"
-          isComplete={stepsComplete[4]}
-          isExpanded={expandedStep === 4}
-          onToggle={() => toggleStep(4)}
+          isComplete={stepsComplete[3]}
+          isExpanded={expandedStep === 3}
+          onToggle={() => toggleStep(3)}
           badge={
-            feedbackCount > 0 && !stepsComplete[4] && isToday ? (
+            feedbackCount > 0 && !stepsComplete[3] && isToday ? (
               <span className="px-2 py-0.5 rounded-full bg-[#6B8F71] text-white text-xs font-medium">
                 {feedbackCount} open
               </span>
@@ -370,7 +314,7 @@ export default function AdminDashboard() {
         >
           <Step5Improve
             onComplete={handleImproveComplete}
-            isComplete={stepsComplete[4]}
+            isComplete={stepsComplete[3]}
           />
         </StepCard>
       </div>

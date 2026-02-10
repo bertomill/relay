@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Instrument_Serif } from "next/font/google";
+import { Plus_Jakarta_Sans, DM_Serif_Display } from "next/font/google";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -8,7 +8,7 @@ const plusJakarta = Plus_Jakarta_Sans({
   weight: ["300", "400", "500", "600", "700"],
 });
 
-const instrumentSerif = Instrument_Serif({
+const dmSerifDisplay = DM_Serif_Display({
   variable: "--font-instrument-serif",
   subsets: ["latin"],
   weight: "400",
@@ -17,7 +17,7 @@ const instrumentSerif = Instrument_Serif({
 
 export const metadata: Metadata = {
   title: "Lighten AI | Work should feel lighter",
-  description: "We build AI agents that carry the load — so you can move faster, think bigger, and do more of what matters.",
+  description: "We build AI agents that carry the load so you can move faster, think bigger, and do more of what matters.",
 };
 
 export default function RootLayout({
@@ -28,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${plusJakarta.variable} ${instrumentSerif.variable} font-sans antialiased`}
+        className={`${plusJakarta.variable} ${dmSerifDisplay.variable} font-sans antialiased`}
       >
         {children}
       </body>

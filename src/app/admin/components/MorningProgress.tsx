@@ -5,8 +5,8 @@ interface MorningProgressProps {
   completedCount: number;
 }
 
-const STEP_LABELS = ["Review", "Outreach", "Create", "Learn", "Improve"];
-const TIME_ESTIMATES = [5, 15, 25, 15, 10]; // minutes per step
+const STEP_LABELS = ["Review", "Create", "Learn", "Improve"];
+const TIME_ESTIMATES = [5, 25, 15, 10]; // minutes per step
 
 export default function MorningProgress({ stepsComplete, completedCount }: MorningProgressProps) {
   const remainingMinutes = TIME_ESTIMATES.reduce(
@@ -35,7 +35,7 @@ export default function MorningProgress({ stepsComplete, completedCount }: Morni
                 i + 1
               )}
             </div>
-            {i < 4 && (
+            {i < 3 && (
               <div
                 className={`w-12 h-0.5 transition-colors duration-500 ${
                   complete ? "bg-[#6B8F71]" : "bg-[#E8E6E1]"
@@ -58,7 +58,7 @@ export default function MorningProgress({ stepsComplete, completedCount }: Morni
               >
                 {label}
               </span>
-              {i < 4 && <div className="w-12" />}
+              {i < 3 && <div className="w-12" />}
             </div>
           ))}
         </div>
@@ -66,11 +66,11 @@ export default function MorningProgress({ stepsComplete, completedCount }: Morni
 
       {/* Status text */}
       <p className="text-center text-sm text-[#666]">
-        {completedCount === 5 ? (
+        {completedCount === 4 ? (
           <span className="text-[#6B8F71] font-medium">All done for today!</span>
         ) : (
           <>
-            <span className="font-medium text-[#1C1C1C]">{completedCount} of 5</span>
+            <span className="font-medium text-[#1C1C1C]">{completedCount} of 4</span>
             {" complete"}
             {remainingMinutes > 0 && (
               <span className="text-[#999]"> &middot; ~{remainingMinutes} min remaining</span>
