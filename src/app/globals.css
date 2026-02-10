@@ -219,6 +219,18 @@ body {
   animation: light-sweep 15s ease-in-out infinite;
 }
 
+/* Grainy green sections */
+.grain-green {
+  position: relative;
+  background-color: #6B8F71;
+  overflow: hidden;
+}
+
+.grain-green > * {
+  position: relative;
+  z-index: 2;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up,
   .animate-fade-in,

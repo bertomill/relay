@@ -5,6 +5,7 @@ import { CalendlyWidget } from "./components/CalendlyWidget";
 import { AnimateIn } from "./components/AnimateIn";
 import { CountUp } from "./components/CountUp";
 import { HeroBackground } from "./components/HeroBackground";
+import { GrainTexture } from "./components/GrainTexture";
 import { ContentIllustration, SupportIllustration, MarketingIllustration } from "./components/illustrations/FeatureIllustrations";
 import Link from "next/link";
 
@@ -135,7 +136,8 @@ export default function Home() {
       </section>
 
       {/* ─── DARK METRICS BAR ─── */}
-      <section className="bg-[#1C1C1C]">
+      <section className="grain-green">
+        <GrainTexture />
         <div className="max-w-6xl mx-auto px-6 py-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {METRICS.map((metric, i) => (
@@ -188,11 +190,12 @@ export default function Home() {
       })}
 
       {/* ─── DARK SECTION: WHAT WE BUILD ─── */}
-      <section className="bg-[#1C1C1C] text-white">
+      <section className="grain-green text-white">
+        <GrainTexture />
         <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
           <AnimateIn animation="fade-up">
             <div className="text-center mb-16">
-              <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">WHAT WE BUILD</p>
+              <p className="text-xs font-semibold text-white/70 uppercase tracking-[0.15em] mb-4">WHAT WE BUILD</p>
               <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight">
                 AI systems designed<br className="hidden md:block" /> for your Shopify store.
               </h2>
@@ -202,9 +205,9 @@ export default function Home() {
           <div className="grid sm:grid-cols-2 gap-6">
             {AI_SYSTEMS.map((system, i) => (
               <AnimateIn key={system.name} animation="fade-up" delay={i * 100}>
-                <div className="group border border-white/10 rounded-2xl p-8 hover:border-[#6B8F71]/40 transition-all duration-300 hover:bg-white/5">
-                  <div className="w-14 h-14 rounded-full bg-[#6B8F71]/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
-                    <svg className="w-7 h-7 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="group border border-white/15 rounded-2xl p-8 hover:border-white/30 transition-all duration-300 hover:bg-white/5">
+                  <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
+                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={system.icon} />
                     </svg>
                   </div>
@@ -233,7 +236,7 @@ export default function Home() {
           {HOW_IT_WORKS.map((item, i) => (
             <AnimateIn key={item.step} animation="fade-up" delay={i * 150}>
               <div className="text-center relative">
-                <div className="w-12 h-12 rounded-full bg-[#1C1C1C] text-white flex items-center justify-center mx-auto mb-6 text-lg font-serif relative z-10">
+                <div className="w-12 h-12 rounded-full bg-[#6B8F71] text-white flex items-center justify-center mx-auto mb-6 text-lg font-serif relative z-10">
                   {item.step}
                 </div>
                 <h3 className="text-xl font-semibold mb-3">{item.title}</h3>
@@ -282,11 +285,12 @@ export default function Home() {
       </section>
 
       {/* ─── FINAL CTA ─── */}
-      <section className="bg-[#1C1C1C] text-white">
+      <section className="grain-green text-white">
+        <GrainTexture />
         <div className="max-w-6xl mx-auto px-6 py-20 md:py-28 text-center">
           <AnimateIn animation="fade-up">
             <h2 className="font-serif text-3xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tight mb-6">
-              Ready to scale<br className="hidden md:block" /> <span className="italic text-[#6B8F71]">without the overhead?</span>
+              Ready to scale<br className="hidden md:block" /> <span className="italic text-white/90">without the overhead?</span>
             </h2>
             <p className="text-lg text-white/60 mb-10 max-w-xl mx-auto">
               Join the Shopify brands using AI to 3x content output, cut support costs, and grow without hiring.
@@ -294,7 +298,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <a
                 href="#contact"
-                className="bg-[#6B8F71] text-white text-sm font-semibold tracking-[0.1em] uppercase px-8 py-4 rounded-full hover:bg-[#5A7D60] transition-colors duration-200"
+                className="bg-white text-[#6B8F71] text-sm font-semibold tracking-[0.1em] uppercase px-8 py-4 rounded-full hover:bg-white/90 transition-colors duration-200"
               >
                 START A CONVERSATION
               </a>

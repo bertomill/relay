@@ -44,14 +44,14 @@ export function Navigation() {
 
   return (
     <>
-      <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${
-          scrolled
-            ? "bg-white/90 backdrop-blur-md border-b border-[#E8E6E1]/60 py-3"
-            : "bg-transparent py-5 md:py-6"
-        }`}
-      >
-        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
+      <nav className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 pt-4">
+        <div
+          className={`max-w-5xl mx-auto px-6 flex items-center justify-between rounded-full border transition-all duration-300 ease-in-out ${
+            scrolled
+              ? "bg-white/80 backdrop-blur-xl border-[#E8E6E1]/60 py-2.5"
+              : "bg-white/40 backdrop-blur-xl border-white/40 py-3"
+          }`}
+        >
           {/* Left: Logo */}
           <Link href="/" className="flex items-center gap-2.5">
             {FeatherLogo}
@@ -171,7 +171,7 @@ export function Navigation() {
       </div>
 
       {/* Spacer */}
-      <div className="h-[60px] md:h-[76px]" />
+      <div className="h-[72px] md:h-[84px]" />
     </>
   );
 }
