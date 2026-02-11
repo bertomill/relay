@@ -9,6 +9,10 @@ interface DailyProgressState {
   contentCreated: boolean;
   learningCompleted: boolean;
   websiteImproved: boolean;
+  pipelineReviewed: boolean;
+  clientsChecked: boolean;
+  financialsReviewed: boolean;
+  analyticsReviewed: boolean;
 }
 
 const LOCAL_STORAGE_KEY = "lighten-morning-dashboard";
@@ -24,6 +28,10 @@ function getDefaultState(date: string): DailyProgressState {
     contentCreated: false,
     learningCompleted: false,
     websiteImproved: false,
+    pipelineReviewed: false,
+    clientsChecked: false,
+    financialsReviewed: false,
+    analyticsReviewed: false,
   };
 }
 
@@ -32,6 +40,7 @@ function isValidState(parsed: Record<string, unknown>): boolean {
     typeof parsed.contentCreated === "boolean" &&
     typeof parsed.learningCompleted === "boolean" &&
     typeof parsed.websiteImproved === "boolean";
+  // New fields are optional for backwards compatibility with existing saved data
 }
 
 function loadFromLocalStorage(date: string): DailyProgressState | null {
@@ -175,11 +184,31 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     update((prev) => ({ ...prev, websiteImproved: !prev.websiteImproved }));
   }, [update]);
 
+  const markPipelineReviewed = useCallback(() => {
+    update((prev) => ({ ...prev, pipelineReviewed: !prev.pipelineReviewed }));
+  }, [update]);
+
+  const markClientsChecked = useCallback(() => {
+    update((prev) => ({ ...prev, clientsChecked: !prev.clientsChecked }));
+  }, [update]);
+
+  const markFinancialsReviewed = useCallback(() => {
+    update((prev) => ({ ...prev, financialsReviewed: !prev.financialsReviewed }));
+  }, [update]);
+
+  const markAnalyticsReviewed = useCallback(() => {
+    update((prev) => ({ ...prev, analyticsReviewed: !prev.analyticsReviewed }));
+  }, [update]);
+
   const stepsComplete = [
     progress.inquiriesReviewed,
     progress.contentCreated,
     progress.learningCompleted,
     progress.websiteImproved,
+    progress.pipelineReviewed ?? false,
+    progress.clientsChecked ?? false,
+    progress.financialsReviewed ?? false,
+    progress.analyticsReviewed ?? false,
   ];
 
   const completedCount = stepsComplete.filter(Boolean).length;
@@ -188,13 +217,17 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     progress,
     stepsComplete,
     completedCount,
-    totalSteps: 4,
+    totalSteps: 8,
     isToday,
     isLoadingProgress,
     markInquiriesReviewed,
     markContentCreated,
     markLearningCompleted,
     markWebsiteImproved,
+    markPipelineReviewed,
+    markClientsChecked,
+    markFinancialsReviewed,
+    markAnalyticsReviewed,
   };
 }
 

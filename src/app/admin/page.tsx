@@ -9,6 +9,10 @@ import Step1Leads from "./components/Step1Leads";
 import Step3Content from "./components/Step3Content";
 import Step4Learn from "./components/Step4Learn";
 import Step5Improve from "./components/Step5Improve";
+import Step6Pipeline from "./components/Step6Pipeline";
+import Step7Clients from "./components/Step7Clients";
+import Step8Financials from "./components/Step8Financials";
+import Step9Analytics from "./components/Step9Analytics";
 
 
 function formatDateDisplay(dateStr: string): string {
@@ -46,6 +50,10 @@ export default function AdminDashboard() {
     markContentCreated,
     markLearningCompleted,
     markWebsiteImproved,
+    markPipelineReviewed,
+    markClientsChecked,
+    markFinancialsReviewed,
+    markAnalyticsReviewed,
   } = useDailyProgress(selectedDate);
 
   const goToPreviousDay = useCallback(() => {
@@ -105,12 +113,12 @@ export default function AdminDashboard() {
 
   const advanceToNext = useCallback((currentStep: number) => {
     const next = currentStep + 1;
-    if (next < 4) {
+    if (next < totalSteps) {
       setExpandedStep(next);
     } else {
       setExpandedStep(null);
     }
-  }, []);
+  }, [totalSteps]);
 
   const handleInquiriesComplete = useCallback(() => {
     const wasComplete = stepsComplete[0];
@@ -135,6 +143,30 @@ export default function AdminDashboard() {
     markWebsiteImproved();
     if (!wasComplete) advanceToNext(3);
   }, [markWebsiteImproved, advanceToNext, stepsComplete]);
+
+  const handlePipelineComplete = useCallback(() => {
+    const wasComplete = stepsComplete[4];
+    markPipelineReviewed();
+    if (!wasComplete) advanceToNext(4);
+  }, [markPipelineReviewed, advanceToNext, stepsComplete]);
+
+  const handleClientsComplete = useCallback(() => {
+    const wasComplete = stepsComplete[5];
+    markClientsChecked();
+    if (!wasComplete) advanceToNext(5);
+  }, [markClientsChecked, advanceToNext, stepsComplete]);
+
+  const handleFinancialsComplete = useCallback(() => {
+    const wasComplete = stepsComplete[6];
+    markFinancialsReviewed();
+    if (!wasComplete) advanceToNext(6);
+  }, [markFinancialsReviewed, advanceToNext, stepsComplete]);
+
+  const handleAnalyticsComplete = useCallback(() => {
+    const wasComplete = stepsComplete[7];
+    markAnalyticsReviewed();
+    if (!wasComplete) advanceToNext(7);
+  }, [markAnalyticsReviewed, advanceToNext, stepsComplete]);
 
   // Greeting based on time of day
   const getGreeting = () => {
@@ -229,17 +261,17 @@ export default function AdminDashboard() {
             </svg>
           </div>
           <h2 className="text-lg font-semibold text-[#1C1C1C] mb-1">
-            {isToday ? "Morning routine complete!" : "This day was completed!"}
+            {isToday ? "Daily routine complete!" : "This day was completed!"}
           </h2>
           <p className="text-sm text-[#666]">
-            {isToday ? "Great start to your day. Everything's handled." : `All 4 steps were completed on ${formatDateDisplay(selectedDate)}.`}
+            {isToday ? "Great work. Your business is running like a machine." : `All ${totalSteps} steps were completed on ${formatDateDisplay(selectedDate)}.`}
           </p>
         </div>
       )}
 
       {/* Steps */}
       <div className="space-y-5">
-        {/* Step 1: Check Inquiries */}
+        {/* Step 1: Review Leads */}
         <StepCard
           stepNumber={1}
           label="Review"
@@ -315,6 +347,70 @@ export default function AdminDashboard() {
           <Step5Improve
             onComplete={handleImproveComplete}
             isComplete={stepsComplete[3]}
+          />
+        </StepCard>
+
+        {/* Step 5: Pipeline */}
+        <StepCard
+          stepNumber={5}
+          label="Pipeline"
+          title="Pipeline & Deals"
+          timeEstimate="~10 min"
+          isComplete={stepsComplete[4]}
+          isExpanded={expandedStep === 4}
+          onToggle={() => toggleStep(4)}
+        >
+          <Step6Pipeline
+            onComplete={handlePipelineComplete}
+            isComplete={stepsComplete[4]}
+          />
+        </StepCard>
+
+        {/* Step 6: Clients */}
+        <StepCard
+          stepNumber={6}
+          label="Clients"
+          title="Client Delivery"
+          timeEstimate="~10 min"
+          isComplete={stepsComplete[5]}
+          isExpanded={expandedStep === 5}
+          onToggle={() => toggleStep(5)}
+        >
+          <Step7Clients
+            onComplete={handleClientsComplete}
+            isComplete={stepsComplete[5]}
+          />
+        </StepCard>
+
+        {/* Step 7: Financials */}
+        <StepCard
+          stepNumber={7}
+          label="Finance"
+          title="Financial Pulse"
+          timeEstimate="~5 min"
+          isComplete={stepsComplete[6]}
+          isExpanded={expandedStep === 6}
+          onToggle={() => toggleStep(6)}
+        >
+          <Step8Financials
+            onComplete={handleFinancialsComplete}
+            isComplete={stepsComplete[6]}
+          />
+        </StepCard>
+
+        {/* Step 8: Analytics */}
+        <StepCard
+          stepNumber={8}
+          label="Analytics"
+          title="Analytics & Metrics"
+          timeEstimate="~5 min"
+          isComplete={stepsComplete[7]}
+          isExpanded={expandedStep === 7}
+          onToggle={() => toggleStep(7)}
+        >
+          <Step9Analytics
+            onComplete={handleAnalyticsComplete}
+            isComplete={stepsComplete[7]}
           />
         </StepCard>
       </div>
