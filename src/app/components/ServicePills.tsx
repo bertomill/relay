@@ -75,6 +75,7 @@ export function ServicePills() {
   const [active, setActive] = useState<Service | null>(null);
   const [email, setEmail] = useState("");
   const [projectDesc, setProjectDesc] = useState("");
+  const [linkedin, setLinkedin] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
     "idle"
   );
@@ -111,6 +112,7 @@ export function ServicePills() {
           company_size: "",
           project_budget: "",
           services: service.apiService,
+          website: active === "prototype" ? linkedin : "",
           message: active === "prototype"
             ? `Rapid Prototype request: ${projectDesc}`
             : `Quick inquiry via hero: ${service.label}`,
@@ -128,6 +130,7 @@ export function ServicePills() {
     setActive(null);
     setEmail("");
     setProjectDesc("");
+    setLinkedin("");
     setStatus("idle");
   };
 
@@ -216,6 +219,13 @@ export function ServicePills() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Your email"
+                  className="w-full py-2.5 px-4 bg-[#F5F4F1] text-sm text-[#1C1C1C] placeholder-[#aaa] rounded-full border border-[#E8E6E1] focus:outline-none focus:border-[#6B8F71]"
+                />
+                <input
+                  type="url"
+                  value={linkedin}
+                  onChange={(e) => setLinkedin(e.target.value)}
+                  placeholder="LinkedIn URL (optional)"
                   className="w-full py-2.5 px-4 bg-[#F5F4F1] text-sm text-[#1C1C1C] placeholder-[#aaa] rounded-full border border-[#E8E6E1] focus:outline-none focus:border-[#6B8F71]"
                 />
                 <textarea

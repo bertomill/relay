@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FeatherLogoSmall } from "./Logo";
 import FeedbackWidget from "./FeedbackWidget";
+import { ReviewForm } from "./ReviewForm";
 
 const FOOTER_LINKS = {
   Product: [
@@ -27,6 +28,7 @@ export function Footer() {
           <p className="text-sm text-[#888] leading-relaxed max-w-xs">
             AI systems built for Shopify brands. Scale content, support, and operations without adding headcount.
           </p>
+          <ReviewForm />
         </div>
 
         {/* Link columns */}
