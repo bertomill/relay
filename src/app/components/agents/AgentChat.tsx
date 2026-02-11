@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 
 interface QuestionOption {
@@ -46,12 +46,14 @@ interface UploadedFile {
   name: string;
   mimeType: string;
   filePath: string;
+  url?: string;
 }
 
 interface FileUploadConfig {
   accept: string;
   maxSizeMB: number;
   endpoint: string;
+  imageEndpoint?: string;
 }
 
 interface AgentChatProps {
@@ -95,8 +97,14 @@ export default function AgentChat({
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [statusText, setStatusText] = useState<string | null>(null);
+  const [thinkingSteps, setThinkingSteps] = useState<string[]>([]);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [selectedText, setSelectedText] = useState("");
+  const [selectionPos, setSelectionPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectionQuery, setSelectionQuery] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatAreaRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const titledSessions = useRef<Set<string>>(new Set());
@@ -249,16 +257,25 @@ export default function AgentChat({
       return;
     }
 
+    const isImage = file.type.startsWith("image/");
+    const useImageEndpoint = isImage && fileUpload.imageEndpoint;
+    const endpoint = useImageEndpoint ? fileUpload.imageEndpoint! : fileUpload.endpoint;
+
     setIsUploading(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch(fileUpload.endpoint, { method: "POST", body: formData });
+      const res = await fetch(endpoint, { method: "POST", body: formData });
       const data = await res.json();
       if (data.success) {
         setUploadedFiles((prev) => [
           ...prev,
-          { name: data.fileName, mimeType: data.mimeType, filePath: data.filePath },
+          {
+            name: data.fileName,
+            mimeType: data.mimeType,
+            filePath: data.filePath || "",
+            url: data.url,
+          },
         ]);
       } else {
         alert(data.error || "Upload failed");
@@ -284,7 +301,12 @@ export default function AgentChat({
     // Prepend uploaded file info
     if (uploadedFiles.length > 0) {
       const fileLines = uploadedFiles
-        .map((f) => `[Uploaded: ${f.name} (${f.mimeType}) at ${f.filePath}]`)
+        .map((f) => {
+          if (f.url) {
+            return `[Uploaded image: ${f.url}]`;
+          }
+          return `[Uploaded: ${f.name} (${f.mimeType}) at ${f.filePath}]`;
+        })
         .join("\n");
       userMessage = fileLines + "\n\n" + userMessage;
       setUploadedFiles([]);
@@ -294,6 +316,7 @@ export default function AgentChat({
     const textarea = formRef.current?.querySelector("textarea");
     if (textarea) textarea.style.height = "auto";
     setIsLoading(true);
+    setThinkingSteps([]);
 
     setMessages((prev) => [...prev, {
       role: "user",
@@ -311,7 +334,12 @@ export default function AgentChat({
       const response = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage, sessionId }),
+        body: JSON.stringify({
+          message: userMessage,
+          sessionId,
+          // Send conversation history for multi-turn continuity (sandboxes are ephemeral)
+          history: messages.map((m) => ({ role: m.role, content: m.content })),
+        }),
       });
 
       if (!response.ok) {
@@ -346,6 +374,14 @@ export default function AgentChat({
 
               if (parsed.type === "status" && parsed.status) {
                 setStatusText(parsed.status);
+              }
+
+              if (parsed.type === "thinking_step" && parsed.step) {
+                setThinkingSteps((prev) => {
+                  // Avoid duplicate consecutive steps
+                  if (prev.length > 0 && prev[prev.length - 1] === parsed.step) return prev;
+                  return [...prev, parsed.step];
+                });
               }
 
               if (parsed.type === "text" && parsed.text) {
@@ -456,6 +492,7 @@ export default function AgentChat({
     } finally {
       setIsLoading(false);
       setStatusText(null);
+      setThinkingSteps([]);
     }
   };
 
@@ -534,6 +571,76 @@ export default function AgentChat({
         formRef.current.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
       }
     }, 0);
+  };
+
+  const clearSelection = useCallback(() => {
+    setSelectedText("");
+    setSelectionPos(null);
+    setSelectionQuery("");
+  }, []);
+
+  const handleTextSelect = useCallback(() => {
+    const selection = window.getSelection();
+    const text = selection?.toString().trim() || "";
+    if (!text || text.length < 3) {
+      clearSelection();
+      return;
+    }
+
+    const range = selection?.getRangeAt(0);
+    if (!range || !chatAreaRef.current) return;
+
+    // Only trigger on assistant message content
+    const bubble = range.startContainer.parentElement?.closest("[data-assistant-content]");
+    if (!bubble) {
+      clearSelection();
+      return;
+    }
+
+    const rect = range.getBoundingClientRect();
+    const containerRect = chatAreaRef.current.getBoundingClientRect();
+
+    setSelectedText(text);
+    setSelectionPos({
+      x: rect.left - containerRect.left + rect.width / 2,
+      y: rect.top - containerRect.top + chatAreaRef.current.scrollTop - 8,
+    });
+    setSelectionQuery("");
+  }, [clearSelection]);
+
+  // Dismiss popover on click outside
+  useEffect(() => {
+    if (!selectionPos) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        clearSelection();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [selectionPos, clearSelection]);
+
+  // Dismiss popover on scroll
+  useEffect(() => {
+    if (!selectionPos || !chatAreaRef.current) return;
+    const el = chatAreaRef.current;
+    const handleScroll = () => clearSelection();
+    el.addEventListener("scroll", handleScroll);
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, [selectionPos, clearSelection]);
+
+  // Dismiss popover on new messages
+  useEffect(() => {
+    clearSelection();
+  }, [messages.length, clearSelection]);
+
+  const handleAskAboutSelection = (customQuestion?: string) => {
+    const truncated = selectedText.length > 300 ? selectedText.slice(0, 300) + "..." : selectedText;
+    const prompt = customQuestion
+      ? `Regarding this section:\n> ${truncated}\n\n${customQuestion}`
+      : `Regarding this section:\n> ${truncated}\n\nCan you explain this further?`;
+    clearSelection();
+    handleStarterPrompt(prompt);
   };
 
   return (
@@ -728,7 +835,7 @@ export default function AgentChat({
           </div>
         )}
         {/* Messages */}
-        <div className="flex-1 p-6 overflow-y-auto space-y-4">
+        <div ref={chatAreaRef} onMouseUp={handleTextSelect} className="flex-1 p-6 overflow-y-auto space-y-4 relative">
           {messages.length === 0 ? (
             <div className={`h-full flex flex-col items-center justify-center text-center ${isFull ? "py-12" : "py-6"}`}>
               {isFull && (
@@ -783,7 +890,7 @@ export default function AgentChat({
                       >
                         {message.content ? (
                           message.role === "assistant" ? (
-                            <div className="text-sm prose prose-sm max-w-none prose-headings:text-[#1C1C1C] prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2 prose-p:text-[#444] prose-p:my-1.5 prose-p:leading-relaxed prose-a:text-[#6B8F71] prose-strong:text-[#1C1C1C] prose-li:text-[#444] prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2 prose-hr:border-[#E8E6E1] prose-hr:my-4 prose-code:text-[#6B8F71] prose-code:bg-[#6B8F71]/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-white prose-pre:border prose-pre:border-[#E8E6E1] prose-pre:rounded-lg prose-blockquote:border-[#6B8F71] prose-blockquote:text-[#555]">
+                            <div data-assistant-content className="text-sm prose prose-sm max-w-none prose-headings:text-[#1C1C1C] prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2 prose-p:text-[#444] prose-p:my-1.5 prose-p:leading-relaxed prose-a:text-[#6B8F71] prose-strong:text-[#1C1C1C] prose-li:text-[#444] prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2 prose-hr:border-[#E8E6E1] prose-hr:my-4 prose-code:text-[#6B8F71] prose-code:bg-[#6B8F71]/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-white prose-pre:border prose-pre:border-[#E8E6E1] prose-pre:rounded-lg prose-blockquote:border-[#6B8F71] prose-blockquote:text-[#555]">
                               <ReactMarkdown
                                 components={{
                                   img: ({ src, alt }) => {
@@ -824,29 +931,53 @@ export default function AgentChat({
                           )
                         ) : (
                           message.role === "assistant" && isLoading ? (
-                            <span className="inline-flex items-center gap-2">
-                              <span className="inline-flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-[#6B8F71]" style={{ animationDelay: "0ms" }} />
-                                <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-[#6B8F71]" style={{ animationDelay: "150ms" }} />
-                                <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-[#6B8F71]" style={{ animationDelay: "300ms" }} />
-                              </span>
-                              {statusText && (
-                                <span className="text-xs text-[#6B8F71] animate-pulse">{statusText}</span>
+                            <div className="space-y-1.5 py-0.5">
+                              {thinkingSteps.length > 0 ? (
+                                <>
+                                  {thinkingSteps.map((step, i) => (
+                                    <div key={i} className="flex items-center gap-2">
+                                      {i === thinkingSteps.length - 1 ? (
+                                        <span className="w-1.5 h-1.5 rounded-full bg-[#6B8F71] animate-pulse shrink-0" />
+                                      ) : (
+                                        <svg className="w-3 h-3 text-[#6B8F71] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                      )}
+                                      <span className={`text-xs ${i === thinkingSteps.length - 1 ? "text-[#6B8F71]" : "text-[#999]"}`}>
+                                        {step}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </>
+                              ) : (
+                                <span className="inline-flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-[#6B8F71]" style={{ animationDelay: "0ms" }} />
+                                  <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-[#6B8F71]" style={{ animationDelay: "150ms" }} />
+                                  <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-[#6B8F71]" style={{ animationDelay: "300ms" }} />
+                                </span>
                               )}
-                            </span>
+                            </div>
                           ) : null
                         )}
                       </div>
 
-                      {/* Status indicator while agent is working between text outputs */}
-                      {message.role === "assistant" && message.content && isLoading && index === messages.length - 1 && statusText && (
-                        <div className="flex items-center gap-2 mt-1 ml-1">
-                          <span className="inline-flex items-center gap-1">
-                            <span className="w-1 h-1 rounded-full animate-bounce bg-[#6B8F71]" style={{ animationDelay: "0ms" }} />
-                            <span className="w-1 h-1 rounded-full animate-bounce bg-[#6B8F71]" style={{ animationDelay: "150ms" }} />
-                            <span className="w-1 h-1 rounded-full animate-bounce bg-[#6B8F71]" style={{ animationDelay: "300ms" }} />
-                          </span>
-                          <span className="text-xs text-[#6B8F71] animate-pulse">{statusText}</span>
+                      {/* Thinking steps timeline while agent is working between text outputs */}
+                      {message.role === "assistant" && message.content && isLoading && index === messages.length - 1 && thinkingSteps.length > 0 && (
+                        <div className="mt-2 ml-1 space-y-1">
+                          {thinkingSteps.map((step, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                              {i === thinkingSteps.length - 1 ? (
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#6B8F71] animate-pulse shrink-0" />
+                              ) : (
+                                <svg className="w-3 h-3 text-[#6B8F71] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                              <span className={`text-xs ${i === thinkingSteps.length - 1 ? "text-[#6B8F71]" : "text-[#999]"}`}>
+                                {step}
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       )}
 
@@ -1060,6 +1191,64 @@ export default function AgentChat({
                 </div>
               ))}
               <div ref={messagesEndRef} />
+
+              {/* Highlight & Ask popover */}
+              {selectionPos && selectedText && (
+                <div
+                  ref={popoverRef}
+                  onMouseUp={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  className="absolute z-30 w-72 bg-white border border-[#E8E6E1] rounded-xl shadow-lg"
+                  style={{
+                    left: Math.max(8, Math.min(selectionPos.x - 144, (chatAreaRef.current?.clientWidth || 300) - 288)),
+                    top: selectionPos.y,
+                    transform: "translateY(-100%)",
+                  }}
+                >
+                  <div className="p-3 space-y-2.5">
+                    <p className="text-xs text-[#888] line-clamp-2 border-l-2 border-[#6B8F71] pl-2 italic">
+                      &ldquo;{selectedText.length > 100 ? selectedText.slice(0, 100) + "..." : selectedText}&rdquo;
+                    </p>
+                    <button
+                      onClick={() => handleAskAboutSelection()}
+                      className="w-full flex items-center gap-2 text-xs font-medium text-[#6B8F71] hover:bg-[#6B8F71]/5 px-2.5 py-2 rounded-lg transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                      </svg>
+                      Explain this further
+                    </button>
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        value={selectionQuery}
+                        onChange={(e) => setSelectionQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && selectionQuery.trim()) {
+                            e.preventDefault();
+                            handleAskAboutSelection(selectionQuery.trim());
+                          }
+                        }}
+                        placeholder="Ask something about this..."
+                        className="flex-1 text-xs px-2.5 py-1.5 bg-[#FAFAF8] border border-[#E8E6E1] rounded-lg text-[#1C1C1C] placeholder-[#999] focus:outline-none focus:border-[#6B8F71] transition-colors"
+                      />
+                      <button
+                        onClick={() => {
+                          if (selectionQuery.trim()) {
+                            handleAskAboutSelection(selectionQuery.trim());
+                          }
+                        }}
+                        disabled={!selectionQuery.trim()}
+                        className="px-2.5 py-1.5 bg-[#6B8F71] text-white rounded-lg hover:bg-[#5A7D60] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -1074,9 +1263,18 @@ export default function AgentChat({
                   key={i}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#6B8F71]/10 text-[#6B8F71] text-xs font-medium"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
-                  </svg>
+                  {file.url ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={file.url}
+                      alt={file.name}
+                      className="w-8 h-8 rounded object-cover"
+                    />
+                  ) : (
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+                    </svg>
+                  )}
                   {file.name}
                   <button
                     onClick={() => removeUploadedFile(i)}

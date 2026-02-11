@@ -143,7 +143,7 @@ export default function Home() {
             {METRICS.map((metric, i) => (
               <AnimateIn key={metric.label} animation="fade-up" delay={i * 100}>
                 <div className="text-center">
-                  <p className="text-4xl md:text-5xl font-serif text-white">
+                  <p className="text-4xl md:text-5xl font-sans font-light text-white">
                     <CountUp end={metric.end} suffix={metric.suffix} />
                   </p>
                   <p className="text-xs text-white/50 uppercase tracking-[0.15em] mt-2">{metric.label}</p>
@@ -164,7 +164,7 @@ export default function Home() {
                 <AnimateIn animation={isReversed ? "slide-left" : "slide-right"} className={isReversed ? "lg:order-2" : ""}>
                   <div>
                     <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">{feature.label}</p>
-                    <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">{feature.title}</h2>
+                    <h2 className="font-sans font-light text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">{feature.title}</h2>
                     <p className="text-[#555] text-lg leading-relaxed mb-8">{feature.description}</p>
                     <Link
                       href="/offer"
@@ -196,7 +196,7 @@ export default function Home() {
           <AnimateIn animation="fade-up">
             <div className="text-center mb-16">
               <p className="text-xs font-semibold text-white/70 uppercase tracking-[0.15em] mb-4">WHAT WE BUILD</p>
-              <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight">
+              <h2 className="font-sans font-light text-3xl md:text-5xl leading-[1.1] tracking-tight">
                 AI agents built<br className="hidden md:block" /> for your content.
               </h2>
             </div>
@@ -225,7 +225,7 @@ export default function Home() {
         <AnimateIn animation="fade-up">
           <div className="max-w-3xl mx-auto text-center mb-16">
             <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">PROCESS</p>
-            <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight">Three steps to lighter content.</h2>
+            <h2 className="font-sans font-light text-3xl md:text-5xl leading-[1.1] tracking-tight">Three steps to lighter content.</h2>
           </div>
         </AnimateIn>
 
@@ -236,7 +236,7 @@ export default function Home() {
           {HOW_IT_WORKS.map((item, i) => (
             <AnimateIn key={item.step} animation="fade-up" delay={i * 150}>
               <div className="text-center relative">
-                <div className="w-12 h-12 rounded-full bg-[#6B8F71] text-white flex items-center justify-center mx-auto mb-6 text-lg font-serif relative z-10">
+                <div className="w-12 h-12 rounded-full bg-[#6B8F71] text-white flex items-center justify-center mx-auto mb-6 text-lg font-sans font-light relative z-10">
                   {item.step}
                 </div>
                 <h3 className="text-xl font-semibold mb-3">{item.title}</h3>
@@ -253,7 +253,7 @@ export default function Home() {
           <AnimateIn animation="fade-up">
             <div className="text-center mb-12">
               <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">GET IN TOUCH</p>
-              <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-4">
+              <h2 className="font-sans font-light text-3xl md:text-5xl leading-[1.1] tracking-tight mb-4">
                 Let&apos;s build your content agents.
               </h2>
               <p className="text-lg text-[#555] max-w-xl mx-auto">
@@ -289,7 +289,7 @@ export default function Home() {
         <GrainTexture density={0.3} />
         <div className="relative z-10 max-w-6xl mx-auto px-6 py-20 md:py-28 text-center">
           <AnimateIn animation="fade-up">
-            <h2 className="font-serif text-3xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tight mb-6">
+            <h2 className="font-sans font-light text-3xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tight mb-6">
               Ready to create more<br className="hidden md:block" /> <span className="italic text-white/90">with less effort?</span>
             </h2>
             <p className="text-lg text-white/60 mb-10 max-w-xl mx-auto">

@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useDailyProgress, getTodayString } from "./hooks/useDailyProgress";
 import MorningProgress from "./components/MorningProgress";
 import StepCard from "./components/StepCard";
-import Step1Inquiries from "./components/Step1Inquiries";
+import Step1Leads from "./components/Step1Leads";
 import Step3Content from "./components/Step3Content";
 import Step4Learn from "./components/Step4Learn";
 import Step5Improve from "./components/Step5Improve";
@@ -243,7 +243,7 @@ export default function AdminDashboard() {
         <StepCard
           stepNumber={1}
           label="Review"
-          title="Check Inquiries"
+          title="Review Leads"
           timeEstimate="~5 min"
           isComplete={stepsComplete[0]}
           isExpanded={expandedStep === 0}
@@ -256,7 +256,7 @@ export default function AdminDashboard() {
             ) : undefined
           }
         >
-          <Step1Inquiries
+          <Step1Leads
             onComplete={handleInquiriesComplete}
             isComplete={stepsComplete[0]}
             onNewCount={setNewInquiryCount}

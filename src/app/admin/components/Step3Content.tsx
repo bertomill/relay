@@ -41,6 +41,18 @@ const PLATFORMS: Platform[] = [
       return prompt;
     },
   },
+  {
+    id: "youtube",
+    label: "YouTube",
+    icon: "M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z",
+    promptTemplate: (idea, context, audience) => {
+      let prompt = `Help me plan a YouTube video about: ${idea}.`;
+      if (context) prompt += ` Context: ${context}.`;
+      if (audience) prompt += ` Target audience: ${audience}.`;
+      prompt += ` Include a compelling title, hook, outline with timestamps, and a call-to-action.`;
+      return prompt;
+    },
+  },
 ];
 
 const AUDIENCE_PRESETS = [
@@ -126,6 +138,41 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
     }
   };
 
+  // Sync URL hash with chat overlay state
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (hash.startsWith("content-creator")) {
+      // Restore chat from URL hash on mount
+      const platformFromHash = hash.replace("content-creator-", "").replace("content-creator", "");
+      if (platformFromHash && platformFromHash !== "") {
+        setSelectedPlatform(platformFromHash);
+      }
+      setShowChat(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const onPopState = () => {
+      const hash = window.location.hash.replace("#", "");
+      if (!hash.startsWith("content-creator")) {
+        setShowChat(false);
+        setSelectedPlatform(null);
+        setAutoSendPrompt(undefined);
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  const setHashForChat = (platformId: string | null) => {
+    const hash = platformId ? `content-creator-${platformId}` : "content-creator";
+    window.history.pushState(null, "", `#${hash}`);
+  };
+
+  const clearHash = () => {
+    window.history.pushState(null, "", window.location.pathname);
+  };
+
   const openPlatformChat = (platformId: string) => {
     const audience = targetAudience.trim() || undefined;
     const platform = PLATFORMS.find((p) => p.id === platformId);
@@ -134,6 +181,7 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
     }
     setSelectedPlatform(platformId);
     setShowChat(true);
+    setHashForChat(platformId);
   };
 
   const openAllPlatformsChat = () => {
@@ -146,6 +194,7 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
     }
     setSelectedPlatform("all");
     setShowChat(true);
+    setHashForChat("all");
   };
 
   const handleCloseChat = () => {
@@ -158,6 +207,7 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
     setShowChat(false);
     setSelectedPlatform(null);
     setAutoSendPrompt(undefined);
+    clearHash();
   };
 
   const buildStarterPrompts = (): string[] => {
@@ -228,10 +278,14 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
             />
             <textarea
               value={newDescription}
-              onChange={(e) => setNewDescription(e.target.value)}
+              onChange={(e) => {
+                setNewDescription(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = e.target.scrollHeight + "px";
+              }}
               placeholder="Any extra context? (optional)"
               rows={2}
-              className="w-full bg-white border border-[#E8E6E1] rounded-lg px-3 py-2 text-sm text-[#1C1C1C] placeholder-[#999] focus:outline-none focus:border-[#6B8F71] resize-none mb-2"
+              className="w-full bg-white border border-[#E8E6E1] rounded-lg px-3 py-2 text-sm text-[#1C1C1C] placeholder-[#999] focus:outline-none focus:border-[#6B8F71] resize-none mb-2 overflow-hidden"
             />
             <button
               onClick={addIdea}
@@ -264,7 +318,7 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
                 <svg className="w-3.5 h-3.5 text-[#6B8F71] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
                 </svg>
-                <span className="truncate max-w-[200px]">{idea.title}</span>
+                <span className="text-xs leading-snug line-clamp-3 max-w-[200px]">{idea.title}</span>
 
                 {/* Actions on hover */}
                 <span className="hidden group-hover:flex items-center gap-0.5 ml-1">
@@ -348,7 +402,7 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
 
             {/* Platform cards */}
             <p className="text-[10px] font-semibold text-[#6B8F71] uppercase tracking-wider mb-2">Draft for</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {PLATFORMS.map((platform) => {
                 const isDrafted = draftedPlatforms.has(platform.id);
                 return (
@@ -388,7 +442,7 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
       {/* Open Content Creator button — only when no idea selected */}
       {!selectedIdea && (
         <button
-          onClick={() => { setSelectedPlatform(null); setAutoSendPrompt(undefined); setShowChat(true); }}
+          onClick={() => { setSelectedPlatform(null); setAutoSendPrompt(undefined); setShowChat(true); setHashForChat(null); }}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[#6B8F71]/30 bg-[#6B8F71]/5 text-[#6B8F71] text-sm font-medium hover:bg-[#6B8F71]/10 hover:border-[#6B8F71]/50 transition-colors duration-200"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>

@@ -1,55 +1,58 @@
 /* ─── ContentIllustration ───
-   AI-generated botanical video — organic vine branching outward,
-   representing brand voice flowing into every channel. */
+   Animated ethereal flowing light ribbon branching outward —
+   representing brand voice amplified into many channels. */
 export function ContentIllustration() {
   return (
-    <div className="rounded-2xl aspect-[4/3] max-w-lg mx-auto relative overflow-hidden">
+    <div className="aspect-[4/3] max-w-lg mx-auto relative overflow-hidden rounded-2xl">
       <video
         autoPlay
         loop
         muted
         playsInline
+        poster="/generated/feature-content.png"
         className="w-full h-full object-cover"
       >
-        <source src="/videos/flower-reach.mp4" type="video/mp4" />
+        <source src="/videos/feature-content.mp4" type="video/mp4" />
       </video>
     </div>
   );
 }
 
 /* ─── SupportIllustration ───
-   AI-generated botanical video — two vine forms reaching toward each other,
-   representing human + AI support connection. */
+   Animated luminous ribbons converging to a center point —
+   representing many platforms unified by one idea. */
 export function SupportIllustration() {
   return (
-    <div className="rounded-2xl aspect-[4/3] max-w-lg mx-auto relative overflow-hidden">
+    <div className="aspect-[4/3] max-w-lg mx-auto relative overflow-hidden rounded-2xl">
       <video
         autoPlay
         loop
         muted
         playsInline
+        poster="/generated/feature-multiplatform.png"
         className="w-full h-full object-cover"
       >
-        <source src="/videos/support-bloom.mp4" type="video/mp4" />
+        <source src="/videos/feature-multiplatform.mp4" type="video/mp4" />
       </video>
     </div>
   );
 }
 
 /* ─── MarketingIllustration ───
-   AI-generated botanical video — upward-growing vine with branching forms,
-   representing organic marketing growth and scale. */
+   Animated flowing ribbon sweeping forward with trailing particles —
+   representing workflow from idea to published. */
 export function MarketingIllustration() {
   return (
-    <div className="rounded-2xl aspect-[4/3] max-w-lg mx-auto relative overflow-hidden">
+    <div className="aspect-[4/3] max-w-lg mx-auto relative overflow-hidden rounded-2xl">
       <video
         autoPlay
         loop
         muted
         playsInline
+        poster="/generated/feature-workflow.png"
         className="w-full h-full object-cover"
       >
-        <source src="/videos/marketing-branch.mp4" type="video/mp4" />
+        <source src="/videos/feature-workflow.mp4" type="video/mp4" />
       </video>
     </div>
   );

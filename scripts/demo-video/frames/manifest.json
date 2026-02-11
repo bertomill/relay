@@ -1,0 +1,51 @@
+{
+  "frames": [
+    "frame_000_empty_state.png",
+    "frame_001_typing_complete.png",
+    "frame_002_loading.png",
+    "frame_003_response.png",
+    "frame_004_highlight_popover.png",
+    "frame_005_popover_question.png",
+    "frame_006_followup_sent.png",
+    "frame_007_followup_response.png",
+    "frame_008_final_top.png",
+    "frame_009_final_bottom.png"
+  ],
+  "voiceover_script": [
+    {
+      "frame": "empty_state",
+      "text": "Here's our Content Creator agent, ready to help draft multi-platform content.",
+      "duration": 3
+    },
+    {
+      "frame": "typing_complete",
+      "text": "Let's ask it to write a LinkedIn post about AI agents helping small businesses.",
+      "duration": 3
+    },
+    {
+      "frame": "loading",
+      "text": "The agent gets to work, powered by Claude.",
+      "duration": 2
+    },
+    {
+      "frame": "response",
+      "text": "In seconds, we have a polished LinkedIn post ready to go.",
+      "duration": 3
+    },
+    {
+      "frame": "highlight_popover",
+      "text": "Now here's the new feature. Highlight any text in the response and a smart popover appears.",
+      "duration": 4
+    },
+    {
+      "frame": "popover_question",
+      "text": "You can type a follow-up question about that specific section.",
+      "duration": 3
+    },
+    {
+      "frame": "followup_response",
+      "text": "The AI understands the context and gives you targeted improvements. Highlight, ask, iterate. That's the workflow.",
+      "duration": 5
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { runAgentInSandbox } from "@/lib/agents/sandbox";
 import { NextRequest } from "next/server";
 
 // Vercel deployment config
@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const maxDuration = 300; // 5 minutes (Vercel Pro plan max)
 
 export async function POST(request: NextRequest) {
-  const { message, sessionId } = await request.json();
+  const { message, history = [] } = await request.json();
 
   if (!message) {
     return new Response(JSON.stringify({ error: "Message is required" }), {
@@ -15,22 +15,11 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    async start(controller) {
-      const rawMessages: unknown[] = [];
-
-      try {
-        const options: Record<string, unknown> = {
-          allowedTools: [
-            "Skill",
-            "WebSearch",
-            "WebFetch",
-          ],
-          permissionMode: "bypassPermissions",
-          settingSources: ["project"],
-          cwd: process.cwd(),
-          systemPrompt: `You are the Lighten AI LinkedIn Outreach Agent, a specialized agent that helps Berto craft personalized, authentic LinkedIn messages.
+  try {
+    const stream = await runAgentInSandbox(message, history, {
+      allowedTools: ["Skill", "WebSearch", "WebFetch"],
+      permissionMode: "bypassPermissions",
+      systemPrompt: `You are the Lighten AI LinkedIn Outreach Agent, a specialized agent that helps Berto craft personalized, authentic LinkedIn messages.
 
 IMPORTANT: When asked to draft an outreach message, ALWAYS invoke the linkedin-outreach Skill first to load the full outreach guidelines, message frameworks, and anti-patterns.
 
@@ -68,147 +57,20 @@ IMPORTANT: When asked to draft an outreach message, ALWAYS invoke the linkedin-o
 - WebSearch / WebFetch: Research the contact, their company, recent activity
 
 Keep responses well-structured. When presenting drafts, show just the message text ready to copy.`,
-        };
+    });
 
-        if (sessionId) {
-          options.resume = sessionId;
-        }
-
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({
-              type: "input",
-              rawInput: {
-                prompt: message,
-                options: { ...options, systemPrompt: "..." },
-              },
-            })}\n\n`
-          )
-        );
-
-        for await (const msg of query({
-          prompt: message,
-          options,
-        })) {
-          rawMessages.push(msg);
-
-          if (
-            msg.type === "system" &&
-            msg.subtype === "init" &&
-            msg.session_id
-          ) {
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({
-                  type: "session",
-                  sessionId: msg.session_id,
-                })}\n\n`
-              )
-            );
-          }
-
-          if (msg.type === "assistant" && msg.message?.content) {
-            for (const block of msg.message.content) {
-              if (block.type === "text") {
-                controller.enqueue(
-                  encoder.encode(
-                    `data: ${JSON.stringify({
-                      type: "text",
-                      text: block.text,
-                      rawMessage: msg,
-                    })}\n\n`
-                  )
-                );
-              } else if (block.type === "tool_use") {
-                if (block.name === "Task") {
-                  controller.enqueue(
-                    encoder.encode(
-                      `data: ${JSON.stringify({
-                        type: "subagent_start",
-                        agentType: block.input?.subagent_type || "unknown",
-                        description: block.input?.description || "Working...",
-                        rawMessage: msg,
-                      })}\n\n`
-                    )
-                  );
-                }
-
-                // Emit status updates for tool use
-                const statusMap: Record<string, string> = {
-                  Skill: "Loading outreach guidelines...",
-                  WebSearch: "Researching this person...",
-                  WebFetch: "Reading their profile...",
-                  AskUserQuestion: "Preparing questions...",
-                };
-                const status = statusMap[block.name as string];
-                if (status) {
-                  controller.enqueue(
-                    encoder.encode(
-                      `data: ${JSON.stringify({
-                        type: "status",
-                        status,
-                      })}\n\n`
-                    )
-                  );
-                }
-              }
-            }
-          } else {
-            // Emit "Thinking..." when the agent receives tool results and is about to reason
-            if (msg.type === "result") {
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({
-                    type: "status",
-                    status: "Thinking...",
-                  })}\n\n`
-                )
-              );
-            }
-
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({
-                  type: "raw",
-                  rawMessage: msg,
-                })}\n\n`
-              )
-            );
-          }
-        }
-
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({
-              type: "complete",
-              allRawMessages: rawMessages,
-            })}\n\n`
-          )
-        );
-
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-        controller.close();
-      } catch (error) {
-        console.error("Outreach agent error:", error);
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({
-              type: "error",
-              error: "An error occurred",
-              rawError: String(error),
-            })}\n\n`
-          )
-        );
-        controller.close();
-      }
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
+  } catch (error) {
+    console.error("Outreach agent error:", error);
+    return new Response(
+      JSON.stringify({ error: "Failed to start agent", details: String(error) }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
 }

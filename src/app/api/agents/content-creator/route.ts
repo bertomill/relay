@@ -1,4 +1,4 @@
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { runAgentInSandbox } from "@/lib/agents/sandbox";
 import { NextRequest } from "next/server";
 
 // Vercel deployment config
@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const maxDuration = 300; // 5 minutes (Vercel Pro plan max)
 
 export async function POST(request: NextRequest) {
-  const { message, sessionId } = await request.json();
+  const { message, history = [] } = await request.json();
 
   if (!message) {
     return new Response(JSON.stringify({ error: "Message is required" }), {
@@ -15,28 +15,19 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    async start(controller) {
-      const rawMessages: unknown[] = [];
-      const seenMsgIds = new Set<string>();
-      let allSentText = "";
-
-      try {
-        const options: Record<string, unknown> = {
-          allowedTools: [
-            "Read",
-            "Glob",
-            "Grep",
-            "WebSearch",
-            "WebFetch",
-            "Bash",
-            "Write",
-          ],
-          permissionMode: "bypassPermissions",
-          settingSources: ["project"],
-          cwd: process.cwd(),
-          systemPrompt: `You are the Lighten AI Content Creator. Your job is to draft content quickly and well.
+  try {
+    const stream = await runAgentInSandbox(message, history, {
+      allowedTools: [
+        "Read",
+        "Glob",
+        "Grep",
+        "WebSearch",
+        "WebFetch",
+        "Bash",
+        "Write",
+      ],
+      permissionMode: "bypassPermissions",
+      systemPrompt: `You are the Lighten AI Content Creator. Your job is to draft content quickly and well.
 
 ## CRITICAL: The user's first message already contains everything you need
 
@@ -54,6 +45,7 @@ DO NOT ask clarifying questions about platform, audience, or topic. This informa
 3. **Then generate an image.** Run generate-image.ts to create a thumbnail. Pick a descriptive visual prompt that matches the post topic (no text in images). Display the image inline.
 4. **Then offer X cross-post.** After the image, ask: "Want me to draft an X post to promote this?" If they say yes, draft a punchy tweet or short thread that teases the article. Output it clean and copy-paste-ready.
 5. **Transcribe if uploaded.** If the user uploaded audio/video, run transcribe.ts first, then draft from the transcript.
+6. **Edit uploaded images.** If the message contains [Uploaded image: <url>], the user wants you to modify that image. Use generate-image.ts with --image-url to transform it. Ask what changes they want if unclear.
 
 ## Platform Guidelines
 
@@ -82,8 +74,18 @@ npx tsx scripts/content-creator/transcribe.ts <file-path>
 \`\`\`bash
 npx tsx scripts/content-creator/generate-image.ts "<prompt>" [--size landscape_16_9] [--save-as filename]
 \`\`\`
-After generating, display inline: ![Generated thumbnail](publicUrl)
+
+### Edit an uploaded image (img2img)
+When the user uploads a reference photo, the message will contain [Uploaded image: <url>]. Use:
+\`\`\`bash
+npx tsx scripts/content-creator/generate-image.ts "<prompt describing desired changes>" --image-url <url> [--strength 0.75] [--size landscape_16_9]
+\`\`\`
+- **--strength**: 0.0 = keep original, 1.0 = ignore original. Default 0.75. Use 0.3-0.5 for subtle edits, 0.7-0.9 for major transformations.
+- The script outputs JSON with a \`url\` field (fal CDN URL). Always display the result inline.
+
+After generating, display inline: ![Generated thumbnail](url)
 Use landscape_16_9 for LinkedIn/X/Medium/YouTube, square_hd for Instagram.
+The script outputs JSON; use the \`url\` field for the image markdown.
 
 ### Save content to Supabase (only after user says to save)
 \`\`\`bash
@@ -102,155 +104,20 @@ npx tsx scripts/content-creator/list-content.ts
 - Output ONLY the post content. No meta-commentary, no "here's your draft", no options menu. The user will copy-paste your output directly into LinkedIn/Medium
 - After the draft, ALWAYS generate a thumbnail image automatically
 - When the user asks for changes, output the FULL revised post (not just the diff)`,
-        };
+    });
 
-        if (sessionId) {
-          options.resume = sessionId;
-        }
-
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({
-              type: "input",
-              rawInput: {
-                prompt: message,
-                options: { ...options, systemPrompt: "..." },
-              },
-            })}\n\n`
-          )
-        );
-
-        for await (const msg of query({
-          prompt: message,
-          options,
-        })) {
-          rawMessages.push(msg);
-
-          if (
-            msg.type === "system" &&
-            msg.subtype === "init" &&
-            msg.session_id
-          ) {
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({
-                  type: "session",
-                  sessionId: msg.session_id,
-                })}\n\n`
-              )
-            );
-          }
-
-          if (msg.type === "assistant" && msg.message?.content) {
-            // Skip entire message if we've already processed this message ID
-            const msgId = msg.message?.id;
-            if (msgId && seenMsgIds.has(msgId)) {
-              continue;
-            }
-            if (msgId) seenMsgIds.add(msgId);
-
-            for (const block of msg.message.content) {
-              if (block.type === "text") {
-                let textToSend = block.text;
-
-                // Deduplicate: the agent often repeats earlier output across turns
-                if (allSentText.length > 0 && textToSend.startsWith(allSentText)) {
-                  // New text contains all previous text as prefix — only send the delta
-                  textToSend = textToSend.slice(allSentText.length);
-                } else if (allSentText.length > 0 && allSentText.endsWith(textToSend)) {
-                  // New text is a suffix of what we already sent — skip entirely
-                  textToSend = "";
-                } else if (allSentText.length > 0 && allSentText.includes(textToSend) && textToSend.length > 50) {
-                  // Entire text block is a substring of what we already sent — skip
-                  textToSend = "";
-                } else if (allSentText.length > 0 && textToSend.length > 100) {
-                  // Check for partial overlap: does sentText end with the beginning of newText?
-                  // Only check last 500 chars to keep this fast
-                  const tail = allSentText.slice(-500);
-                  const maxCheck = Math.min(tail.length, textToSend.length);
-                  let overlap = 0;
-                  for (let i = 1; i <= maxCheck; i++) {
-                    if (tail.slice(-i) === textToSend.slice(0, i)) {
-                      overlap = i;
-                    }
-                  }
-                  if (overlap > 50) {
-                    textToSend = textToSend.slice(overlap);
-                  }
-                }
-
-                if (textToSend) {
-                  allSentText += textToSend;
-                  controller.enqueue(
-                    encoder.encode(
-                      `data: ${JSON.stringify({
-                        type: "text",
-                        text: textToSend,
-                        rawMessage: msg,
-                      })}\n\n`
-                    )
-                  );
-                }
-              } else if (
-                block.type === "tool_use" &&
-                block.name === "Task"
-              ) {
-                controller.enqueue(
-                  encoder.encode(
-                    `data: ${JSON.stringify({
-                      type: "subagent_start",
-                      agentType: block.input?.subagent_type || "unknown",
-                      description: block.input?.description || "Working...",
-                      rawMessage: msg,
-                    })}\n\n`
-                  )
-                );
-              }
-            }
-          } else {
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({
-                  type: "raw",
-                  rawMessage: msg,
-                })}\n\n`
-              )
-            );
-          }
-        }
-
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({
-              type: "complete",
-              allRawMessages: rawMessages,
-            })}\n\n`
-          )
-        );
-
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-        controller.close();
-      } catch (error) {
-        console.error("Content creator agent error:", error);
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({
-              type: "error",
-              error: "An error occurred",
-              rawError: String(error),
-            })}\n\n`
-          )
-        );
-        controller.close();
-      }
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
+  } catch (error) {
+    console.error("Content creator agent error:", error);
+    return new Response(
+      JSON.stringify({ error: "Failed to start agent", details: String(error) }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
 }

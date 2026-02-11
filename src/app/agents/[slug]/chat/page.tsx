@@ -27,6 +27,7 @@ export default function AgentChatPage() {
       agentName={agent.name}
       variant="full"
       starterPrompts={agent.chatConfig.starterPrompts}
+      fileUpload={agent.chatConfig.fileUpload}
     />
   );
 }

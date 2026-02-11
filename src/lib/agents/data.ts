@@ -24,6 +24,12 @@ const agents: AgentConfig[] = [
         "Draft a professional email to follow up on a proposal",
         "Review this code snippet for potential bugs",
       ],
+      fileUpload: {
+        accept: "image/*",
+        maxSizeMB: 20,
+        endpoint: "/api/upload",
+        imageEndpoint: "/api/fal/upload",
+      },
     },
     capabilities: [
       {
@@ -235,6 +241,12 @@ const agents: AgentConfig[] = [
         "Create a post explaining why small businesses should explore AI automation",
         "Draft content about Lighten AI's approach to making AI accessible",
       ],
+      fileUpload: {
+        accept: "audio/*,video/*,image/*",
+        maxSizeMB: 50,
+        endpoint: "/api/upload",
+        imageEndpoint: "/api/fal/upload",
+      },
     },
     capabilities: [
       {

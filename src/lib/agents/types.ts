@@ -19,6 +19,13 @@ export interface AgentArchitectureLayer {
   nodes: AgentArchitectureNode[];
 }
 
+export interface FileUploadConfig {
+  accept: string;
+  maxSizeMB: number;
+  endpoint: string;
+  imageEndpoint?: string;
+}
+
 export interface AgentChatConfig {
   apiEndpoint: string;
   storageKey: string;
@@ -27,6 +34,7 @@ export interface AgentChatConfig {
   emptyStateDescription: string;
   loadingText: string;
   starterPrompts: string[];
+  fileUpload?: FileUploadConfig;
 }
 
 export interface AgentConfig {
