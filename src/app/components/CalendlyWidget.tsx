@@ -16,6 +16,7 @@ export function CalendlyWidget() {
         layout: "month_view",
         cssVarsPerTheme: {
           light: { "cal-brand": "#6B8F71" },
+          dark: { "cal-brand": "#6B8F71" },
         },
       });
     })();
