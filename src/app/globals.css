@@ -23,6 +23,18 @@ body {
   font-family: var(--font-plus-jakarta), system-ui, sans-serif;
 }
 
+/* Service pills expand animation */
+@keyframes fadeSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Scroll-triggered animations */
 @keyframes fade-up {
   from {

@@ -6,43 +6,43 @@ import { CalendlyWidget } from "../components/CalendlyWidget";
 
 export const metadata: Metadata = {
   title: "Our Offer | Lighten AI",
-  description: "See how Lighten AI helps Shopify brands scale with a clear AI strategy — from assessment to advisory.",
+  description: "See how Lighten AI builds custom AI agents that create content in your voice — from audit to launch and beyond.",
 };
 
 const PROCESS_STEPS = [
   {
     step: "01",
-    title: "AI Growth Assessment",
-    description: "We dig into your operations — interviews, process mapping, gap analysis — to find where time and money are quietly leaking out.",
+    title: "Content Audit",
+    description: "We map your entire content workflow — what you're producing, where the bottlenecks are, and where AI agents will have the biggest impact.",
     details: [
-      "Stakeholder interviews across your team",
-      "Process mapping to surface hidden inefficiencies",
-      "Gap analysis with real dollar amounts attached",
-      "Clear picture of what's costing you the most",
+      "Audit of your current content channels and output",
+      "Brand voice and tone analysis",
+      "Bottleneck mapping across your content pipeline",
+      "Identify the highest-ROI agent opportunities",
     ],
     icon: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z",
   },
   {
     step: "02",
-    title: "Custom Roadmap",
-    description: "We build a prioritized AI strategy tailored to your business — what to fix first, what to automate, and the ROI you can expect.",
+    title: "Custom Agent Build",
+    description: "We build AI agents trained on your brand voice, audience, and goals — not generic templates. Blog agents, social agents, video agents, whatever you need.",
     details: [
-      "Prioritized action plan ranked by impact",
-      "AI agent recommendations for your workflows",
-      "Expected ROI projections for each initiative",
-      "Timeline with quick wins and long-term plays",
+      "Agents trained on your brand voice and tone",
+      "Platform-specific content formatting built in",
+      "Review and approval workflows customized to your team",
+      "Integration with your existing tools and processes",
     ],
-    icon: "M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z",
+    icon: "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z",
   },
   {
     step: "03",
-    title: "Ongoing Advisory",
-    description: "We stay in your corner — overseeing execution, tracking ROI, and evolving your AI strategy as your business grows.",
+    title: "Launch & Scale",
+    description: "Your agents start producing content. We monitor quality, refine outputs, and expand your content system as you grow.",
     details: [
-      "Monthly strategy sessions with your team",
-      "Oversight of AI implementation and vendors",
-      "ROI tracking so you always see the return",
-      "Roadmap refreshes as new opportunities emerge",
+      "Agents go live across your content channels",
+      "Ongoing quality monitoring and output refinement",
+      "Monthly expansion into new content types",
+      "Performance tracking so you always see the ROI",
     ],
     icon: "M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6",
   },
@@ -50,24 +50,24 @@ const PROCESS_STEPS = [
 
 const GAP_EXAMPLES = [
   {
-    area: "Slow follow-ups",
-    cost: "Missed deals pile up when leads wait days for a response.",
+    area: "Inconsistent posting",
+    cost: "Weeks go by without publishing. Your audience forgets you exist.",
     icon: "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z",
   },
   {
-    area: "Manual data entry",
-    cost: "Hours of skilled staff time spent on work a machine should handle.",
-    icon: "M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z",
+    area: "Hours spent writing",
+    cost: "Blog posts that should take an hour take all day — and you still aren't happy with them.",
+    icon: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10",
   },
   {
-    area: "Compliance bottlenecks",
-    cost: "Documents that should take minutes take hours — and still have errors.",
-    icon: "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z",
+    area: "One platform at a time",
+    cost: "You're active on one channel but invisible everywhere else. Growth stalls.",
+    icon: "M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z",
   },
   {
-    area: "Reporting overhead",
-    cost: "People pulling reports by hand instead of making decisions with them.",
-    icon: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z",
+    area: "Generic AI output",
+    cost: "You've tried ChatGPT but everything sounds the same. It doesn't sound like you.",
+    icon: "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z",
   },
 ] as const;
 
@@ -83,13 +83,13 @@ export default function OfferPage() {
         </AnimateIn>
         <AnimateIn animation="fade-up" delay={50}>
           <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl leading-[1.05] tracking-tight mb-8 max-w-4xl">
-            Stop losing money to work{" "}
-            <span className="italic text-[#6B8F71]">nobody should be doing.</span>
+            AI agents that create content{" "}
+            <span className="italic text-[#6B8F71]">in your voice.</span>
           </h1>
         </AnimateIn>
         <AnimateIn animation="fade-up" delay={100}>
           <p className="text-lg md:text-xl text-[#555] leading-relaxed max-w-2xl">
-            Most businesses are bleeding time and profit on repetitive tasks they don&apos;t even realize are costing them. We find the gaps, build the strategy, and stay in your corner to make sure the ROI is real.
+            We build custom AI agents that handle your entire content pipeline — blog posts, social media, video scripts, newsletters — so you can publish more without hiring more.
           </p>
         </AnimateIn>
       </section>
@@ -99,12 +99,12 @@ export default function OfferPage() {
         <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
           <AnimateIn animation="fade-up">
             <div className="max-w-3xl mb-16">
-              <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">THE HIDDEN COST</p>
+              <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">THE CONTENT GAP</p>
               <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">
-                Every inefficiency has a price tag.
+                Great businesses, invisible online.
               </h2>
               <p className="text-white/60 leading-relaxed text-lg">
-                When we sit down with clients, we consistently uncover six figures of wasted time, missed revenue, and operational drag hiding in plain sight.
+                You know you need to publish more, but content creation eats hours you don&apos;t have. The result? Your competitors own the conversation while you stay quiet.
               </p>
             </div>
           </AnimateIn>
@@ -132,10 +132,10 @@ export default function OfferPage() {
           <AnimateIn animation="fade-up" delay={400}>
             <div className="mt-12 border border-white/10 rounded-2xl p-8 lg:p-10">
               <p className="text-xl font-serif mb-2">
-                The real question isn&apos;t &ldquo;Can we afford to invest in AI?&rdquo;
+                The real question isn&apos;t &ldquo;Should we create more content?&rdquo;
               </p>
               <p className="text-white/60 leading-relaxed">
-                It&apos;s &ldquo;Can we afford not to?&rdquo; The gap between where you are and where you could be is costing you every single month.
+                It&apos;s &ldquo;How do we create 10x more without 10x the effort?&rdquo; That&apos;s exactly what AI agents are built for.
               </p>
             </div>
           </AnimateIn>
@@ -148,10 +148,10 @@ export default function OfferPage() {
           <div className="max-w-3xl mx-auto text-center mb-16">
             <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">OUR PROCESS</p>
             <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">
-              Three steps to a lighter business.
+              Three steps to lighter content.
             </h2>
             <p className="text-[#555] text-lg leading-relaxed">
-              No guesswork. No generic playbooks. A tailored process that starts with understanding your business and ends with measurable results.
+              No generic templates. No cookie-cutter AI. Custom agents built around your brand, your voice, and your content goals.
             </p>
           </div>
         </AnimateIn>
@@ -197,10 +197,10 @@ export default function OfferPage() {
             <div className="max-w-3xl mx-auto text-center">
               <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">THE MATH</p>
               <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">
-                Our clients typically see 10x+ return within the first year.
+                10x the content output without hiring a single writer.
               </h2>
               <p className="text-white/60 text-lg leading-relaxed mb-10">
-                When you put a dollar amount on the time wasted, the deals missed, and the overhead you&apos;re carrying — the decision to invest in a clear AI strategy isn&apos;t even close.
+                When you add up the hours spent writing, editing, and repurposing — plus the content you never got around to publishing — the case for AI agents makes itself.
               </p>
               <div className="w-16 h-px bg-[#6B8F71] mx-auto" />
             </div>
@@ -215,10 +215,10 @@ export default function OfferPage() {
             <div>
               <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">IS THIS FOR YOU?</p>
               <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">
-                For businesses ready to stop guessing.
+                For brands ready to scale their content.
               </h2>
               <p className="text-[#555] text-lg leading-relaxed">
-                We work best with teams that know they need AI but don&apos;t know where to start — and want a strategic partner, not another tool to manage.
+                We work best with businesses and creators who know content matters but can&apos;t keep up with the demand — and want agents that actually sound like them.
               </p>
             </div>
           </AnimateIn>
@@ -226,11 +226,11 @@ export default function OfferPage() {
           <AnimateIn animation="fade-up" delay={100}>
             <div className="space-y-4">
               {[
-                "You're spending more time on admin than on your actual expertise",
-                "You know AI could help but aren't sure where to start",
-                "You've tried tools before but they didn't stick",
-                "You want measurable ROI, not vague promises",
-                "You're ready to invest in strategy, not just software",
+                "You're spending more time creating content than running your business",
+                "You know you should post more but can't find the hours",
+                "You've tried AI writing tools but the output sounds generic",
+                "You want to be on every platform without doing 5x the work",
+                "You're ready for a content system, not another one-off tool",
               ].map((item) => (
                 <div key={item} className="flex items-start gap-3 bg-white border border-[#E8E6E1] rounded-xl p-4">
                   <svg className="w-5 h-5 text-[#6B8F71] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -250,9 +250,9 @@ export default function OfferPage() {
           <AnimateIn animation="fade-up">
             <div className="text-center mb-12">
               <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">NEXT STEP</p>
-              <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-4">Start with the Assessment.</h2>
+              <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-4">Start with a content audit.</h2>
               <p className="text-lg text-[#555] max-w-xl mx-auto mb-6">
-                Book a call and we&apos;ll show you exactly where your business is leaving money on the table — and what to do about it.
+                Book a call and we&apos;ll show you exactly how AI agents can scale your content — and what that looks like for your brand.
               </p>
               <a
                 href="/lighten-ai-one-pager.pdf"

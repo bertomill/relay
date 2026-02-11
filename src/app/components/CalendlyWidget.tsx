@@ -1,19 +1,32 @@
 "use client";
 
-import Script from "next/script";
+import { useEffect } from "react";
+import Cal, { getCalApi } from "@calcom/embed-react";
+
+const CAL_LINK = "bertovmill/ai-assessment-free-intro-call";
+const CAL_NS = "ai-assessment-free-intro-call-contact";
 
 export function CalendlyWidget() {
+  useEffect(() => {
+    (async function () {
+      const cal = await getCalApi({ namespace: CAL_NS });
+      cal("ui", {
+        theme: "light",
+        hideEventTypeDetails: false,
+        layout: "month_view",
+        cssVarsPerTheme: {
+          light: { "cal-brand": "#6B8F71" },
+        },
+      });
+    })();
+  }, []);
+
   return (
-    <>
-      <Script
-        src="https://assets.calendly.com/assets/external/widget.js"
-        strategy="lazyOnload"
-      />
-      <div
-        className="calendly-inline-widget"
-        data-url="https://calendly.com/bertomill/lighten-ai-intro-call?hide_event_type_details=1&hide_gdpr_banner=1"
-        style={{ minWidth: "320px", height: "580px" }}
-      />
-    </>
+    <Cal
+      namespace={CAL_NS}
+      calLink={CAL_LINK}
+      style={{ width: "100%", height: "100%", overflow: "scroll" }}
+      config={{ layout: "month_view", theme: "light" }}
+    />
   );
 }

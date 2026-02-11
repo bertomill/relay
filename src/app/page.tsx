@@ -7,6 +7,7 @@ import { CountUp } from "./components/CountUp";
 import { HeroBackground } from "./components/HeroBackground";
 import { GrainTexture } from "./components/GrainTexture";
 import { ContentIllustration, SupportIllustration, MarketingIllustration } from "./components/illustrations/FeatureIllustrations";
+import { ServicePills } from "./components/ServicePills";
 import Link from "next/link";
 
 const FEATURE_ILLUSTRATIONS: Record<string, React.FC> = {
@@ -81,56 +82,28 @@ export default function Home() {
             <div className="inline-flex items-center gap-2 border border-[#E8E6E1] rounded-full px-4 py-1.5 mb-8">
               <span className="w-2 h-2 rounded-full bg-[#6B8F71]" />
               <span className="text-xs font-semibold uppercase tracking-[0.15em] text-[#555]">
-                AI Agents for Content Creation
+                Fractional AI Officer
               </span>
             </div>
           </AnimateIn>
 
           <AnimateIn animation="fade-up" delay={50}>
             <h1 className="font-sans font-light text-5xl md:text-7xl lg:text-8xl leading-[1.05] tracking-tight mb-6">
-              Scale <span className="text-[#6B8F71]">lighter.</span>
+              Do more. Carry <span className="text-[#6B8F71]">less.</span>
             </h1>
           </AnimateIn>
 
           <AnimateIn animation="fade-up" delay={100}>
             <p className="text-lg md:text-xl text-[#555] leading-relaxed mb-10 max-w-2xl mx-auto">
-              We build AI agents that create content for you. Blog posts, social media, video scripts, newsletters, all in your voice.
+              AI is the biggest shift since the internet. The lever that collapses time, multiplies capacity, and builds the kind of wealth and freedom most people only dream about.
             </p>
           </AnimateIn>
 
-          <AnimateIn animation="fade-up" delay={150}>
-            <a
-              href="#contact"
-              className="inline-flex items-center gap-2 border border-[#1C1C1C] text-[#1C1C1C] text-sm font-semibold tracking-[0.1em] uppercase px-8 py-4 rounded-full hover:bg-[#1C1C1C] hover:text-white transition-colors duration-200 mb-12"
-            >
-              GET STARTED
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
-              </svg>
-            </a>
-          </AnimateIn>
-
+          {/* ─── SERVICE PILLS ─── */}
           <AnimateIn animation="fade-up" delay={200}>
-            <Link
-              href="/agents"
-              className="group block max-w-xl mx-auto bg-white border border-[#E8E6E1] rounded-2xl px-5 py-4 flex items-center gap-3 hover:border-[#6B8F71]/40 hover:shadow-lg hover:shadow-[#6B8F71]/5 transition-all duration-300 cursor-pointer"
-            >
-              <div className="w-9 h-9 rounded-full bg-[#6B8F71]/10 flex items-center justify-center flex-shrink-0">
-                <svg className="w-4 h-4 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
-                </svg>
-              </div>
-              <span className="text-[#999] text-sm flex-1 text-left">What content can AI agents create for me?</span>
-              <svg className="w-4 h-4 text-[#CCC] group-hover:text-[#6B8F71] transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
-              </svg>
-            </Link>
-          </AnimateIn>
-
-          <AnimateIn animation="fade-in" delay={300}>
-            <p className="text-xs text-[#999] uppercase tracking-[0.15em] mt-10">
-              Your content team, powered by AI.
-            </p>
+            <div className="max-w-2xl mx-auto mb-10">
+              <ServicePills />
+            </div>
           </AnimateIn>
         </div>
       </section>
