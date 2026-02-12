@@ -3,6 +3,8 @@ import { Navigation } from "../components/Navigation";
 import { Footer } from "../components/Footer";
 import { AnimateIn } from "../components/AnimateIn";
 import { CalendlyWidget } from "../components/CalendlyWidget";
+import { HeroBackground } from "../components/HeroBackground";
+import { GrainTexture } from "../components/GrainTexture";
 
 export const metadata: Metadata = {
   title: "Our Offer | Lighten AI",
@@ -77,30 +79,41 @@ export default function OfferPage() {
       <Navigation />
 
       {/* ─── HERO ─── */}
-      <section className="max-w-6xl mx-auto px-6 pt-16 pb-20 md:pt-24 md:pb-28 lg:pt-32 lg:pb-36">
-        <AnimateIn animation="fade-up">
-          <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-6">HOW WE WORK</p>
-        </AnimateIn>
-        <AnimateIn animation="fade-up" delay={50}>
-          <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl leading-[1.05] tracking-tight mb-8 max-w-4xl">
-            AI agents that create content{" "}
-            <span className="italic text-[#6B8F71]">in your voice.</span>
-          </h1>
-        </AnimateIn>
-        <AnimateIn animation="fade-up" delay={100}>
-          <p className="text-lg md:text-xl text-[#555] leading-relaxed max-w-2xl">
-            We build custom AI agents that handle your entire content pipeline — blog posts, social media, video scripts, newsletters — so you can publish more without hiring more.
-          </p>
-        </AnimateIn>
+      <section className="relative min-h-[85vh] flex items-center justify-center">
+        <HeroBackground />
+        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28 lg:py-32 text-center relative z-10">
+          <AnimateIn animation="fade-up">
+            <div className="inline-flex items-center gap-2 border border-[#E8E6E1] rounded-full px-4 py-1.5 mb-8">
+              <span className="w-2 h-2 rounded-full bg-[#6B8F71]" />
+              <span className="text-xs font-semibold uppercase tracking-[0.15em] text-[#555]">
+                How We Work
+              </span>
+            </div>
+          </AnimateIn>
+
+          <AnimateIn animation="fade-up" delay={50}>
+            <h1 className="font-sans font-light text-5xl md:text-7xl lg:text-8xl leading-[1.05] tracking-tight mb-6">
+              AI agents that create content{" "}
+              <span className="text-[#6B8F71]">in your voice.</span>
+            </h1>
+          </AnimateIn>
+
+          <AnimateIn animation="fade-up" delay={100}>
+            <p className="text-lg md:text-xl text-[#555] leading-relaxed mb-10 max-w-2xl mx-auto">
+              We build custom AI agents that handle your entire content pipeline — blog posts, social media, video scripts, newsletters — so you can publish more without hiring more.
+            </p>
+          </AnimateIn>
+        </div>
       </section>
 
-      {/* ─── DARK SECTION: THE COST OF DOING NOTHING ─── */}
-      <section className="bg-[#1C1C1C] text-white">
-        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
+      {/* ─── THE CONTENT GAP (green grain section) ─── */}
+      <section className="grain-green bg-[#6B8F71] text-white">
+        <GrainTexture density={0.45} />
+        <div className="relative z-10 max-w-6xl mx-auto px-6 py-20 md:py-28">
           <AnimateIn animation="fade-up">
             <div className="max-w-3xl mb-16">
-              <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">THE CONTENT GAP</p>
-              <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">
+              <p className="text-xs font-semibold text-white/70 uppercase tracking-[0.15em] mb-4">THE CONTENT GAP</p>
+              <h2 className="font-sans font-light text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">
                 Great businesses, invisible online.
               </h2>
               <p className="text-white/60 leading-relaxed text-lg">
@@ -112,10 +125,10 @@ export default function OfferPage() {
           <div className="grid md:grid-cols-2 gap-6">
             {GAP_EXAMPLES.map((gap, i) => (
               <AnimateIn key={gap.area} animation="fade-up" delay={i * 100}>
-                <div className="border border-white/10 rounded-2xl p-8 hover:border-[#6B8F71]/40 transition-all duration-300 hover:bg-white/5">
+                <div className="border border-white/15 rounded-2xl p-8 hover:border-white/30 transition-all duration-300 hover:bg-white/5">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-[#6B8F71]/20 flex items-center justify-center shrink-0">
-                      <svg className="w-6 h-6 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-12 h-12 rounded-full bg-white/15 flex items-center justify-center shrink-0">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={gap.icon} />
                       </svg>
                     </div>
@@ -130,8 +143,8 @@ export default function OfferPage() {
           </div>
 
           <AnimateIn animation="fade-up" delay={400}>
-            <div className="mt-12 border border-white/10 rounded-2xl p-8 lg:p-10">
-              <p className="text-xl font-serif mb-2">
+            <div className="mt-12 border border-white/15 rounded-2xl p-8 lg:p-10">
+              <p className="text-xl font-sans font-light mb-2">
                 The real question isn&apos;t &ldquo;Should we create more content?&rdquo;
               </p>
               <p className="text-white/60 leading-relaxed">
@@ -147,7 +160,7 @@ export default function OfferPage() {
         <AnimateIn animation="fade-up">
           <div className="max-w-3xl mx-auto text-center mb-16">
             <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">OUR PROCESS</p>
-            <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">
+            <h2 className="font-sans font-light text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">
               Three steps to lighter content.
             </h2>
             <p className="text-[#555] text-lg leading-relaxed">
@@ -163,11 +176,11 @@ export default function OfferPage() {
                 <div className="grid lg:grid-cols-[1fr,1.2fr] gap-8 items-start">
                   <div>
                     <div className="flex items-center gap-4 mb-4">
-                      <div className="w-12 h-12 rounded-full bg-[#1C1C1C] text-white flex items-center justify-center font-serif text-lg">
+                      <div className="w-12 h-12 rounded-full bg-[#6B8F71] text-white flex items-center justify-center font-sans font-light text-lg">
                         {step.step}
                       </div>
                     </div>
-                    <h3 className="font-serif text-2xl md:text-3xl mb-3">{step.title}</h3>
+                    <h3 className="font-sans font-light text-2xl md:text-3xl mb-3">{step.title}</h3>
                     <p className="text-[#555] leading-relaxed">{step.description}</p>
                   </div>
                   <div className="bg-[#FAFAF8] rounded-xl p-6">
@@ -190,19 +203,20 @@ export default function OfferPage() {
         </div>
       </section>
 
-      {/* ─── DARK SECTION: ROI FRAMING ─── */}
-      <section className="bg-[#1C1C1C] text-white">
-        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
+      {/* ─── ROI FRAMING (green grain section) ─── */}
+      <section className="grain-green bg-[#6B8F71] text-white">
+        <GrainTexture density={0.3} />
+        <div className="relative z-10 max-w-6xl mx-auto px-6 py-20 md:py-28">
           <AnimateIn animation="fade-up">
             <div className="max-w-3xl mx-auto text-center">
-              <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">THE MATH</p>
-              <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">
+              <p className="text-xs font-semibold text-white/70 uppercase tracking-[0.15em] mb-4">THE MATH</p>
+              <h2 className="font-sans font-light text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">
                 10x the content output without hiring a single writer.
               </h2>
               <p className="text-white/60 text-lg leading-relaxed mb-10">
                 When you add up the hours spent writing, editing, and repurposing — plus the content you never got around to publishing — the case for AI agents makes itself.
               </p>
-              <div className="w-16 h-px bg-[#6B8F71] mx-auto" />
+              <div className="w-16 h-px bg-white/30 mx-auto" />
             </div>
           </AnimateIn>
         </div>
@@ -214,7 +228,7 @@ export default function OfferPage() {
           <AnimateIn animation="fade-up">
             <div>
               <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">IS THIS FOR YOU?</p>
-              <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">
+              <h2 className="font-sans font-light text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">
                 For brands ready to scale their content.
               </h2>
               <p className="text-[#555] text-lg leading-relaxed">
@@ -250,7 +264,7 @@ export default function OfferPage() {
           <AnimateIn animation="fade-up">
             <div className="text-center mb-12">
               <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">NEXT STEP</p>
-              <h2 className="font-serif text-3xl md:text-5xl leading-[1.1] tracking-tight mb-4">Start with a content audit.</h2>
+              <h2 className="font-sans font-light text-3xl md:text-5xl leading-[1.1] tracking-tight mb-4">Start with a content audit.</h2>
               <p className="text-lg text-[#555] max-w-xl mx-auto mb-6">
                 Book a call and we&apos;ll show you exactly how AI agents can scale your content — and what that looks like for your brand.
               </p>
@@ -269,6 +283,36 @@ export default function OfferPage() {
           <AnimateIn animation="fade-up" delay={100}>
             <div className="bg-white rounded-2xl border border-[#E8E6E1] overflow-hidden max-w-3xl mx-auto">
               <CalendlyWidget />
+            </div>
+          </AnimateIn>
+        </div>
+      </section>
+
+      {/* ─── FINAL CTA ─── */}
+      <section className="grain-green bg-[#6B8F71] text-white">
+        <GrainTexture density={0.3} />
+        <div className="relative z-10 max-w-6xl mx-auto px-6 py-20 md:py-28 text-center">
+          <AnimateIn animation="fade-up">
+            <h2 className="font-sans font-light text-3xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tight mb-6">
+              Ready to create more<br className="hidden md:block" /> <span className="italic text-white/90">with less effort?</span>
+            </h2>
+            <p className="text-lg text-white/60 mb-10 max-w-xl mx-auto">
+              Join the brands using AI agents to 10x content output and grow without hiring a full content team.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <a
+                href="#contact"
+                className="bg-white text-[#6B8F71] text-sm font-semibold tracking-[0.1em] uppercase px-8 py-4 rounded-full hover:bg-white/90 transition-colors duration-200"
+              >
+                START A CONVERSATION
+              </a>
+              <a
+                href="/lighten-ai-one-pager.pdf"
+                download
+                className="border border-white/30 text-white text-sm font-semibold tracking-[0.1em] uppercase px-8 py-4 rounded-full hover:border-white/60 transition-colors duration-200"
+              >
+                DOWNLOAD ONE-PAGER
+              </a>
             </div>
           </AnimateIn>
         </div>
