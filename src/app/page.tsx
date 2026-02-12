@@ -89,13 +89,13 @@ export default function Home() {
 
           <AnimateIn animation="fade-up" delay={50}>
             <h1 className="font-sans font-light text-5xl md:text-7xl lg:text-8xl leading-[1.05] tracking-tight mb-6">
-              Do more. Carry <span className="text-[#6B8F71]">less.</span>
+              Scale <span className="text-[#6B8F71]">lighter.</span>
             </h1>
           </AnimateIn>
 
           <AnimateIn animation="fade-up" delay={100}>
             <p className="text-lg md:text-xl text-[#555] leading-relaxed mb-10 max-w-2xl mx-auto">
-              AI is the biggest shift since the internet. The lever that collapses time, multiplies capacity, and builds the kind of wealth and freedom most people only dream about.
+              Your trusted partner that identifies profit gaps, wasted hours, bottlenecks, and inefficiencies, and shows you where AI can run your processes strategically.
             </p>
           </AnimateIn>
 
@@ -105,6 +105,67 @@ export default function Home() {
               <ServicePills />
             </div>
           </AnimateIn>
+        </div>
+      </section>
+
+      {/* ─── PROBLEMS WE SOLVE ─── */}
+      <section className="max-w-6xl mx-auto px-6 py-20 md:py-28">
+        <AnimateIn animation="fade-up">
+          <div className="text-center mb-14">
+            <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">SOUND FAMILIAR?</p>
+            <h2 className="font-sans font-light text-3xl md:text-5xl leading-[1.1] tracking-tight">Problems we solve.</h2>
+          </div>
+        </AnimateIn>
+
+        <div className="grid sm:grid-cols-2 gap-5 max-w-3xl mx-auto">
+          {[
+            { title: "Sales bleeding leads", description: "Your pipeline is leaking because nobody follows up fast enough. Opportunities go cold while your team juggles too many priorities." },
+            { title: "Support drowning in tickets", description: "Your customer support team spends hours on repetitive questions that could be resolved instantly with the right system." },
+            { title: "Marketing running on guesswork", description: "Your marketing team is guessing instead of using data. Campaigns launch without clear insight into what actually drives results." },
+            { title: "Admin buried in manual work", description: "Your admin team is stuck in spreadsheets, copy-pasting, and chasing approvals. Hours lost to work that should run itself." },
+          ].map((problem, i) => (
+            <AnimateIn key={problem.title} animation="fade-up" delay={i * 100}>
+              <div className="bg-white border border-[#E8E6E1] rounded-2xl p-7 h-full">
+                <div className="w-10 h-10 rounded-full bg-[#FDF2F2] flex items-center justify-center mb-4">
+                  <svg className="w-5 h-5 text-[#C45C5C]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold mb-2">{problem.title}</h3>
+                <p className="text-[#666] text-sm leading-relaxed">{problem.description}</p>
+              </div>
+            </AnimateIn>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── WHAT WE DO ─── */}
+      <section className="bg-[#1C1C1C] text-white">
+        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
+          <AnimateIn animation="fade-up">
+            <div className="text-center mb-14">
+              <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">WHAT WE DO</p>
+              <h2 className="font-sans font-light text-3xl md:text-5xl leading-[1.1] tracking-tight">
+                We expose the gaps. Then we close them.
+              </h2>
+            </div>
+          </AnimateIn>
+
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {[
+              { step: "01", title: "Find the gaps", description: "We audit your operations and surface the inefficiencies hiding in your sales, support, marketing, and admin workflows." },
+              { step: "02", title: "Put a dollar sign on it", description: "Every gap gets a cost. You see exactly how much wasted time, lost revenue, and missed opportunity is on the table." },
+              { step: "03", title: "Show what it\u2019s worth to close it", description: "We map the ROI of closing each gap with AI. You see the before, the after, and the path to get there." },
+            ].map((item, i) => (
+              <AnimateIn key={item.step} animation="fade-up" delay={i * 120}>
+                <div className="border border-white/10 rounded-2xl p-8 hover:bg-white/5 transition-all duration-300 h-full">
+                  <span className="text-[#6B8F71] text-sm font-semibold tracking-[0.1em]">{item.step}</span>
+                  <h3 className="text-xl font-semibold mt-3 mb-3">{item.title}</h3>
+                  <p className="text-white/60 leading-relaxed text-sm">{item.description}</p>
+                </div>
+              </AnimateIn>
+            ))}
+          </div>
         </div>
       </section>
 
