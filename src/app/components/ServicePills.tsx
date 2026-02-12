@@ -42,8 +42,8 @@ const SERVICES: {
   },
 ];
 
-const CAL_LINK = "bertovmill/ai-assessment-free-intro-call";
-const CAL_NS = "ai-assessment-free-intro-call";
+const CAL_LINK = "bertovmill/intro-call";
+const CAL_NS = "intro-call";
 
 function CalInlineEmbed() {
   useEffect(() => {

@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 import Cal, { getCalApi } from "@calcom/embed-react";
 
-const CAL_LINK = "bertovmill/ai-assessment-free-intro-call";
-const CAL_NS = "ai-assessment-free-intro-call-contact";
+const CAL_LINK = "bertovmill/intro-call";
+const CAL_NS = "intro-call-contact";
 
 export function CalendlyWidget() {
   useEffect(() => {
