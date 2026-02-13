@@ -95,6 +95,47 @@ export async function GET(request: NextRequest) {
   }
 }
 
+const VALID_STATUSES = ["lead", "targeted", "contacted"];
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const { id, status } = await request.json();
+
+    if (!id) {
+      return NextResponse.json({ error: "id is required" }, { status: 400 });
+    }
+    if (!VALID_STATUSES.includes(status)) {
+      return NextResponse.json(
+        { error: `status must be one of: ${VALID_STATUSES.join(", ")}` },
+        { status: 400 }
+      );
+    }
+
+    const supabase = createAdminClient();
+
+    const { data, error } = await supabase
+      .from("social_leads")
+      .update({ status })
+      .eq("id", id)
+      .select();
+
+    if (error) {
+      return NextResponse.json(
+        { error: `Database error: ${error.message}` },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true, data });
+  } catch (error) {
+    console.error("API error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     const { id } = await request.json();

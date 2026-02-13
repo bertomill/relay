@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import dynamic from "next/dynamic";
 
@@ -10,50 +10,88 @@ const AgentChat = dynamic(() => import("@/app/components/agents/AgentChat"), {
 
 const CONTENT_ICON = "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10";
 
-interface Platform {
-  id: string;
-  label: string;
-  icon: string; // SVG path
-  promptTemplate: (idea: string, context?: string, audience?: string) => string;
-}
+const INFO_ICON = "M11.25 11.25l.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z";
 
-const PLATFORMS: Platform[] = [
+const ABOUT_SECTIONS = [
   {
-    id: "linkedin",
-    label: "LinkedIn",
-    icon: "M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z",
-    promptTemplate: (idea, context, audience) => {
-      let prompt = `Help me write a LinkedIn post about: ${idea}.`;
-      if (context) prompt += ` Context: ${context}.`;
-      if (audience) prompt += ` Target audience: ${audience}.`;
-      return prompt;
-    },
+    title: "What it does",
+    content:
+      "The Content Creator is an AI-powered writing assistant that helps you draft social media posts for LinkedIn, X, and other platforms. Select an idea, choose a target audience, and the agent drafts ready-to-post content with platform-specific formatting.",
   },
   {
-    id: "x",
-    label: "X (Twitter)",
-    icon: "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z",
-    promptTemplate: (idea, context, audience) => {
-      let prompt = `Help me write a tweet thread about: ${idea}.`;
-      if (context) prompt += ` Context: ${context}.`;
-      if (audience) prompt += ` Target audience: ${audience}.`;
-      prompt += ` Keep tweets concise (under 280 chars each). Use a punchy, direct tone.`;
-      return prompt;
-    },
+    title: "How a session works",
+    items: [
+      "Select a content idea from your saved list (or describe a new one).",
+      "Optionally pick a target audience to tailor the tone and messaging.",
+      "The agent drafts a post formatted for your chosen platform.",
+      "Review, edit, and refine the draft through follow-up messages.",
+      "When connected, post directly to LinkedIn or X from the chat.",
+    ],
   },
   {
-    id: "youtube",
-    label: "YouTube",
-    icon: "M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z",
-    promptTemplate: (idea, context, audience) => {
-      let prompt = `Help me plan a YouTube video about: ${idea}.`;
-      if (context) prompt += ` Context: ${context}.`;
-      if (audience) prompt += ` Target audience: ${audience}.`;
-      prompt += ` Include a compelling title, hook, outline with timestamps, and a call-to-action.`;
-      return prompt;
-    },
+    title: "Connected accounts",
+    items: [
+      "Connect your LinkedIn and X accounts via OAuth for one-click posting.",
+      "LinkedIn Company Page posting is supported — add your org ID after connecting.",
+      "Expired tokens are flagged so you can reconnect quickly.",
+    ],
+  },
+  {
+    title: "Agent architecture",
+    subsections: [
+      {
+        label: "Runtime",
+        detail: "Runs in a Vercel ephemeral sandbox — each request is isolated with no persistent server state.",
+      },
+      {
+        label: "Streaming",
+        detail: "Responses are delivered via Server-Sent Events (SSE) so you see output in real time.",
+      },
+      {
+        label: "Memory",
+        detail: "Conversation history is passed in full with each request. The agent picks up exactly where you left off.",
+      },
+    ],
+  },
+  {
+    title: "Tools",
+    subsections: [
+      {
+        label: "WebSearch",
+        detail: "Searches for trending topics, competitor content, and audience insights to inform drafts.",
+      },
+      {
+        label: "WebFetch",
+        detail: "Fetches reference articles and pages to extract key points for content.",
+      },
+      {
+        label: "PostToSocial",
+        detail: "Posts directly to connected LinkedIn and X accounts with platform-specific formatting.",
+      },
+    ],
+  },
+  {
+    title: "Tech stack",
+    items: [
+      "API route: Next.js App Router (POST /api/agents/content-creator)",
+      "LLM: Claude via Anthropic API",
+      "Execution: Vercel Sandbox (runAgentInSandbox)",
+      "Frontend: React with dynamic import (no SSR)",
+      "Chat UI: AgentChat component with SSE streaming",
+      "Social: OAuth 2.0 for LinkedIn & X posting",
+    ],
   },
 ];
+
+interface SocialConnection {
+  platform: string;
+  platformUserId: string;
+  profileName: string;
+  profileImage: string | null;
+  isExpired: boolean;
+  orgId: string | null;
+  orgName: string | null;
+}
 
 const AUDIENCE_PRESETS = [
   "Shopify merchants",
@@ -82,15 +120,17 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
   const [newDescription, setNewDescription] = useState("");
   const [selectedIdea, setSelectedIdea] = useState<ContentIdea | null>(null);
   const [showChat, setShowChat] = useState(false);
-  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
-  const [draftedPlatforms, setDraftedPlatforms] = useState<Set<string>>(new Set());
+  const [showAbout, setShowAbout] = useState(false);
   const [targetAudience, setTargetAudience] = useState("");
   const [autoSendPrompt, setAutoSendPrompt] = useState<string | undefined>();
-  const prevIdeaId = useRef<string | null>(null);
+  const [connections, setConnections] = useState<SocialConnection[]>([]);
+  const [isLoadingConnections, setIsLoadingConnections] = useState(true);
   const supabase = createClient();
+  const prevIdeaId = useRef<string | null>(null);
 
   useEffect(() => {
     loadIdeas();
+    loadConnections();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -103,6 +143,34 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
     setIdeas(data || []);
     setIsLoadingIdeas(false);
   };
+
+  const loadConnections = useCallback(async () => {
+    try {
+      const res = await fetch("/api/social/connections");
+      if (res.ok) {
+        const data = await res.json();
+        setConnections(data.connections || []);
+      }
+    } catch {
+      // Silent fail
+    } finally {
+      setIsLoadingConnections(false);
+    }
+  }, []);
+
+  // Check for social_connected query param after OAuth redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("social_connected") || params.get("social_error")) {
+      // Reload connections after OAuth redirect
+      loadConnections();
+      // Clean up URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete("social_connected");
+      url.searchParams.delete("social_error");
+      window.history.replaceState({}, "", url.pathname);
+    }
+  }, [loadConnections]);
 
   const addIdea = async () => {
     if (!newTitle.trim()) return;
@@ -131,9 +199,7 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
 
   const handleSelectIdea = (idea: ContentIdea) => {
     setSelectedIdea(idea);
-    // Reset drafted platforms when switching ideas
     if (idea.id !== prevIdeaId.current) {
-      setDraftedPlatforms(new Set());
       prevIdeaId.current = idea.id;
     }
   };
@@ -141,12 +207,7 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
   // Sync URL hash with chat overlay state
   useEffect(() => {
     const hash = window.location.hash.replace("#", "");
-    if (hash.startsWith("content-creator")) {
-      // Restore chat from URL hash on mount
-      const platformFromHash = hash.replace("content-creator-", "").replace("content-creator", "");
-      if (platformFromHash && platformFromHash !== "") {
-        setSelectedPlatform(platformFromHash);
-      }
+    if (hash === "content-creator") {
       setShowChat(true);
     }
   }, []);
@@ -154,9 +215,8 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
   useEffect(() => {
     const onPopState = () => {
       const hash = window.location.hash.replace("#", "");
-      if (!hash.startsWith("content-creator")) {
+      if (hash !== "content-creator") {
         setShowChat(false);
-        setSelectedPlatform(null);
         setAutoSendPrompt(undefined);
       }
     };
@@ -164,65 +224,34 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  const setHashForChat = (platformId: string | null) => {
-    const hash = platformId ? `content-creator-${platformId}` : "content-creator";
-    window.history.pushState(null, "", `#${hash}`);
-  };
-
-  const clearHash = () => {
-    window.history.pushState(null, "", window.location.pathname);
-  };
-
-  const openPlatformChat = (platformId: string) => {
-    const audience = targetAudience.trim() || undefined;
-    const platform = PLATFORMS.find((p) => p.id === platformId);
-    if (platform && selectedIdea) {
-      setAutoSendPrompt(platform.promptTemplate(selectedIdea.title, selectedIdea.description || undefined, audience));
-    }
-    setSelectedPlatform(platformId);
-    setShowChat(true);
-    setHashForChat(platformId);
-  };
-
-  const openAllPlatformsChat = () => {
+  const openContentCreator = () => {
     const audience = targetAudience.trim() || undefined;
     if (selectedIdea) {
-      const combined = PLATFORMS.map(
-        (p) => p.promptTemplate(selectedIdea.title, selectedIdea.description || undefined, audience)
-      ).join("\n\nThen also: ");
-      setAutoSendPrompt(combined);
+      let prompt = `Help me create content about: ${selectedIdea.title}.`;
+      if (selectedIdea.description) prompt += ` Context: ${selectedIdea.description}.`;
+      if (audience) prompt += ` Target audience: ${audience}.`;
+      prompt += ` Draft it so I can post to social media (LinkedIn, X, etc).`;
+      setAutoSendPrompt(prompt);
+    } else {
+      setAutoSendPrompt(undefined);
     }
-    setSelectedPlatform("all");
     setShowChat(true);
-    setHashForChat("all");
+    window.history.pushState(null, "", "#content-creator");
   };
 
   const handleCloseChat = () => {
-    // Mark the platform as drafted when closing
-    if (selectedPlatform && selectedPlatform !== "all") {
-      setDraftedPlatforms((prev) => new Set(prev).add(selectedPlatform));
-    } else if (selectedPlatform === "all") {
-      setDraftedPlatforms(new Set(PLATFORMS.map((p) => p.id)));
-    }
     setShowChat(false);
-    setSelectedPlatform(null);
     setAutoSendPrompt(undefined);
-    clearHash();
+    window.history.pushState(null, "", window.location.pathname);
   };
 
   const buildStarterPrompts = (): string[] => {
-    const audience = targetAudience.trim() || undefined;
-    if (selectedIdea && selectedPlatform) {
-      if (selectedPlatform === "all") {
-        const combined = PLATFORMS.map(
-          (p) => p.promptTemplate(selectedIdea.title, selectedIdea.description || undefined, audience)
-        ).join("\n\nThen also: ");
-        return [combined];
-      }
-      const platform = PLATFORMS.find((p) => p.id === selectedPlatform);
-      if (platform) {
-        return [platform.promptTemplate(selectedIdea.title, selectedIdea.description || undefined, audience)];
-      }
+    if (selectedIdea) {
+      const audience = targetAudience.trim() || undefined;
+      let prompt = `Help me create content about: ${selectedIdea.title}.`;
+      if (selectedIdea.description) prompt += ` Context: ${selectedIdea.description}.`;
+      if (audience) prompt += ` Target audience: ${audience}.`;
+      return [prompt];
     }
     return [
       "Draft a LinkedIn post about AI agents for small businesses",
@@ -231,23 +260,168 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
     ];
   };
 
-  const getChatStorageKey = (): string => {
-    if (selectedPlatform === "all") return "morning-content-all-platforms";
-    if (selectedPlatform) return `morning-content-${selectedPlatform}`;
-    return "morning-content-sessions";
+  const getConnection = (platform: string) =>
+    connections.find((c) => c.platform === platform);
+
+  const handleDisconnect = async (platform: string) => {
+    try {
+      const res = await fetch(`/api/social/connections?platform=${platform}`, { method: "DELETE" });
+      if (res.ok) {
+        setConnections((prev) => prev.filter((c) => c.platform !== platform));
+      }
+    } catch {
+      // Silent fail
+    }
   };
 
-  const getChatTitle = (): string => {
-    if (selectedPlatform === "all") {
-      return selectedIdea ? `All Platforms — ${selectedIdea.title}` : "Content Creator";
+  const handleSaveOrgId = async (orgId: string, orgName: string) => {
+    try {
+      const res = await fetch("/api/social/connections", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform: "linkedin", orgId: orgId || null, orgName: orgName || null }),
+      });
+      if (res.ok) {
+        setConnections((prev) =>
+          prev.map((c) =>
+            c.platform === "linkedin" ? { ...c, orgId: orgId || null, orgName: orgName || null } : c
+          )
+        );
+      }
+    } catch {
+      // Silent fail
     }
-    const platform = PLATFORMS.find((p) => p.id === selectedPlatform);
-    const platformLabel = platform?.label || "Content Creator";
-    return selectedIdea ? `${platformLabel} — ${selectedIdea.title}` : platformLabel;
   };
+
+  const linkedInConnection = getConnection("linkedin");
+  const linkedInOrgConnection = getConnection("linkedin_org");
+
+  const connectedPlatforms = connections
+    .filter((c) => !c.isExpired)
+    .map((c) => c.platform);
+
+  const hasLinkedInOrg = !!linkedInOrgConnection;
 
   return (
     <div>
+      {/* Connected Accounts */}
+      <div className="mb-3">
+        <h4 className="text-xs font-semibold text-[#6B8F71] uppercase tracking-wider mb-2">
+          Connected Accounts
+        </h4>
+        {isLoadingConnections ? (
+          <div className="text-xs text-[#999] py-2">Loading connections...</div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {/* X connection */}
+            {(() => {
+              const xConn = getConnection("x");
+              return xConn ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-[#E8E6E1]">
+                  <svg className="w-4 h-4 text-[#1C1C1C]" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                  <span className="text-xs text-[#1C1C1C] font-medium">{xConn.profileName}</span>
+                  {xConn.isExpired && (
+                    <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Expired</span>
+                  )}
+                  <button
+                    onClick={() => handleDisconnect("x")}
+                    className="text-[#999] hover:text-red-500 transition-colors ml-1"
+                    title="Disconnect"
+                  >
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <a
+                  href="/api/auth/x"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-[#E8E6E1] text-[#666] hover:border-[#6B8F71]/50 hover:text-[#1C1C1C] hover:bg-[#6B8F71]/5 transition-all text-xs font-medium"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                  Connect X
+                </a>
+              );
+            })()}
+
+            {/* LinkedIn Personal connection */}
+            {(() => {
+              const liConn = getConnection("linkedin");
+              return liConn ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-[#E8E6E1]">
+                  <svg className="w-4 h-4 text-[#0077B5]" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                  </svg>
+                  <span className="text-xs text-[#1C1C1C] font-medium">{liConn.profileName}</span>
+                  {liConn.isExpired && (
+                    <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Expired</span>
+                  )}
+                  <button
+                    onClick={() => handleDisconnect("linkedin")}
+                    className="text-[#999] hover:text-red-500 transition-colors ml-1"
+                    title="Disconnect"
+                  >
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <a
+                  href="/api/auth/linkedin"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-[#E8E6E1] text-[#666] hover:border-[#6B8F71]/50 hover:text-[#1C1C1C] hover:bg-[#6B8F71]/5 transition-all text-xs font-medium"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                  </svg>
+                  Connect LinkedIn
+                </a>
+              );
+            })()}
+
+            {/* LinkedIn Company Page connection (separate app with Community Management API) */}
+            {(() => {
+              const orgConn = getConnection("linkedin_org");
+              return orgConn ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-[#E8E6E1]">
+                  <svg className="w-4 h-4 text-[#0077B5]" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                  </svg>
+                  <span className="text-xs text-[#1C1C1C] font-medium">{orgConn.orgName || "Company Page"}</span>
+                  <span className="text-[10px] text-[#0077B5] bg-[#0077B5]/10 px-1.5 py-0.5 rounded">Company</span>
+                  {orgConn.isExpired && (
+                    <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Expired</span>
+                  )}
+                  <button
+                    onClick={() => handleDisconnect("linkedin_org")}
+                    className="text-[#999] hover:text-red-500 transition-colors ml-1"
+                    title="Disconnect"
+                  >
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <a
+                  href="/api/auth/linkedin-org"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-[#E8E6E1] text-[#666] hover:border-[#0077B5]/50 hover:text-[#1C1C1C] hover:bg-[#0077B5]/5 transition-all text-xs font-medium"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                  </svg>
+                  Connect Company Page
+                </a>
+              );
+            })()}
+          </div>
+        )}
+      </div>
+
       {/* Ideas section */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-2">
@@ -346,7 +520,7 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
           </div>
         )}
 
-        {/* Selected idea detail + platform cards */}
+        {/* Selected idea detail */}
         {selectedIdea && (
           <div className="mt-2 p-3 rounded-lg bg-[#6B8F71]/5 border border-[#6B8F71]/20">
             <div className="flex items-start justify-between gap-2 mb-3">
@@ -400,40 +574,15 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
               )}
             </div>
 
-            {/* Platform cards */}
-            <p className="text-[10px] font-semibold text-[#6B8F71] uppercase tracking-wider mb-2">Draft for</p>
-            <div className="grid grid-cols-3 gap-2">
-              {PLATFORMS.map((platform) => {
-                const isDrafted = draftedPlatforms.has(platform.id);
-                return (
-                  <button
-                    key={platform.id}
-                    onClick={() => openPlatformChat(platform.id)}
-                    className={`relative flex items-center gap-2.5 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all ${
-                      isDrafted
-                        ? "bg-[#6B8F71]/10 border-[#6B8F71]/40 text-[#1C1C1C]"
-                        : "bg-white border-[#E8E6E1] text-[#555] hover:border-[#6B8F71]/50 hover:text-[#1C1C1C] hover:bg-[#6B8F71]/5"
-                    }`}
-                  >
-                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                      <path d={platform.icon} />
-                    </svg>
-                    <span>{platform.label}</span>
-                    {isDrafted && (
-                      <svg className="w-4 h-4 text-[#6B8F71] ml-auto shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
+            {/* Open Content Creator */}
             <button
-              onClick={openAllPlatformsChat}
-              className="mt-2 w-full text-center text-xs text-[#6B8F71] hover:text-[#5A7D60] transition-colors py-1"
+              onClick={openContentCreator}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#6B8F71] text-white text-sm font-medium hover:bg-[#5A7D60] transition-colors"
             >
-              Or draft for all platforms at once
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d={CONTENT_ICON} />
+              </svg>
+              Open Content Creator
             </button>
           </div>
         )}
@@ -442,7 +591,7 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
       {/* Open Content Creator button — only when no idea selected */}
       {!selectedIdea && (
         <button
-          onClick={() => { setSelectedPlatform(null); setAutoSendPrompt(undefined); setShowChat(true); setHashForChat(null); }}
+          onClick={openContentCreator}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[#6B8F71]/30 bg-[#6B8F71]/5 text-[#6B8F71] text-sm font-medium hover:bg-[#6B8F71]/10 hover:border-[#6B8F71]/50 transition-colors duration-200"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
@@ -472,37 +621,125 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
                   <path strokeLinecap="round" strokeLinejoin="round" d={CONTENT_ICON} />
                 </svg>
                 <span className="text-sm font-medium text-[#1C1C1C] truncate">
-                  {getChatTitle()}
+                  {selectedIdea ? `Content Creator — ${selectedIdea.title}` : "Content Creator"}
                 </span>
               </div>
             </div>
+            {/* About toggle */}
+            <button
+              onClick={() => setShowAbout(!showAbout)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                showAbout
+                  ? "bg-[#6B8F71] text-white"
+                  : "bg-[#F5F4F0] text-[#666] hover:bg-[#ECEAE5] hover:text-[#1C1C1C]"
+              }`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d={INFO_ICON} />
+              </svg>
+              About
+            </button>
           </div>
 
-          {/* Chat area — fills remaining height */}
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden px-4">
-            <AgentChat
-              agentId="content-creator"
-              apiEndpoint="/api/agents/content-creator"
-              storageKey={getChatStorageKey()}
-              placeholder={selectedPlatform === "x" ? "Describe your tweet idea..." : "Describe your content idea..."}
-              emptyStateTitle={selectedIdea ? `Draft: ${selectedIdea.title}` : "Create content"}
-              emptyStateDescription={
-                selectedIdea
-                  ? (selectedIdea.description || "Click the prompt below to start drafting.")
-                  : "Pick an idea above or describe a new one. I'll help with writing and formatting."
-              }
-              loadingText="Drafting..."
-              agentIcon={CONTENT_ICON}
-              agentName="Content Creator"
-              variant="full"
-              initialPrompt={autoSendPrompt}
-              starterPrompts={buildStarterPrompts()}
-              fileUpload={{
-                accept: "audio/*,video/*,image/*",
-                maxSizeMB: 100,
-                endpoint: "/api/upload",
-              }}
-            />
+          {/* Main content area — chat + optional shelf */}
+          <div className="flex-1 flex min-h-0 overflow-hidden">
+            {/* Chat area */}
+            <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden px-4">
+              <AgentChat
+                agentId="content-creator"
+                apiEndpoint="/api/agents/content-creator"
+                storageKey="morning-content-sessions"
+                placeholder="Describe your content idea..."
+                emptyStateTitle={selectedIdea ? `Draft: ${selectedIdea.title}` : "Create content"}
+                emptyStateDescription={
+                  selectedIdea
+                    ? (selectedIdea.description || "Click the prompt below to start drafting.")
+                    : "Pick an idea above or describe a new one. I'll help with writing and formatting."
+                }
+                loadingText="Drafting..."
+                agentIcon={CONTENT_ICON}
+                agentName="Content Creator"
+                variant="full"
+                initialPrompt={autoSendPrompt}
+                starterPrompts={buildStarterPrompts()}
+                connectedPlatforms={connectedPlatforms}
+                linkedInOrgId={linkedInOrgConnection?.orgId}
+                linkedInOrgName={linkedInOrgConnection?.orgName}
+                fileUpload={{
+                  accept: "audio/*,video/*,image/*",
+                  maxSizeMB: 100,
+                  endpoint: "/api/upload",
+                }}
+              />
+            </div>
+
+            {/* About shelf — slides in from right */}
+            <div
+              className={`shrink-0 border-l border-[#E8E6E1] bg-white overflow-y-auto transition-all duration-300 ease-in-out ${
+                showAbout ? "w-[380px] opacity-100" : "w-0 opacity-0 border-l-0"
+              }`}
+            >
+              <div className="w-[380px] p-5">
+                {/* Shelf header */}
+                <div className="flex items-center gap-3 mb-5 pb-4 border-b border-[#E8E6E1]">
+                  <div className="w-10 h-10 rounded-xl bg-[#6B8F71]/10 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-[#6B8F71]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d={CONTENT_ICON} />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-[#1C1C1C]">Content Creator</h3>
+                    <p className="text-[11px] text-[#999]">AI writing assistant</p>
+                  </div>
+                </div>
+
+                {/* Sections */}
+                <div className="space-y-5">
+                  {ABOUT_SECTIONS.map((section) => (
+                    <div key={section.title}>
+                      <h4 className="text-[10px] font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-2">
+                        {section.title}
+                      </h4>
+
+                      {/* Plain text content */}
+                      {section.content && (
+                        <p className="text-[13px] text-[#555] leading-relaxed">
+                          {section.content}
+                        </p>
+                      )}
+
+                      {/* Bulleted items */}
+                      {section.items && (
+                        <ul className="space-y-1.5">
+                          {section.items.map((item, i) => (
+                            <li key={i} className="flex gap-2 text-[13px] text-[#555] leading-relaxed">
+                              <span className="text-[#6B8F71] shrink-0 mt-1.5">
+                                <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 8 8">
+                                  <circle cx="4" cy="4" r="3" />
+                                </svg>
+                              </span>
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {/* Labeled subsections (tools, architecture) */}
+                      {section.subsections && (
+                        <div className="space-y-2.5">
+                          {section.subsections.map((sub) => (
+                            <div key={sub.label} className="p-2.5 rounded-lg bg-[#FAFAF8] border border-[#E8E6E1]">
+                              <span className="text-xs font-semibold text-[#1C1C1C]">{sub.label}</span>
+                              <p className="text-[12px] text-[#666] leading-relaxed mt-0.5">{sub.detail}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

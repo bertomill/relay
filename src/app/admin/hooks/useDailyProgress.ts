@@ -8,6 +8,7 @@ interface DailyProgressState {
   inquiriesReviewed: boolean;
   contentCreated: boolean;
   learningCompleted: boolean;
+  agentCreated: boolean;
   websiteImproved: boolean;
 }
 
@@ -23,6 +24,7 @@ function getDefaultState(date: string): DailyProgressState {
     inquiriesReviewed: false,
     contentCreated: false,
     learningCompleted: false,
+    agentCreated: false,
     websiteImproved: false,
   };
 }
@@ -32,6 +34,7 @@ function isValidState(parsed: Record<string, unknown>): boolean {
     typeof parsed.contentCreated === "boolean" &&
     typeof parsed.learningCompleted === "boolean" &&
     typeof parsed.websiteImproved === "boolean";
+  // Note: agentCreated may be missing from older saved states — handled via defaults
 }
 
 function loadFromLocalStorage(date: string): DailyProgressState | null {
@@ -96,7 +99,12 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
         if (cancelled) return;
 
         if (data?.progress && isValidState(data.progress as Record<string, unknown>)) {
-          const loaded = { ...(data.progress as DailyProgressState), date: selectedDate };
+          const raw = data.progress as Record<string, unknown>;
+          const loaded: DailyProgressState = {
+            ...getDefaultState(selectedDate),
+            ...(raw as Partial<DailyProgressState>),
+            date: selectedDate,
+          };
           setProgress(loaded);
           if (isToday) saveToLocalStorage(loaded);
         } else {
@@ -171,14 +179,20 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     update((prev) => ({ ...prev, learningCompleted: !prev.learningCompleted }));
   }, [update]);
 
+  const markAgentCreated = useCallback(() => {
+    update((prev) => ({ ...prev, agentCreated: !prev.agentCreated }));
+  }, [update]);
+
   const markWebsiteImproved = useCallback(() => {
     update((prev) => ({ ...prev, websiteImproved: !prev.websiteImproved }));
   }, [update]);
 
+  // Order: Learn, Create Agent, Create Content, Review Leads, Improve Website
   const stepsComplete = [
-    progress.inquiriesReviewed,
-    progress.contentCreated,
     progress.learningCompleted,
+    progress.agentCreated ?? false,
+    progress.contentCreated,
+    progress.inquiriesReviewed,
     progress.websiteImproved,
   ];
 
@@ -188,12 +202,13 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     progress,
     stepsComplete,
     completedCount,
-    totalSteps: 4,
+    totalSteps: 5,
     isToday,
     isLoadingProgress,
     markInquiriesReviewed,
     markContentCreated,
     markLearningCompleted,
+    markAgentCreated,
     markWebsiteImproved,
   };
 }

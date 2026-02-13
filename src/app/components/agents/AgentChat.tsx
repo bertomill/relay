@@ -70,6 +70,9 @@ interface AgentChatProps {
   starterPrompts?: string[];
   fileUpload?: FileUploadConfig;
   initialPrompt?: string;
+  connectedPlatforms?: string[];
+  linkedInOrgId?: string | null;
+  linkedInOrgName?: string | null;
 }
 
 export default function AgentChat({
@@ -85,6 +88,9 @@ export default function AgentChat({
   starterPrompts = [],
   fileUpload,
   initialPrompt,
+  connectedPlatforms = [],
+  linkedInOrgId,
+  linkedInOrgName,
 }: AgentChatProps) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -102,6 +108,7 @@ export default function AgentChat({
   const [selectedText, setSelectedText] = useState("");
   const [selectionPos, setSelectionPos] = useState<{ x: number; y: number } | null>(null);
   const [selectionQuery, setSelectionQuery] = useState("");
+  const [postingState, setPostingState] = useState<Record<string, "idle" | "posting" | "posted" | "error">>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -643,6 +650,52 @@ export default function AgentChat({
     handleStarterPrompt(prompt);
   };
 
+  const handlePostToSocial = async (messageIndex: number, platform: string, asOrganization?: boolean) => {
+    const message = messages[messageIndex];
+    if (!message?.content) return;
+
+    const key = `${messageIndex}-${platform}${asOrganization ? "-org" : ""}`;
+    setPostingState((prev) => ({ ...prev, [key]: "posting" }));
+
+    // Strip markdown for posting
+    const plainText = message.content
+      .replace(/^#{1,6}\s+/gm, "")
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/\*(.+?)\*/g, "$1")
+      .replace(/`(.+?)`/g, "$1")
+      .replace(/^\s*[-*]\s+/gm, "- ")
+      .replace(/\[(.+?)\]\(.+?\)/g, "$1")
+      .replace(/^---+$/gm, "")
+      .replace(/!\[.*?\]\(.*?\)/g, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+    try {
+      const res = await fetch("/api/social/post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform, text: plainText, asOrganization }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error(`Post to ${platform} failed:`, data);
+        if (data.error === "TOKEN_EXPIRED") {
+          alert(data.message || `Please reconnect your ${platform === "x" ? "X" : "LinkedIn"} account.`);
+        } else {
+          alert(`Post failed: ${data.error || data.details || "Unknown error"}`);
+        }
+        setPostingState((prev) => ({ ...prev, [key]: "error" }));
+        return;
+      }
+
+      setPostingState((prev) => ({ ...prev, [key]: "posted" }));
+    } catch {
+      setPostingState((prev) => ({ ...prev, [key]: "error" }));
+    }
+  };
+
   return (
     <div className={`flex flex-col ${isFull ? "flex-1 min-h-0 py-8" : "h-full"}`}>
       {/* Agent info bar (full variant only) */}
@@ -893,6 +946,17 @@ export default function AgentChat({
                             <div data-assistant-content className="text-sm prose prose-sm max-w-none prose-headings:text-[#1C1C1C] prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2 prose-p:text-[#444] prose-p:my-1.5 prose-p:leading-relaxed prose-a:text-[#6B8F71] prose-strong:text-[#1C1C1C] prose-li:text-[#444] prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2 prose-hr:border-[#E8E6E1] prose-hr:my-4 prose-code:text-[#6B8F71] prose-code:bg-[#6B8F71]/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-white prose-pre:border prose-pre:border-[#E8E6E1] prose-pre:rounded-lg prose-blockquote:border-[#6B8F71] prose-blockquote:text-[#555]">
                               <ReactMarkdown
                                 components={{
+                                  p: ({ node, children, ...props }) => {
+                                    // If paragraph contains an image, render as div to avoid
+                                    // invalid <figure> inside <p> HTML nesting
+                                    const hasImage = node?.children?.some(
+                                      (child) => "tagName" in child && child.tagName === "img"
+                                    );
+                                    if (hasImage) {
+                                      return <div {...props}>{children}</div>;
+                                    }
+                                    return <p {...props}>{children}</p>;
+                                  },
                                   img: ({ src, alt }) => {
                                     const imgSrc = typeof src === "string" ? src : "";
                                     return (
@@ -981,9 +1045,9 @@ export default function AgentChat({
                         </div>
                       )}
 
-                      {/* Copy buttons for assistant messages */}
+                      {/* Copy + Post buttons for assistant messages */}
                       {message.role === "assistant" && message.content && !isLoading && (
-                        <div className="self-start flex items-center gap-2">
+                        <div className="self-start flex flex-wrap items-center gap-2">
                           {/* Copy as plain text (for LinkedIn) */}
                           <button
                             onClick={() => {
@@ -1049,6 +1113,90 @@ export default function AgentChat({
                               </>
                             )}
                           </button>
+
+                          {/* Post to X */}
+                          {connectedPlatforms.includes("x") && (() => {
+                            const state = postingState[`${index}-x`] || "idle";
+                            return (
+                              <button
+                                onClick={() => handlePostToSocial(index, "x")}
+                                disabled={state === "posting" || state === "posted"}
+                                className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
+                                  state === "posted"
+                                    ? "text-[#6B8F71] bg-[#6B8F71]/10 border-[#6B8F71]/30"
+                                    : state === "error"
+                                    ? "text-red-500 bg-red-50 border-red-200 hover:bg-red-100"
+                                    : "text-[#666] hover:text-[#1C1C1C] bg-[#FAFAF8] hover:bg-[#F5F4F0] border-[#E8E6E1] hover:border-[#999]"
+                                } disabled:opacity-60`}
+                                title="Post to X"
+                              >
+                                {state === "posting" ? (
+                                  <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                                  </svg>
+                                )}
+                                {state === "posted" ? "Posted!" : state === "error" ? "Retry" : state === "posting" ? "Posting..." : "Post to X"}
+                              </button>
+                            );
+                          })()}
+
+                          {/* Post to LinkedIn (Personal) */}
+                          {connectedPlatforms.includes("linkedin") && (() => {
+                            const state = postingState[`${index}-linkedin`] || "idle";
+                            return (
+                              <button
+                                onClick={() => handlePostToSocial(index, "linkedin")}
+                                disabled={state === "posting" || state === "posted"}
+                                className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
+                                  state === "posted"
+                                    ? "text-[#6B8F71] bg-[#6B8F71]/10 border-[#6B8F71]/30"
+                                    : state === "error"
+                                    ? "text-red-500 bg-red-50 border-red-200 hover:bg-red-100"
+                                    : "text-[#666] hover:text-[#0077B5] bg-[#FAFAF8] hover:bg-blue-50/50 border-[#E8E6E1] hover:border-[#0077B5]/30"
+                                } disabled:opacity-60`}
+                                title="Post to LinkedIn (Personal)"
+                              >
+                                {state === "posting" ? (
+                                  <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                                  </svg>
+                                )}
+                                {state === "posted" ? "Posted!" : state === "error" ? "Retry" : state === "posting" ? "Posting..." : linkedInOrgId ? "LinkedIn (Personal)" : "Post to LinkedIn"}
+                              </button>
+                            );
+                          })()}
+
+                          {/* Post to LinkedIn (Company Page) */}
+                          {connectedPlatforms.includes("linkedin_org") && (() => {
+                            const state = postingState[`${index}-linkedin-org`] || "idle";
+                            return (
+                              <button
+                                onClick={() => handlePostToSocial(index, "linkedin", true)}
+                                disabled={state === "posting" || state === "posted"}
+                                className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
+                                  state === "posted"
+                                    ? "text-[#6B8F71] bg-[#6B8F71]/10 border-[#6B8F71]/30"
+                                    : state === "error"
+                                    ? "text-red-500 bg-red-50 border-red-200 hover:bg-red-100"
+                                    : "text-[#666] hover:text-[#0077B5] bg-[#FAFAF8] hover:bg-blue-50/50 border-[#E8E6E1] hover:border-[#0077B5]/30"
+                                } disabled:opacity-60`}
+                                title={`Post to ${linkedInOrgName || "Company Page"}`}
+                              >
+                                {state === "posting" ? (
+                                  <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                                  </svg>
+                                )}
+                                {state === "posted" ? "Posted!" : state === "error" ? "Retry" : state === "posting" ? "Posting..." : `LinkedIn (${linkedInOrgName || "Company"})`}
+                              </button>
+                            );
+                          })()}
                         </div>
                       )}
 

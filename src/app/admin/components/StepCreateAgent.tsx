@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 import dynamic from "next/dynamic";
 
 const AgentChat = dynamic(() => import("@/app/components/agents/AgentChat"), {
   ssr: false,
 });
 
-const LEARN_ICON = "M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5";
+const AGENT_ICON = "M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 0-6.23.693L5 14.5m14.8.8 1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0 1 12 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5";
 
 const INFO_ICON = "M11.25 11.25l.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z";
 
@@ -15,25 +16,26 @@ const ABOUT_SECTIONS = [
   {
     title: "What it does",
     content:
-      "The SDK Tutor is an AI-powered quiz agent that tests your knowledge of the Claude Agents SDK. Each session, it researches the latest official documentation in real time, then delivers 5 interactive multiple-choice questions with instant feedback after every answer.",
+      "The Agent Builder is a conversational workspace for designing, prototyping, and iterating on AI agents for your business. Powered by Ray — a multi-tool general-purpose agent — it can research, write code, analyze your codebase, and help you go from idea to working agent.",
   },
   {
     title: "How a session works",
     items: [
-      "You click \"Start today's quiz\" and the agent begins by searching the web for the latest Claude Agents SDK docs.",
-      "It reads the relevant documentation pages to build an up-to-date question bank.",
-      "Questions are delivered one at a time — each with 4 options (A, B, C, D).",
-      "After each answer you get immediate feedback: whether you were right, a brief explanation, and a practical tip.",
-      "After question 5, you receive your final score and a summary of what to review.",
+      "Describe the agent you want to build — its purpose, target audience, and key behaviors.",
+      "The builder researches best practices, reviews your existing agents and codebase, and proposes an architecture.",
+      "It can write system prompts, define tool configurations, and scaffold agent code.",
+      "Ask follow-up questions to iterate on tone, capabilities, edge cases, or error handling.",
+      "Each conversation is stored locally so you can pick up where you left off.",
     ],
   },
   {
-    title: "Question design",
+    title: "What you can build",
     items: [
-      "5 questions per session, delivered sequentially",
-      "Difficulty mix: 2 easy, 2 medium, 1 hard",
-      "Topics: tools, streaming, sessions, permissions, system prompts, error handling, subagents",
-      "Each question includes a short teaching context before the options",
+      "Customer support agents with FAQ handling and escalation logic",
+      "Lead qualification agents that ask the right questions",
+      "Content creation agents tuned to your brand voice",
+      "Internal workflow agents for onboarding, reporting, or data lookup",
+      "Specialized agents with custom tool access and guardrails",
     ],
   },
   {
@@ -41,74 +43,151 @@ const ABOUT_SECTIONS = [
     subsections: [
       {
         label: "Runtime",
-        detail: "Runs in a Vercel ephemeral sandbox — each request is isolated with no persistent server state.",
+        detail: "Each request runs in an ephemeral Vercel Sandbox — fully isolated, no persistent server state. The sandbox spins up, executes, and tears down automatically.",
       },
       {
         label: "Streaming",
-        detail: "Responses are delivered via Server-Sent Events (SSE) so you see output in real time.",
+        detail: "Responses stream in real time via Server-Sent Events (SSE). You see output as it's generated, including status updates for tool usage.",
       },
       {
         label: "Memory",
-        detail: "Conversation history is passed in full with each request. The agent picks up exactly where you left off without re-researching.",
+        detail: "Full conversation history is passed with each request. The agent picks up exactly where you left off without repeating itself or re-running previous work.",
       },
     ],
   },
   {
-    title: "Tools",
+    title: "Core tools",
     subsections: [
       {
-        label: "WebSearch",
-        detail: "Searches the web for the latest Claude Agents SDK documentation and release notes.",
+        label: "Read / Glob / Grep",
+        detail: "Reads files, finds files by pattern, and searches code — so it can review your existing agents, components, and configurations.",
       },
       {
-        label: "WebFetch",
-        detail: "Fetches and reads full documentation pages to extract accurate, up-to-date content for questions.",
+        label: "WebSearch / WebFetch",
+        detail: "Searches the web and reads documentation pages for the latest SDK patterns, API references, and best practices.",
+      },
+      {
+        label: "Bash",
+        detail: "Runs shell commands for tasks like generating images, running scripts, or testing configurations.",
       },
       {
         label: "AskUserQuestion",
-        detail: "Delivers each quiz question as an interactive multiple-choice prompt with structured options.",
+        detail: "Asks you structured clarifying questions with multiple-choice options to nail down requirements before building.",
+      },
+    ],
+  },
+  {
+    title: "Specialist subagents",
+    subsections: [
+      {
+        label: "Code Reviewer",
+        detail: "Analyzes agent code for quality, bugs, security, and maintainability. Delegated automatically for thorough reviews.",
+      },
+      {
+        label: "Researcher",
+        detail: "Deep dives into multiple sources to find best practices, compare approaches, and synthesize findings with links.",
+      },
+      {
+        label: "Explainer",
+        detail: "Breaks down complex SDK concepts step-by-step with analogies and examples. Great for understanding unfamiliar patterns.",
+      },
+      {
+        label: "Architect",
+        detail: "Reviews system design, dependencies, scalability, and technical debt. Helps you plan agent architectures that scale.",
       },
     ],
   },
   {
     title: "Tech stack",
     items: [
-      "API route: Next.js App Router (POST /api/agents/sdk-tutor)",
+      "API route: Next.js App Router (POST /api/agents/ray)",
       "LLM: Claude via Anthropic API",
-      "Execution: Vercel Sandbox (runAgentInSandbox)",
-      "Frontend: React with dynamic import (no SSR)",
-      "Chat UI: AgentChat component with SSE streaming",
+      "Execution: Vercel Sandbox with ephemeral snapshots",
+      "Agent SDK: @anthropic-ai/claude-agent-sdk",
+      "Frontend: React with dynamic import, SSE streaming",
+      "Chat UI: AgentChat component with session persistence",
     ],
   },
 ];
 
-interface Step4LearnProps {
+interface StepCreateAgentProps {
   onComplete: () => void;
   isComplete: boolean;
 }
 
-export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) {
+interface AgentInfo {
+  id: string;
+  name: string;
+  status: string;
+}
+
+export default function StepCreateAgent({ onComplete, isComplete }: StepCreateAgentProps) {
   const [showChat, setShowChat] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [agents, setAgents] = useState<AgentInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    loadAgents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadAgents = async () => {
+    try {
+      const { data } = await supabase
+        .from("agents")
+        .select("id, name, status")
+        .order("created_at", { ascending: false })
+        .limit(5);
+      setAgents(data || []);
+    } catch {
+      // Table may not exist yet — that's fine
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div>
       {/* Description */}
       <p className="text-sm text-[#666] mb-4 leading-relaxed">
-        Test your knowledge of the Claude Agents SDK with an AI-powered quiz. The tutor
-        researches the latest docs, then asks 5 interactive questions — with instant
-        feedback and practical tips after each answer.
+        Build or improve an AI agent for your business. Use the assistant to brainstorm
+        agent ideas, define capabilities, or iterate on an existing agent&apos;s behavior.
       </p>
 
-      {/* Start Quiz button */}
+      {/* Recent agents */}
+      {!loading && agents.length > 0 && (
+        <div className="mb-3">
+          <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-wider mb-2">
+            Recent Agents
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {agents.map((agent) => (
+              <span
+                key={agent.id}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#FAFAF8] border border-[#E8E6E1] text-xs text-[#555]"
+              >
+                <svg className="w-3 h-3 text-[#6B8F71]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d={AGENT_ICON} />
+                </svg>
+                {agent.name}
+                <span className={`w-1.5 h-1.5 rounded-full ${agent.status === "active" ? "bg-[#6B8F71]" : "bg-[#999]"}`} />
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Open Agent Builder button */}
       <button
         onClick={() => setShowChat(true)}
         className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[#6B8F71]/30 bg-[#6B8F71]/5 text-[#6B8F71] text-sm font-medium hover:bg-[#6B8F71]/10 hover:border-[#6B8F71]/50 transition-colors duration-200"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d={LEARN_ICON} />
+          <path strokeLinecap="round" strokeLinejoin="round" d={AGENT_ICON} />
         </svg>
-        Start SDK Quiz
+        Open Agent Builder
       </button>
 
       {/* Full-screen agent chat overlay */}
@@ -128,10 +207,10 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <svg className="w-3.5 h-3.5 text-[#6B8F71] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d={LEARN_ICON} />
+                  <path strokeLinecap="round" strokeLinejoin="round" d={AGENT_ICON} />
                 </svg>
                 <span className="text-sm font-medium text-[#1C1C1C] truncate">
-                  SDK Tutor
+                  Agent Builder
                 </span>
               </div>
             </div>
@@ -156,20 +235,20 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
             {/* Chat area */}
             <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden px-4">
               <AgentChat
-                agentId="sdk-tutor"
-                apiEndpoint="/api/agents/sdk-tutor"
-                storageKey="sdk-tutor-sessions"
-                placeholder="Ask about the Claude Agents SDK..."
-                emptyStateTitle="Claude Agents SDK Quiz"
-                emptyStateDescription="I'll research the latest SDK docs, then quiz you with 5 interactive questions. Ready?"
-                loadingText="Researching..."
-                agentIcon={LEARN_ICON}
-                agentName="SDK Tutor"
+                agentId="ray"
+                apiEndpoint="/api/agents/ray"
+                storageKey="agent-builder-sessions"
+                placeholder="Describe the agent you want to build..."
+                emptyStateTitle="Agent Builder"
+                emptyStateDescription="I'll help you brainstorm, design, and build AI agents for your business. What kind of agent do you want to create?"
+                loadingText="Thinking..."
+                agentIcon={AGENT_ICON}
+                agentName="Agent Builder"
                 variant="full"
                 starterPrompts={[
-                  "Start today's quiz",
-                  "Quiz me on advanced topics",
-                  "What's new in the SDK?",
+                  "Help me design a customer support agent",
+                  "I want to build an agent that qualifies leads",
+                  "Improve my existing agent's responses",
                 ]}
               />
             </div>
@@ -185,12 +264,12 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
                 <div className="flex items-center gap-3 mb-5 pb-4 border-b border-[#E8E6E1]">
                   <div className="w-10 h-10 rounded-xl bg-[#6B8F71]/10 flex items-center justify-center">
                     <svg className="w-5 h-5 text-[#6B8F71]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d={LEARN_ICON} />
+                      <path strokeLinecap="round" strokeLinejoin="round" d={AGENT_ICON} />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-[#1C1C1C]">SDK Tutor</h3>
-                    <p className="text-[11px] text-[#999]">Interactive quiz agent</p>
+                    <h3 className="text-sm font-semibold text-[#1C1C1C]">Agent Builder</h3>
+                    <p className="text-[11px] text-[#999]">Powered by Ray</p>
                   </div>
                 </div>
 
@@ -251,7 +330,7 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
           onClick={onComplete}
           className="mt-3 w-full px-4 py-2.5 rounded-lg bg-[#6B8F71] text-white text-sm font-medium hover:bg-[#5A7D60] transition-colors duration-200"
         >
-          Mark Learning Complete
+          Mark Agent Work Complete
         </button>
       )}
 
@@ -260,7 +339,7 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
           onClick={onComplete}
           className="mt-3 w-full py-2.5 text-center rounded-lg bg-[#6B8F71]/5 hover:bg-[#6B8F71]/10 transition-colors"
         >
-          <p className="text-sm text-[#6B8F71] font-medium">Learning complete! (click to undo)</p>
+          <p className="text-sm text-[#6B8F71] font-medium">Agent work complete! (click to undo)</p>
         </button>
       )}
     </div>

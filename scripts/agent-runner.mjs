@@ -39,12 +39,29 @@ async function run() {
   // partial then complete, or echoing it in a result event).
   const processedAssistantIds = new Set();
 
+  // Content-level dedup: track lines already sent to the client.
+  // After tool calls, the LLM often repeats content from previous turns.
+  // We skip lines (>40 chars) that we've already emitted.
+  const sentLines = new Set();
+
+  // When we emit an AskUserQuestion event, we should stop processing further
+  // messages. The sandbox SDK auto-completes the tool call, which causes the
+  // agent to generate a duplicate response. The real user interaction happens
+  // in the frontend UI — the user's answer triggers a fresh sandbox invocation.
+  let sentAskUserQuestion = false;
+
   try {
     process.stderr.write(`[runner] Starting query with message: ${message.slice(0, 100)}...\n`);
     process.stderr.write(`[runner] Options keys: ${Object.keys(options).join(", ")}\n`);
 
     for await (const msg of query({ prompt: message, options })) {
       rawMessages.push(msg);
+
+      // Once we've sent an AskUserQuestion to the frontend, ignore everything
+      // else the agent produces — it's just the post-tool-result duplicate.
+      if (sentAskUserQuestion) {
+        continue;
+      }
 
       // Session init
       if (msg.type === "system" && msg.subtype === "init" && msg.session_id) {
@@ -63,7 +80,27 @@ async function run() {
 
         for (const block of msg.message.content) {
           if (block.type === "text") {
-            sendEvent({ type: "text", text: block.text, rawMessage: msg });
+            // Line-level dedup: filter out lines the LLM repeated from earlier turns
+            const lines = block.text.split("\n");
+            const novelLines = [];
+            for (const line of lines) {
+              const trimmed = line.trim();
+              // Only dedup substantial lines (>40 chars) to avoid false positives
+              // on short lines like "---", blank lines, or common phrases
+              if (trimmed.length > 40 && sentLines.has(trimmed)) {
+                process.stderr.write(`[runner] Skipping duplicate line: ${trimmed.slice(0, 60)}...\n`);
+                continue;
+              }
+              if (trimmed.length > 40) {
+                sentLines.add(trimmed);
+              }
+              novelLines.push(line);
+            }
+            const novelText = novelLines.join("\n");
+            // Only send if there's meaningful content left after dedup
+            if (novelText.replace(/\s+/g, "").length > 0) {
+              sendEvent({ type: "text", text: novelText, rawMessage: msg });
+            }
           } else if (
             block.type === "tool_use" &&
             block.name === "AskUserQuestion"
@@ -74,6 +111,8 @@ async function run() {
               questions: block.input?.questions || [],
               rawMessage: msg,
             });
+            sentAskUserQuestion = true;
+            break; // Stop processing content blocks in this message
           } else if (block.type === "tool_use" && block.name === "Task") {
             sendEvent({
               type: "subagent_start",

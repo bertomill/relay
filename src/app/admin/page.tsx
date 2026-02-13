@@ -5,9 +5,10 @@ import { createClient } from "@/lib/supabase/client";
 import { useDailyProgress, getTodayString } from "./hooks/useDailyProgress";
 import MorningProgress from "./components/MorningProgress";
 import StepCard from "./components/StepCard";
-import Step1Leads from "./components/Step1Leads";
-import Step3Content from "./components/Step3Content";
 import Step4Learn from "./components/Step4Learn";
+import StepCreateAgent from "./components/StepCreateAgent";
+import Step3Content from "./components/Step3Content";
+import Step1Leads from "./components/Step1Leads";
 import Step5Improve from "./components/Step5Improve";
 
 
@@ -42,9 +43,10 @@ export default function AdminDashboard() {
     completedCount,
     totalSteps,
     isToday,
-    markInquiriesReviewed,
-    markContentCreated,
     markLearningCompleted,
+    markAgentCreated,
+    markContentCreated,
+    markInquiriesReviewed,
     markWebsiteImproved,
   } = useDailyProgress(selectedDate);
 
@@ -105,35 +107,46 @@ export default function AdminDashboard() {
 
   const advanceToNext = useCallback((currentStep: number) => {
     const next = currentStep + 1;
-    if (next < 4) {
+    if (next < 5) {
       setExpandedStep(next);
     } else {
       setExpandedStep(null);
     }
   }, []);
 
-  const handleInquiriesComplete = useCallback(() => {
-    const wasComplete = stepsComplete[0];
-    markInquiriesReviewed();
-    if (!wasComplete) advanceToNext(0);
-  }, [markInquiriesReviewed, advanceToNext, stepsComplete]);
-
-  const handleContentComplete = useCallback(() => {
-    const wasComplete = stepsComplete[1];
-    markContentCreated();
-    if (!wasComplete) advanceToNext(1);
-  }, [markContentCreated, advanceToNext, stepsComplete]);
-
+  // Step 0: Learn
   const handleLearningComplete = useCallback(() => {
-    const wasComplete = stepsComplete[2];
+    const wasComplete = stepsComplete[0];
     markLearningCompleted();
-    if (!wasComplete) advanceToNext(2);
+    if (!wasComplete) advanceToNext(0);
   }, [markLearningCompleted, advanceToNext, stepsComplete]);
 
-  const handleImproveComplete = useCallback(() => {
+  // Step 1: Create Agent
+  const handleAgentComplete = useCallback(() => {
+    const wasComplete = stepsComplete[1];
+    markAgentCreated();
+    if (!wasComplete) advanceToNext(1);
+  }, [markAgentCreated, advanceToNext, stepsComplete]);
+
+  // Step 2: Create Content
+  const handleContentComplete = useCallback(() => {
+    const wasComplete = stepsComplete[2];
+    markContentCreated();
+    if (!wasComplete) advanceToNext(2);
+  }, [markContentCreated, advanceToNext, stepsComplete]);
+
+  // Step 3: Review Leads
+  const handleInquiriesComplete = useCallback(() => {
     const wasComplete = stepsComplete[3];
-    markWebsiteImproved();
+    markInquiriesReviewed();
     if (!wasComplete) advanceToNext(3);
+  }, [markInquiriesReviewed, advanceToNext, stepsComplete]);
+
+  // Step 4: Improve Website
+  const handleImproveComplete = useCallback(() => {
+    const wasComplete = stepsComplete[4];
+    markWebsiteImproved();
+    if (!wasComplete) advanceToNext(4);
   }, [markWebsiteImproved, advanceToNext, stepsComplete]);
 
   // Greeting based on time of day
@@ -232,24 +245,72 @@ export default function AdminDashboard() {
             {isToday ? "Morning routine complete!" : "This day was completed!"}
           </h2>
           <p className="text-sm text-[#666]">
-            {isToday ? "Great start to your day. Everything's handled." : `All 4 steps were completed on ${formatDateDisplay(selectedDate)}.`}
+            {isToday ? "Great start to your day. Everything's handled." : `All 5 steps were completed on ${formatDateDisplay(selectedDate)}.`}
           </p>
         </div>
       )}
 
       {/* Steps */}
       <div className="space-y-5">
-        {/* Step 1: Check Inquiries */}
+        {/* Step 1: Learn */}
         <StepCard
           stepNumber={1}
-          label="Review"
-          title="Review Leads"
-          timeEstimate="~5 min"
+          label="Learn"
+          title="Learn"
+          timeEstimate="~15 min"
           isComplete={stepsComplete[0]}
           isExpanded={expandedStep === 0}
           onToggle={() => toggleStep(0)}
+        >
+          <Step4Learn
+            onComplete={handleLearningComplete}
+            isComplete={stepsComplete[0]}
+          />
+        </StepCard>
+
+        {/* Step 2: Create Agent */}
+        <StepCard
+          stepNumber={2}
+          label="Build"
+          title="Create Agent"
+          timeEstimate="~20 min"
+          isComplete={stepsComplete[1]}
+          isExpanded={expandedStep === 1}
+          onToggle={() => toggleStep(1)}
+        >
+          <StepCreateAgent
+            onComplete={handleAgentComplete}
+            isComplete={stepsComplete[1]}
+          />
+        </StepCard>
+
+        {/* Step 3: Create Content */}
+        <StepCard
+          stepNumber={3}
+          label="Create"
+          title="Create Content"
+          timeEstimate="~25 min"
+          isComplete={stepsComplete[2]}
+          isExpanded={expandedStep === 2}
+          onToggle={() => toggleStep(2)}
+        >
+          <Step3Content
+            onComplete={handleContentComplete}
+            isComplete={stepsComplete[2]}
+          />
+        </StepCard>
+
+        {/* Step 4: Review Leads */}
+        <StepCard
+          stepNumber={4}
+          label="Review"
+          title="Review Leads"
+          timeEstimate="~5 min"
+          isComplete={stepsComplete[3]}
+          isExpanded={expandedStep === 3}
+          onToggle={() => toggleStep(3)}
           badge={
-            newInquiryCount > 0 && !stepsComplete[0] && isToday ? (
+            newInquiryCount > 0 && !stepsComplete[3] && isToday ? (
               <span className="px-2 py-0.5 rounded-full bg-[#6B8F71] text-white text-xs font-medium">
                 {newInquiryCount} new
               </span>
@@ -258,54 +319,22 @@ export default function AdminDashboard() {
         >
           <Step1Leads
             onComplete={handleInquiriesComplete}
-            isComplete={stepsComplete[0]}
+            isComplete={stepsComplete[3]}
             onNewCount={setNewInquiryCount}
           />
         </StepCard>
 
-        {/* Step 2: Content */}
+        {/* Step 5: Improve Website */}
         <StepCard
-          stepNumber={2}
-          label="Create"
-          title="Create Content"
-          timeEstimate="~25 min"
-          isComplete={stepsComplete[1]}
-          isExpanded={expandedStep === 1}
-          onToggle={() => toggleStep(1)}
-        >
-          <Step3Content
-            onComplete={handleContentComplete}
-            isComplete={stepsComplete[1]}
-          />
-        </StepCard>
-
-        {/* Step 3: Learn */}
-        <StepCard
-          stepNumber={3}
-          label="Learn"
-          title="Learn & Build Agents"
-          timeEstimate="~15 min"
-          isComplete={stepsComplete[2]}
-          isExpanded={expandedStep === 2}
-          onToggle={() => toggleStep(2)}
-        >
-          <Step4Learn
-            onComplete={handleLearningComplete}
-            isComplete={stepsComplete[2]}
-          />
-        </StepCard>
-
-        {/* Step 4: Improve */}
-        <StepCard
-          stepNumber={4}
+          stepNumber={5}
           label="Improve"
           title="Improve the Website"
           timeEstimate="~10 min"
-          isComplete={stepsComplete[3]}
-          isExpanded={expandedStep === 3}
-          onToggle={() => toggleStep(3)}
+          isComplete={stepsComplete[4]}
+          isExpanded={expandedStep === 4}
+          onToggle={() => toggleStep(4)}
           badge={
-            feedbackCount > 0 && !stepsComplete[3] && isToday ? (
+            feedbackCount > 0 && !stepsComplete[4] && isToday ? (
               <span className="px-2 py-0.5 rounded-full bg-[#6B8F71] text-white text-xs font-medium">
                 {feedbackCount} open
               </span>
@@ -314,7 +343,7 @@ export default function AdminDashboard() {
         >
           <Step5Improve
             onComplete={handleImproveComplete}
-            isComplete={stepsComplete[3]}
+            isComplete={stepsComplete[4]}
           />
         </StepCard>
       </div>
