@@ -76,25 +76,20 @@ const HOW_IT_WORKS = [
 
 const REVIEWS: Review[] = [
   {
-    name: "Sarah Chen",
-    role: "Founder & CEO",
-    company: "Meridian Digital",
-    quote: "Lighten AI helped us find $240K in annual savings we didn't know we were leaving on the table. The assessment was eye-opening — they mapped every inefficiency and showed us exactly where AI could move the needle.",
-    initials: "SC",
+    name: "Qazi F.",
+    role: "Vouched for Berto",
+    company: "January 2026",
+    quote: "Berto gave very clear, practical, and thoughtful advice on career development, and he genuinely cared about the problems I was trying to solve. He took the time to understand my background and goals before offering guidance, which made his advice feel relevant and personal. He shared excellent insights on the importance of joining hackathons and explained how they help build real-world problem-solving skills, strengthen teamwork, and increase visibility within the tech and AI community. He also took the time to review and praise the projects I have built so far, which was very encouraging and motivating. His advice was realistic, actionable, and delivered with genuine enthusiasm.",
+    initials: "QF",
+    linkedin: "https://www.linkedin.com/in/qazifabiahoq/",
   },
   {
-    name: "Marcus Rivera",
-    role: "VP of Operations",
-    company: "ScalePoint Solutions",
-    quote: "We were drowning in manual processes. Within 60 days of working with Lighten, our team reclaimed 25+ hours a week. The AI agents they built handle what used to take three full-time hires.",
-    initials: "MR",
-  },
-  {
-    name: "Priya Patel",
-    role: "Head of Marketing",
-    company: "GrowthLoop",
-    quote: "Our content output went from 4 posts a month to 30+ across all channels, and the quality actually improved. Lighten didn't just automate — they understood our voice and built agents that sound like us.",
-    initials: "PP",
+    name: "David M.",
+    role: "Vouched for Berto",
+    company: "January 2026",
+    quote: "Berto is my go-to whenever I have an AI question. He\u2019s a lifelong learner who genuinely cares about understanding the problem you\u2019re trying to solve before jumping into tools or solutions. He listens intently, asks the right questions, and breaks things down in a way that actually makes sense. He\u2019s an incredibly clear teacher with a rare ability to make complex tools and platforms feel approachable and genuinely usable in a traditional business context. He taught me how to build my first app, helped me vibe-code my own website, and most importantly, gave me the confidence to build things myself despite not having a technical background.",
+    initials: "DM",
+    linkedin: "https://www.linkedin.com/in/david-mill-b07811181/",
   },
 ];
 
@@ -185,6 +180,22 @@ export default function Home() {
               <h2 className="font-sans font-light text-3xl md:text-5xl leading-[1.1] tracking-tight">
                 We expose the gaps. Then we close them.
               </h2>
+            </div>
+          </AnimateIn>
+
+          {/* Explainer video */}
+          <AnimateIn animation="fade-up" delay={50}>
+            <div className="max-w-3xl mx-auto mb-14">
+              <div className="rounded-2xl overflow-hidden border border-white/10">
+                <video
+                  src="/videos/profit-gap-explainer.mp4"
+                  controls
+                  playsInline
+                  preload="metadata"
+                  poster="/videos/profit-gap-explainer-poster.jpg"
+                  className="w-full aspect-video"
+                />
+              </div>
             </div>
           </AnimateIn>
 

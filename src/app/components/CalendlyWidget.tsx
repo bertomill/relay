@@ -12,7 +12,7 @@ export function CalendlyWidget() {
       const cal = await getCalApi({ namespace: CAL_NS });
       cal("ui", {
         theme: "light",
-        hideEventTypeDetails: false,
+        hideEventTypeDetails: true,
         layout: "month_view",
         cssVarsPerTheme: {
           light: { "cal-brand": "#6B8F71" },
@@ -26,7 +26,7 @@ export function CalendlyWidget() {
     <Cal
       namespace={CAL_NS}
       calLink={CAL_LINK}
-      style={{ width: "100%", height: "100%", overflow: "scroll" }}
+      style={{ width: "100%", height: "100%", minHeight: "400px", overflow: "hidden" }}
       config={{ layout: "month_view", theme: "light" }}
     />
   );
