@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 
 const AgentChat = dynamic(() => import("@/app/components/agents/AgentChat"), {
@@ -87,9 +87,44 @@ interface Step4LearnProps {
   isComplete: boolean;
 }
 
+const MIN_SHELF_WIDTH = 240;
+const MAX_SHELF_WIDTH = 600;
+const DEFAULT_SHELF_WIDTH = 380;
+
 export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) {
   const [showChat, setShowChat] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [shelfWidth, setShelfWidth] = useState(DEFAULT_SHELF_WIDTH);
+  const isDragging = useRef(false);
+  const headerPortalRef = useRef<HTMLDivElement | null>(null);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    const startX = e.clientX;
+    const startWidth = shelfWidth;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      // Dragging left increases width, dragging right decreases
+      const delta = startX - e.clientX;
+      const newWidth = Math.min(MAX_SHELF_WIDTH, Math.max(MIN_SHELF_WIDTH, startWidth + delta));
+      setShelfWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      isDragging.current = false;
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  }, [shelfWidth]);
 
   return (
     <div>
@@ -125,16 +160,16 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
               </svg>
               Back
             </button>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <svg className="w-3.5 h-3.5 text-[#6B8F71] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d={LEARN_ICON} />
-                </svg>
-                <span className="text-sm font-medium text-[#1C1C1C] truncate">
-                  SDK Tutor
-                </span>
-              </div>
+            <div className="flex items-center gap-2">
+              <svg className="w-3.5 h-3.5 text-[#6B8F71] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d={LEARN_ICON} />
+              </svg>
+              <span className="text-sm font-medium text-[#1C1C1C] truncate">
+                SDK Tutor
+              </span>
             </div>
+            {/* Portal target for AgentChat header controls */}
+            <div ref={headerPortalRef} className="ml-auto" />
             {/* About toggle */}
             <button
               onClick={() => setShowAbout(!showAbout)}
@@ -166,6 +201,7 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
                 agentIcon={LEARN_ICON}
                 agentName="SDK Tutor"
                 variant="full"
+                headerPortalRef={headerPortalRef}
                 starterPrompts={[
                   "Start today's quiz",
                   "Quiz me on advanced topics",
@@ -174,13 +210,23 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
               />
             </div>
 
-            {/* About shelf — slides in from right */}
+            {/* About shelf — slides in from right, draggable */}
             <div
-              className={`shrink-0 border-l border-[#E8E6E1] bg-white overflow-y-auto transition-all duration-300 ease-in-out ${
-                showAbout ? "w-[380px] opacity-100" : "w-0 opacity-0 border-l-0"
+              className={`shrink-0 bg-white overflow-hidden transition-all duration-300 ease-in-out ${
+                showAbout ? "opacity-100" : "opacity-0 border-l-0"
               }`}
+              style={{ width: showAbout ? shelfWidth : 0 }}
             >
-              <div className="w-[380px] p-5">
+              <div className="relative h-full flex">
+                {/* Drag handle */}
+                <div
+                  onMouseDown={handleMouseDown}
+                  className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize z-10 group"
+                >
+                  <div className="absolute inset-y-0 -left-1 w-3" />
+                  <div className="h-full w-px bg-[#E8E6E1] group-hover:bg-[#6B8F71] group-active:bg-[#6B8F71] transition-colors" />
+                </div>
+              <div className="flex-1 overflow-y-auto p-5 pl-3">
                 {/* Shelf header */}
                 <div className="flex items-center gap-3 mb-5 pb-4 border-b border-[#E8E6E1]">
                   <div className="w-10 h-10 rounded-xl bg-[#6B8F71]/10 flex items-center justify-center">
@@ -239,6 +285,7 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
                     </div>
                   ))}
                 </div>
+              </div>
               </div>
             </div>
           </div>

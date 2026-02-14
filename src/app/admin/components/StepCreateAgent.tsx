@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import dynamic from "next/dynamic";
 
@@ -121,17 +121,74 @@ interface AgentInfo {
   status: string;
 }
 
+const MARKET_RESEARCH_PROMPT =
+  "Research market demand for AI agents across Reddit, X, Product Hunt, and Hacker News. Find real pain points people are expressing, then suggest 3-5 agent ideas I could build with the Claude Agents SDK — ranked by demand evidence and revenue potential.";
+
+interface AgentIdea {
+  id: string;
+  text: string;
+  created_at: string;
+}
+
 export default function StepCreateAgent({ onComplete, isComplete }: StepCreateAgentProps) {
   const [showChat, setShowChat] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [autoStartPrompt, setAutoStartPrompt] = useState<string | undefined>(undefined);
+  const headerPortalRef = useRef<HTMLDivElement | null>(null);
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ideas, setIdeas] = useState<AgentIdea[]>([]);
+  const [newIdea, setNewIdea] = useState("");
+  const [showIdeas, setShowIdeas] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
     loadAgents();
+    loadIdeas();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadIdeas = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("agent_ideas")
+        .select("id, text, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (data) setIdeas(data);
+    } catch {
+      // table may not exist yet
+    }
+  };
+
+  const addIdea = async () => {
+    const text = newIdea.trim();
+    if (!text) return;
+    setNewIdea("");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("agent_ideas")
+        .insert({ user_id: user.id, text })
+        .select("id, text, created_at")
+        .single();
+      if (data) setIdeas((prev) => [data, ...prev]);
+    } catch {
+      // handle silently
+    }
+  };
+
+  const removeIdea = async (id: string) => {
+    setIdeas((prev) => prev.filter((i) => i.id !== id));
+    try {
+      await supabase.from("agent_ideas").delete().eq("id", id);
+    } catch {
+      // handle silently
+    }
+  };
 
   const loadAgents = async () => {
     try {
@@ -152,9 +209,75 @@ export default function StepCreateAgent({ onComplete, isComplete }: StepCreateAg
     <div>
       {/* Description */}
       <p className="text-sm text-[#666] mb-4 leading-relaxed">
-        Build or improve an AI agent for your business. Use the assistant to brainstorm
-        agent ideas, define capabilities, or iterate on an existing agent&apos;s behavior.
+        Don&apos;t guess what to build — let Ray research real market demand across Reddit, X, and
+        Product Hunt, then suggest agent ideas backed by evidence. All agents are built with the Claude Agents SDK.
       </p>
+
+      {/* Ideas backlog */}
+      <div className="mb-4">
+        <button
+          onClick={() => setShowIdeas(!showIdeas)}
+          className="flex items-center gap-2 text-xs font-semibold text-[#6B8F71] uppercase tracking-wider mb-2 hover:text-[#5A7D60] transition-colors"
+        >
+          <svg className={`w-3 h-3 transition-transform ${showIdeas ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+          Ideas Backlog{ideas.length > 0 && ` (${ideas.length})`}
+        </button>
+
+        {showIdeas && (
+          <div className="space-y-2">
+            {/* Add idea input */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newIdea}
+                onChange={(e) => setNewIdea(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addIdea()}
+                placeholder="Quick agent idea..."
+                className="flex-1 px-3 py-2 rounded-lg border border-[#E8E6E1] bg-white text-sm text-[#1C1C1C] placeholder:text-[#999] focus:outline-none focus:border-[#6B8F71]/50 focus:ring-1 focus:ring-[#6B8F71]/20"
+              />
+              <button
+                onClick={addIdea}
+                disabled={!newIdea.trim()}
+                className="px-3 py-2 rounded-lg bg-[#6B8F71] text-white text-sm font-medium hover:bg-[#5A7D60] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Ideas list */}
+            {ideas.length === 0 && (
+              <p className="text-xs text-[#999] py-2">No ideas yet — jot one down above.</p>
+            )}
+            {ideas.map((idea) => (
+              <div
+                key={idea.id}
+                className="group flex items-start gap-2 px-3 py-2 rounded-lg bg-[#FAFAF8] border border-[#E8E6E1] hover:border-[#6B8F71]/30 transition-colors"
+              >
+                <svg className="w-3 h-3 text-[#6B8F71] shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-[#1C1C1C] leading-snug">{idea.text}</p>
+                  <p className="text-[10px] text-[#999] mt-0.5">{new Date(idea.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+                </div>
+                <button
+                  onClick={() => removeIdea(idea.id)}
+                  className="opacity-0 group-hover:opacity-100 shrink-0 p-0.5 text-[#999] hover:text-red-500 transition-all"
+                  title="Remove idea"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Recent agents */}
       {!loading && agents.length > 0 && (
@@ -181,7 +304,10 @@ export default function StepCreateAgent({ onComplete, isComplete }: StepCreateAg
 
       {/* Open Agent Builder button */}
       <button
-        onClick={() => setShowChat(true)}
+        onClick={() => {
+          setAutoStartPrompt(undefined);
+          setShowChat(true);
+        }}
         className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[#6B8F71]/30 bg-[#6B8F71]/5 text-[#6B8F71] text-sm font-medium hover:bg-[#6B8F71]/10 hover:border-[#6B8F71]/50 transition-colors duration-200"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
@@ -196,7 +322,7 @@ export default function StepCreateAgent({ onComplete, isComplete }: StepCreateAg
           {/* Header bar */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-[#E8E6E1] bg-white shrink-0">
             <button
-              onClick={() => setShowChat(false)}
+              onClick={() => { setShowChat(false); setAutoStartPrompt(undefined); }}
               className="flex items-center gap-1.5 text-sm text-[#666] hover:text-[#1C1C1C] transition-colors"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -204,16 +330,16 @@ export default function StepCreateAgent({ onComplete, isComplete }: StepCreateAg
               </svg>
               Back
             </button>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <svg className="w-3.5 h-3.5 text-[#6B8F71] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d={AGENT_ICON} />
-                </svg>
-                <span className="text-sm font-medium text-[#1C1C1C] truncate">
-                  Agent Builder
-                </span>
-              </div>
+            <div className="flex items-center gap-2">
+              <svg className="w-3.5 h-3.5 text-[#6B8F71] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d={AGENT_ICON} />
+              </svg>
+              <span className="text-sm font-medium text-[#1C1C1C] truncate">
+                Agent Builder
+              </span>
             </div>
+            {/* Portal target for AgentChat header controls */}
+            <div ref={headerPortalRef} className="ml-auto" />
             {/* About toggle */}
             <button
               onClick={() => setShowAbout(!showAbout)}
@@ -240,15 +366,17 @@ export default function StepCreateAgent({ onComplete, isComplete }: StepCreateAg
                 storageKey="agent-builder-sessions"
                 placeholder="Describe the agent you want to build..."
                 emptyStateTitle="Agent Builder"
-                emptyStateDescription="I'll help you brainstorm, design, and build AI agents for your business. What kind of agent do you want to create?"
+                emptyStateDescription="I'll research real market demand, then help you design and build agents with the Claude Agents SDK. Start with research or jump straight to building."
                 loadingText="Thinking..."
                 agentIcon={AGENT_ICON}
                 agentName="Agent Builder"
                 variant="full"
+                headerPortalRef={headerPortalRef}
+                initialPrompt={autoStartPrompt}
                 starterPrompts={[
-                  "Help me design a customer support agent",
-                  "I want to build an agent that qualifies leads",
-                  "Improve my existing agent's responses",
+                  "I already have an idea — help me design and build it",
+                  "Research market demand for AI agents across Reddit, X, and Product Hunt — then suggest ideas",
+                  "Ask me questions to figure out the best agent for my business",
                 ]}
               />
             </div>

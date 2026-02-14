@@ -15,7 +15,11 @@ interface DailyProgressState {
 const LOCAL_STORAGE_KEY = "lighten-morning-dashboard";
 
 function getTodayString(): string {
-  return new Date().toISOString().split("T")[0];
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function getDefaultState(date: string): DailyProgressState {

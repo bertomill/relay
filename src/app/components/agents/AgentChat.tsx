@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
 
 interface QuestionOption {
@@ -73,6 +74,10 @@ interface AgentChatProps {
   connectedPlatforms?: string[];
   linkedInOrgId?: string | null;
   linkedInOrgName?: string | null;
+  /** Ref to a DOM element where header controls (session ID, History, New, Online) will be portaled */
+  headerPortalRef?: React.RefObject<HTMLDivElement | null>;
+  /** When this value changes (non-empty), insert it into the textarea input */
+  insertText?: string;
 }
 
 export default function AgentChat({
@@ -91,6 +96,8 @@ export default function AgentChat({
   connectedPlatforms = [],
   linkedInOrgId,
   linkedInOrgName,
+  headerPortalRef,
+  insertText,
 }: AgentChatProps) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -104,11 +111,14 @@ export default function AgentChat({
   const [isUploading, setIsUploading] = useState(false);
   const [statusText, setStatusText] = useState<string | null>(null);
   const [thinkingSteps, setThinkingSteps] = useState<string[]>([]);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const loadingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [selectedText, setSelectedText] = useState("");
   const [selectionPos, setSelectionPos] = useState<{ x: number; y: number } | null>(null);
   const [selectionQuery, setSelectionQuery] = useState("");
   const [postingState, setPostingState] = useState<Record<string, "idle" | "posting" | "posted" | "error">>({});
+  const [sessionIdCopied, setSessionIdCopied] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -151,6 +161,20 @@ export default function AgentChat({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialPrompt]);
+
+  // Insert text into input when insertText prop changes
+  const prevInsertText = useRef<string | undefined>();
+  useEffect(() => {
+    if (insertText && insertText !== prevInsertText.current) {
+      setInput((prev) => (prev.trim() ? prev + "\n" + insertText : insertText));
+      prevInsertText.current = insertText;
+      // Focus the textarea
+      const textarea = formRef.current?.querySelector("textarea");
+      if (textarea) {
+        setTimeout(() => textarea.focus(), 0);
+      }
+    }
+  }, [insertText]);
 
   useEffect(() => {
     if (sessions.length > 0) {
@@ -224,6 +248,25 @@ export default function AgentChat({
         // Silent fail — keep the existing preview
       });
   }, [isLoading, sessionId, messages]);
+
+  // Elapsed time tracker for long-running operations
+  useEffect(() => {
+    if (isLoading) {
+      setElapsedSeconds(0);
+      loadingTimerRef.current = setInterval(() => {
+        setElapsedSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      if (loadingTimerRef.current) {
+        clearInterval(loadingTimerRef.current);
+        loadingTimerRef.current = null;
+      }
+      setElapsedSeconds(0);
+    }
+    return () => {
+      if (loadingTimerRef.current) clearInterval(loadingTimerRef.current);
+    };
+  }, [isLoading]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -360,14 +403,32 @@ export default function AgentChat({
         throw new Error("No reader available");
       }
 
+      // SSE buffer to handle events that span TCP chunk boundaries
+      let sseBuffer = "";
+      // Stop appending text once we receive an AskUserQuestion (the agent
+      // may continue generating duplicate content after the sandbox auto-
+      // completes the tool call)
+      let receivedQuestion = false;
+      // Track accumulated content to detect near-duplicate text blocks.
+      // The SDK may yield a second assistant message with very similar (but not
+      // identical) text — e.g. stripped markdown or slight rewording.
+      let accumulatedContent = "";
+      // Track whether a non-text event (status, tool use, etc.) occurred
+      // since the last text chunk — used to insert paragraph breaks between
+      // separate text blocks from the agent.
+      let hadNonTextEvent = false;
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split("\n");
+        // Append to buffer; split on double-newline (SSE event boundary)
+        sseBuffer += decoder.decode(value, { stream: true });
+        const parts = sseBuffer.split("\n\n");
+        sseBuffer = parts.pop() || ""; // last part may be incomplete
 
-        for (const line of lines) {
+        for (const part of parts) {
+          for (const line of part.split("\n")) {
           if (line.startsWith("data: ")) {
             const data = line.slice(6);
             if (data === "[DONE]") continue;
@@ -381,6 +442,7 @@ export default function AgentChat({
 
               if (parsed.type === "status" && parsed.status) {
                 setStatusText(parsed.status);
+                hadNonTextEvent = true;
               }
 
               if (parsed.type === "thinking_step" && parsed.step) {
@@ -392,12 +454,31 @@ export default function AgentChat({
               }
 
               if (parsed.type === "text" && parsed.text) {
+                // Skip text after we've received an interactive question
+                if (receivedQuestion) continue;
+
+                // Near-duplicate detection: if the beginning of this text
+                // chunk already appears in the content we've accumulated so
+                // far, this is the agent repeating itself (common after the
+                // sandbox auto-completes a tool call).
+                const trimmed = parsed.text.trim();
+                if (trimmed.length > 50 && accumulatedContent.length > 50) {
+                  const probe = trimmed.slice(0, 80);
+                  if (accumulatedContent.includes(probe)) continue;
+                }
+
+                // If a non-text event occurred since the last text chunk,
+                // this is a new text block — prepend a paragraph break.
+                const separator = hadNonTextEvent && accumulatedContent.length > 0 ? "\n\n" : "";
+                hadNonTextEvent = false;
+
+                accumulatedContent += separator + parsed.text;
                 setStatusText(null);
                 setMessages((prev) => {
                   const newMessages = [...prev];
                   const lastMessage = newMessages[newMessages.length - 1];
                   if (lastMessage.role === "assistant") {
-                    lastMessage.content += parsed.text;
+                    lastMessage.content += separator + parsed.text;
                     if (parsed.rawMessage) {
                       lastMessage.rawOutput = [...(lastMessage.rawOutput || []), parsed.rawMessage];
                     }
@@ -418,6 +499,7 @@ export default function AgentChat({
               }
 
               if (parsed.type === "raw" && parsed.rawMessage) {
+                hadNonTextEvent = true;
                 setMessages((prev) => {
                   const newMessages = [...prev];
                   const lastMessage = newMessages[newMessages.length - 1];
@@ -440,6 +522,7 @@ export default function AgentChat({
               }
 
               if (parsed.type === "ask_user_question") {
+                receivedQuestion = true;
                 setMessages((prev) => {
                   const newMessages = [...prev];
                   const lastMessage = newMessages[newMessages.length - 1];
@@ -482,6 +565,7 @@ export default function AgentChat({
             } catch {
               // Ignore JSON parse errors for incomplete chunks
             }
+          }
           }
         }
       }
@@ -696,10 +780,132 @@ export default function AgentChat({
     }
   };
 
+  // Header controls (session ID, History, New, Online) — rendered inline or portaled
+  const headerControls = isFull ? (
+    <div className="flex items-center gap-3">
+      {sessionId && (
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(sessionId);
+            setSessionIdCopied(true);
+            setTimeout(() => setSessionIdCopied(false), 2000);
+          }}
+          className="group/sid relative text-xs font-mono bg-[#F5F4F0] px-2 py-1 rounded border border-[#E8E6E1] hover:border-[#6B8F71]/50 hover:bg-[#6B8F71]/5 transition-all cursor-pointer"
+          title="Click to copy session ID"
+        >
+          {sessionIdCopied ? (
+            <span className="text-[#6B8F71] flex items-center gap-1">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Copied!
+            </span>
+          ) : (
+            <span className="text-[#888] group-hover/sid:text-[#6B8F71] transition-colors">
+              <span className="group-hover/sid:hidden">{sessionId.slice(0, 8)}...</span>
+              <span className="hidden group-hover/sid:inline">{sessionId}</span>
+            </span>
+          )}
+        </button>
+      )}
+
+      {/* Sessions dropdown */}
+      <div className="relative">
+        <button
+          onClick={() => setShowSessions(!showSessions)}
+          className="flex items-center gap-1.5 text-xs text-[#666] hover:text-[#6B8F71] transition-colors bg-white px-3 py-1.5 rounded-lg border border-[#E8E6E1] hover:border-[#6B8F71]/50"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          History
+          {sessions.length > 0 && (
+            <span className="bg-[#6B8F71]/10 text-[#6B8F71] px-1.5 py-0.5 rounded text-[10px] font-medium">
+              {sessions.length}
+            </span>
+          )}
+        </button>
+
+        {showSessions && (
+          <>
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setShowSessions(false)}
+            />
+            <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-[#E8E6E1] rounded-xl shadow-lg z-20 overflow-hidden">
+              <div className="p-3 border-b border-[#E8E6E1] flex items-center justify-between">
+                <span className="text-xs font-medium text-[#888]">Recent Sessions</span>
+                <button
+                  onClick={handleNewChat}
+                  className="text-xs text-[#6B8F71] hover:underline"
+                >
+                  + New Chat
+                </button>
+              </div>
+              {sessions.length === 0 ? (
+                <div className="p-4 text-center text-xs text-[#999]">
+                  No previous sessions
+                </div>
+              ) : (
+                <div className="max-h-64 overflow-y-auto">
+                  {sessions.map((session) => (
+                    <button
+                      key={session.id}
+                      onClick={() => handleResumeSession(session)}
+                      className={`w-full px-3 py-2.5 text-left hover:bg-[#FAFAF8] transition-colors flex items-start gap-3 group ${
+                        sessionId === session.id ? "bg-[#FAFAF8]" : ""
+                      }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-[#1C1C1C] truncate">
+                          {session.preview}
+                          {session.preview.length >= 50 && "..."}
+                        </p>
+                        <p className="text-xs text-[#999] mt-0.5">
+                          {formatTimeAgo(new Date(session.createdAt))} · {session.messages.length} messages
+                        </p>
+                      </div>
+                      <button
+                        onClick={(e) => handleDeleteSession(e, session)}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-[#999] hover:text-red-500 transition-all"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      <button
+        onClick={handleNewChat}
+        className="flex items-center gap-1.5 text-xs text-[#666] hover:text-[#6B8F71] transition-colors bg-white px-3 py-1.5 rounded-lg border border-[#E8E6E1] hover:border-[#6B8F71]/50"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        New
+      </button>
+
+      <span className="flex items-center gap-1.5 text-xs text-[#888] bg-white px-3 py-1.5 rounded-full border border-[#E8E6E1]">
+        <span className={`w-1.5 h-1.5 rounded-full ${isLoading ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`} />
+        {isLoading ? (statusText || loadingText) : "Online"}
+      </span>
+    </div>
+  ) : null;
+
   return (
-    <div className={`flex flex-col ${isFull ? "flex-1 min-h-0 py-8" : "h-full"}`}>
-      {/* Agent info bar (full variant only) */}
-      {isFull && (
+    <div className={`flex flex-col ${isFull ? `flex-1 min-h-0 ${headerPortalRef ? "pt-4 pb-8" : "py-8"}` : "h-full"}`}>
+      {/* Portal header controls to external container if ref provided */}
+      {headerControls && headerPortalRef?.current && createPortal(headerControls, headerPortalRef.current)}
+
+      {/* Agent info bar (full variant only, hidden when portaled) */}
+      {isFull && !headerPortalRef && (
         <div className="mb-6 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-[#6B8F71]/10 flex items-center justify-center">
             <svg className="w-6 h-6 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -710,102 +916,7 @@ export default function AgentChat({
             <h1 className="text-2xl font-bold tracking-tight text-[#1C1C1C]">{agentName}</h1>
             <p className="text-sm text-[#888]">{emptyStateDescription.split(".")[0]}</p>
           </div>
-
-          <div className="ml-auto flex items-center gap-3">
-            {sessionId && (
-              <span className="text-xs text-[#888] font-mono bg-[#F5F4F0] px-2 py-1 rounded border border-[#E8E6E1]">
-                {sessionId.slice(0, 8)}...
-              </span>
-            )}
-
-            {/* Sessions dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowSessions(!showSessions)}
-                className="flex items-center gap-1.5 text-xs text-[#666] hover:text-[#6B8F71] transition-colors bg-white px-3 py-1.5 rounded-lg border border-[#E8E6E1] hover:border-[#6B8F71]/50"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                History
-                {sessions.length > 0 && (
-                  <span className="bg-[#6B8F71]/10 text-[#6B8F71] px-1.5 py-0.5 rounded text-[10px] font-medium">
-                    {sessions.length}
-                  </span>
-                )}
-              </button>
-
-              {showSessions && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setShowSessions(false)}
-                  />
-                  <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-[#E8E6E1] rounded-xl shadow-lg z-20 overflow-hidden">
-                    <div className="p-3 border-b border-[#E8E6E1] flex items-center justify-between">
-                      <span className="text-xs font-medium text-[#888]">Recent Sessions</span>
-                      <button
-                        onClick={handleNewChat}
-                        className="text-xs text-[#6B8F71] hover:underline"
-                      >
-                        + New Chat
-                      </button>
-                    </div>
-                    {sessions.length === 0 ? (
-                      <div className="p-4 text-center text-xs text-[#999]">
-                        No previous sessions
-                      </div>
-                    ) : (
-                      <div className="max-h-64 overflow-y-auto">
-                        {sessions.map((session) => (
-                          <button
-                            key={session.id}
-                            onClick={() => handleResumeSession(session)}
-                            className={`w-full px-3 py-2.5 text-left hover:bg-[#FAFAF8] transition-colors flex items-start gap-3 group ${
-                              sessionId === session.id ? "bg-[#FAFAF8]" : ""
-                            }`}
-                          >
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-[#1C1C1C] truncate">
-                                {session.preview}
-                                {session.preview.length >= 50 && "..."}
-                              </p>
-                              <p className="text-xs text-[#999] mt-0.5">
-                                {formatTimeAgo(new Date(session.createdAt))} · {session.messages.length} messages
-                              </p>
-                            </div>
-                            <button
-                              onClick={(e) => handleDeleteSession(e, session)}
-                              className="opacity-0 group-hover:opacity-100 p-1 text-[#999] hover:text-red-500 transition-all"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-
-            <button
-              onClick={handleNewChat}
-              className="flex items-center gap-1.5 text-xs text-[#666] hover:text-[#6B8F71] transition-colors bg-white px-3 py-1.5 rounded-lg border border-[#E8E6E1] hover:border-[#6B8F71]/50"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              New
-            </button>
-
-            <span className="flex items-center gap-1.5 text-xs text-[#888] bg-white px-3 py-1.5 rounded-full border border-[#E8E6E1]">
-              <span className={`w-1.5 h-1.5 rounded-full ${isLoading ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`} />
-              {isLoading ? (statusText || loadingText) : "Online"}
-            </span>
-          </div>
+          {headerControls}
         </div>
       )}
 
@@ -816,9 +927,24 @@ export default function AgentChat({
           <div className="flex items-center justify-between px-4 py-2 border-b border-[#E8E6E1] bg-[#FAFAF8]">
             <div className="flex items-center gap-2">
               {sessionId && (
-                <span className="text-[10px] text-[#888] font-mono bg-white px-1.5 py-0.5 rounded border border-[#E8E6E1]">
-                  {sessionId.slice(0, 8)}
-                </span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(sessionId);
+                    setSessionIdCopied(true);
+                    setTimeout(() => setSessionIdCopied(false), 2000);
+                  }}
+                  className="group/sid text-[10px] font-mono bg-white px-1.5 py-0.5 rounded border border-[#E8E6E1] hover:border-[#6B8F71]/50 hover:bg-[#6B8F71]/5 transition-all cursor-pointer"
+                  title="Click to copy session ID"
+                >
+                  {sessionIdCopied ? (
+                    <span className="text-[#6B8F71]">Copied!</span>
+                  ) : (
+                    <span className="text-[#888] group-hover/sid:text-[#6B8F71] transition-colors">
+                      <span className="group-hover/sid:hidden">{sessionId.slice(0, 8)}</span>
+                      <span className="hidden group-hover/sid:inline">{sessionId}</span>
+                    </span>
+                  )}
+                </button>
               )}
               {isLoading && (
                 <span className="flex items-center gap-1 text-[10px] text-[#6B8F71]">
@@ -1012,6 +1138,32 @@ export default function AgentChat({
                                       </span>
                                     </div>
                                   ))}
+                                  {/* Progress bar for long-running operations */}
+                                  {elapsedSeconds >= 5 && (() => {
+                                    const estimatedTotal = 300; // 5 minutes
+                                    const progress = Math.min(elapsedSeconds / estimatedTotal, 0.95);
+                                    const remaining = Math.max(0, estimatedTotal - elapsedSeconds);
+                                    const mins = Math.floor(remaining / 60);
+                                    const secs = remaining % 60;
+                                    return (
+                                      <div className="mt-2 space-y-1">
+                                        <div className="w-full h-1.5 bg-[#E8E6E1] rounded-full overflow-hidden">
+                                          <div
+                                            className="h-full bg-[#6B8F71] rounded-full transition-all duration-1000 ease-linear"
+                                            style={{ width: `${progress * 100}%` }}
+                                          />
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-[10px] text-[#999]">
+                                            {Math.floor(elapsedSeconds / 60)}:{String(elapsedSeconds % 60).padStart(2, "0")} elapsed
+                                          </span>
+                                          <span className="text-[10px] text-[#999]">
+                                            ~{mins > 0 ? `${mins}m ` : ""}{secs > 0 ? `${secs}s` : ""} remaining
+                                          </span>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
                                 </>
                               ) : (
                                 <span className="inline-flex items-center gap-1">
@@ -1042,6 +1194,32 @@ export default function AgentChat({
                               </span>
                             </div>
                           ))}
+                          {/* Progress bar for long-running operations */}
+                          {elapsedSeconds >= 5 && (() => {
+                            const estimatedTotal = 300;
+                            const progress = Math.min(elapsedSeconds / estimatedTotal, 0.95);
+                            const remaining = Math.max(0, estimatedTotal - elapsedSeconds);
+                            const mins = Math.floor(remaining / 60);
+                            const secs = remaining % 60;
+                            return (
+                              <div className="mt-2 space-y-1">
+                                <div className="w-full h-1.5 bg-[#E8E6E1] rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-[#6B8F71] rounded-full transition-all duration-1000 ease-linear"
+                                    style={{ width: `${progress * 100}%` }}
+                                  />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] text-[#999]">
+                                    {Math.floor(elapsedSeconds / 60)}:{String(elapsedSeconds % 60).padStart(2, "0")} elapsed
+                                  </span>
+                                  <span className="text-[10px] text-[#999]">
+                                    ~{mins > 0 ? `${mins}m ` : ""}{secs > 0 ? `${secs}s` : ""} remaining
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
 

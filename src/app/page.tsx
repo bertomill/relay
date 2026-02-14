@@ -75,9 +75,9 @@ export default function Home() {
       <Navigation />
 
       {/* ─── HERO ─── */}
-      <section className="relative min-h-[85vh] flex items-center justify-center">
+      <section className="relative min-h-[70vh] flex items-center justify-center">
         <HeroBackground />
-        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28 lg:py-32 text-center relative z-10">
+        <div className="max-w-6xl mx-auto px-6 py-14 md:py-20 lg:py-24 text-center relative z-10">
           <AnimateIn animation="fade-up">
             <div className="inline-flex items-center gap-2 border border-[#E8E6E1] rounded-full px-4 py-1.5 mb-8">
               <span className="w-2 h-2 rounded-full bg-[#6B8F71]" />

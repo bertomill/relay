@@ -121,12 +121,15 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
   const [selectedIdea, setSelectedIdea] = useState<ContentIdea | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [showIdeasSidebar, setShowIdeasSidebar] = useState(true);
+  const [chatInsertText, setChatInsertText] = useState<string | undefined>();
   const [targetAudience, setTargetAudience] = useState("");
   const [autoSendPrompt, setAutoSendPrompt] = useState<string | undefined>();
   const [connections, setConnections] = useState<SocialConnection[]>([]);
   const [isLoadingConnections, setIsLoadingConnections] = useState(true);
   const supabase = createClient();
   const prevIdeaId = useRef<string | null>(null);
+  const headerPortalRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     loadIdeas();
@@ -615,16 +618,37 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
               </svg>
               Back
             </button>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <svg className="w-3.5 h-3.5 text-[#6B8F71] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d={CONTENT_ICON} />
-                </svg>
-                <span className="text-sm font-medium text-[#1C1C1C] truncate">
-                  {selectedIdea ? `Content Creator — ${selectedIdea.title}` : "Content Creator"}
-                </span>
-              </div>
+            <div className="flex items-center gap-2">
+              <svg className="w-3.5 h-3.5 text-[#6B8F71] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d={CONTENT_ICON} />
+              </svg>
+              <span className="text-sm font-medium text-[#1C1C1C] truncate">
+                {selectedIdea ? `Content Creator — ${selectedIdea.title}` : "Content Creator"}
+              </span>
             </div>
+            {/* Portal target for AgentChat header controls */}
+            <div ref={headerPortalRef} className="ml-auto" />
+            {/* Ideas toggle */}
+            <button
+              onClick={() => setShowIdeasSidebar(!showIdeasSidebar)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                showIdeasSidebar
+                  ? "bg-[#6B8F71] text-white"
+                  : "bg-[#F5F4F0] text-[#666] hover:bg-[#ECEAE5] hover:text-[#1C1C1C]"
+              }`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+              </svg>
+              Ideas
+              {ideas.length > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                  showIdeasSidebar ? "bg-white/20 text-white" : "bg-[#6B8F71]/10 text-[#6B8F71]"
+                }`}>
+                  {ideas.length}
+                </span>
+              )}
+            </button>
             {/* About toggle */}
             <button
               onClick={() => setShowAbout(!showAbout)}
@@ -660,6 +684,7 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
                 agentIcon={CONTENT_ICON}
                 agentName="Content Creator"
                 variant="full"
+                headerPortalRef={headerPortalRef}
                 initialPrompt={autoSendPrompt}
                 starterPrompts={buildStarterPrompts()}
                 connectedPlatforms={connectedPlatforms}
