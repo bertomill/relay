@@ -1,6 +1,7 @@
 import { Navigation } from "./components/Navigation";
 import { Footer } from "./components/Footer";
 import { RFPSection } from "./components/RFPSection";
+import { ExplainerVideo } from "./components/ExplainerVideo";
 import { ParallaxReviews } from "@/components/ui/parallax-reviews";
 import type { Review } from "@/components/ui/parallax-reviews";
 import { AnimateIn } from "./components/AnimateIn";
@@ -183,20 +184,9 @@ export default function Home() {
             </div>
           </AnimateIn>
 
-          {/* Explainer video */}
+          {/* Explainer video with clickable CTA */}
           <AnimateIn animation="fade-up" delay={50}>
-            <div className="max-w-3xl mx-auto mb-14">
-              <div className="rounded-2xl overflow-hidden border border-white/10">
-                <video
-                  src="/videos/profit-gap-explainer.mp4"
-                  controls
-                  playsInline
-                  preload="metadata"
-                  poster="/videos/profit-gap-explainer-poster.jpg"
-                  className="w-full aspect-video"
-                />
-              </div>
-            </div>
+            <ExplainerVideo />
           </AnimateIn>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
