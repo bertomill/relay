@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
+import { StatefulButton } from "@/components/ui/stateful-button";
 
 interface QuestionOption {
   label: string;
@@ -78,6 +79,12 @@ interface AgentChatProps {
   headerPortalRef?: React.RefObject<HTMLDivElement | null>;
   /** When this value changes (non-empty), insert it into the textarea input */
   insertText?: string;
+  /** Increment to re-trigger insertText even with the same value */
+  insertTextKey?: number;
+  /** Called when the agent writes to draft.md (document_update SSE event) */
+  onDocumentUpdate?: (content: string) => void;
+  /** Current document content to send with API requests */
+  documentContent?: string;
 }
 
 export default function AgentChat({
@@ -98,6 +105,9 @@ export default function AgentChat({
   linkedInOrgName,
   headerPortalRef,
   insertText,
+  insertTextKey,
+  onDocumentUpdate,
+  documentContent,
 }: AgentChatProps) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -162,19 +172,18 @@ export default function AgentChat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialPrompt]);
 
-  // Insert text into input when insertText prop changes
-  const prevInsertText = useRef<string | undefined>();
+  // Insert text into input when insertText/insertTextKey changes
   useEffect(() => {
-    if (insertText && insertText !== prevInsertText.current) {
-      setInput((prev) => (prev.trim() ? prev + "\n" + insertText : insertText));
-      prevInsertText.current = insertText;
+    if (insertText && insertTextKey) {
+      setInput(insertText);
       // Focus the textarea
       const textarea = formRef.current?.querySelector("textarea");
       if (textarea) {
         setTimeout(() => textarea.focus(), 0);
       }
     }
-  }, [insertText]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [insertTextKey]);
 
   useEffect(() => {
     if (sessions.length > 0) {
@@ -389,6 +398,8 @@ export default function AgentChat({
           sessionId,
           // Send conversation history for multi-turn continuity (sandboxes are ephemeral)
           history: messages.map((m) => ({ role: m.role, content: m.content })),
+          // Include current document content so the agent can see user edits
+          ...(documentContent ? { documentContent } : {}),
         }),
       });
 
@@ -472,16 +483,21 @@ export default function AgentChat({
                 const separator = hadNonTextEvent && accumulatedContent.length > 0 ? "\n\n" : "";
                 hadNonTextEvent = false;
 
-                accumulatedContent += separator + parsed.text;
+                const newText = separator + parsed.text;
+                accumulatedContent += newText;
                 setStatusText(null);
                 setMessages((prev) => {
                   const newMessages = [...prev];
-                  const lastMessage = newMessages[newMessages.length - 1];
+                  const lastIdx = newMessages.length - 1;
+                  const lastMessage = newMessages[lastIdx];
                   if (lastMessage.role === "assistant") {
-                    lastMessage.content += separator + parsed.text;
-                    if (parsed.rawMessage) {
-                      lastMessage.rawOutput = [...(lastMessage.rawOutput || []), parsed.rawMessage];
-                    }
+                    newMessages[lastIdx] = {
+                      ...lastMessage,
+                      content: lastMessage.content + newText,
+                      rawOutput: parsed.rawMessage
+                        ? [...(lastMessage.rawOutput || []), parsed.rawMessage]
+                        : lastMessage.rawOutput,
+                    };
                   }
                   return newMessages;
                 });
@@ -490,9 +506,10 @@ export default function AgentChat({
               if (parsed.type === "input") {
                 setMessages((prev) => {
                   const newMessages = [...prev];
-                  const userMsg = newMessages[newMessages.length - 2];
+                  const userIdx = newMessages.length - 2;
+                  const userMsg = newMessages[userIdx];
                   if (userMsg?.role === "user") {
-                    userMsg.rawInput = parsed.rawInput;
+                    newMessages[userIdx] = { ...userMsg, rawInput: parsed.rawInput };
                   }
                   return newMessages;
                 });
@@ -502,9 +519,13 @@ export default function AgentChat({
                 hadNonTextEvent = true;
                 setMessages((prev) => {
                   const newMessages = [...prev];
-                  const lastMessage = newMessages[newMessages.length - 1];
+                  const lastIdx = newMessages.length - 1;
+                  const lastMessage = newMessages[lastIdx];
                   if (lastMessage.role === "assistant") {
-                    lastMessage.rawOutput = [...(lastMessage.rawOutput || []), parsed.rawMessage];
+                    newMessages[lastIdx] = {
+                      ...lastMessage,
+                      rawOutput: [...(lastMessage.rawOutput || []), parsed.rawMessage],
+                    };
                   }
                   return newMessages;
                 });
@@ -513,9 +534,13 @@ export default function AgentChat({
               if (parsed.type === "complete" && parsed.allRawMessages) {
                 setMessages((prev) => {
                   const newMessages = [...prev];
-                  const lastMessage = newMessages[newMessages.length - 1];
+                  const lastIdx = newMessages.length - 1;
+                  const lastMessage = newMessages[lastIdx];
                   if (lastMessage.role === "assistant") {
-                    lastMessage.rawOutput = parsed.allRawMessages;
+                    newMessages[lastIdx] = {
+                      ...lastMessage,
+                      rawOutput: parsed.allRawMessages,
+                    };
                   }
                   return newMessages;
                 });
@@ -525,11 +550,15 @@ export default function AgentChat({
                 receivedQuestion = true;
                 setMessages((prev) => {
                   const newMessages = [...prev];
-                  const lastMessage = newMessages[newMessages.length - 1];
+                  const lastIdx = newMessages.length - 1;
+                  const lastMessage = newMessages[lastIdx];
                   if (lastMessage.role === "assistant") {
-                    lastMessage.pendingQuestion = {
-                      toolUseId: parsed.toolUseId,
-                      questions: parsed.questions,
+                    newMessages[lastIdx] = {
+                      ...lastMessage,
+                      pendingQuestion: {
+                        toolUseId: parsed.toolUseId,
+                        questions: parsed.questions,
+                      },
                     };
                   }
                   return newMessages;
@@ -539,25 +568,37 @@ export default function AgentChat({
               if (parsed.type === "subagent_start") {
                 setMessages((prev) => {
                   const newMessages = [...prev];
-                  const lastMessage = newMessages[newMessages.length - 1];
+                  const lastIdx = newMessages.length - 1;
+                  const lastMessage = newMessages[lastIdx];
                   if (lastMessage.role === "assistant") {
-                    lastMessage.subagentStatus = {
-                      agentType: parsed.agentType,
-                      description: parsed.description,
-                      isComplete: false,
+                    newMessages[lastIdx] = {
+                      ...lastMessage,
+                      subagentStatus: {
+                        agentType: parsed.agentType,
+                        description: parsed.description,
+                        isComplete: false,
+                      },
                     };
                   }
                   return newMessages;
                 });
               }
 
+              if (parsed.type === "document_update" && parsed.content != null) {
+                onDocumentUpdate?.(parsed.content);
+              }
+
               if (parsed.type === "error") {
                 setMessages((prev) => {
                   const newMessages = [...prev];
-                  const lastMessage = newMessages[newMessages.length - 1];
+                  const lastIdx = newMessages.length - 1;
+                  const lastMessage = newMessages[lastIdx];
                   if (lastMessage.role === "assistant") {
-                    lastMessage.content = "Sorry, an error occurred. Please try again.";
-                    lastMessage.rawOutput = [{ error: parsed.error, rawError: parsed.rawError }];
+                    newMessages[lastIdx] = {
+                      ...lastMessage,
+                      content: "Sorry, an error occurred. Please try again.",
+                      rawOutput: [{ error: parsed.error, rawError: parsed.rawError }],
+                    };
                   }
                   return newMessages;
                 });
@@ -573,10 +614,14 @@ export default function AgentChat({
       console.error("Error:", error);
       setMessages((prev) => {
         const newMessages = [...prev];
-        const lastMessage = newMessages[newMessages.length - 1];
+        const lastIdx = newMessages.length - 1;
+        const lastMessage = newMessages[lastIdx];
         if (lastMessage.role === "assistant") {
-          lastMessage.content = "Sorry, I couldn't connect to the server. Please try again.";
-          lastMessage.rawOutput = [{ error: String(error) }];
+          newMessages[lastIdx] = {
+            ...lastMessage,
+            content: "Sorry, I couldn't connect to the server. Please try again.",
+            rawOutput: [{ error: String(error) }],
+          };
         }
         return newMessages;
       });
@@ -921,7 +966,7 @@ export default function AgentChat({
       )}
 
       {/* Chat area */}
-      <div className={`bg-white border border-[#E8E6E1] rounded-2xl flex flex-col overflow-hidden ${isFull ? "flex-1 min-h-0" : "h-full"}`}>
+      <div className={`flex flex-col overflow-hidden ${isFull ? "flex-1 min-h-0" : "h-full"}`}>
         {/* Compact session bar (embedded variant) */}
         {!isFull && (messages.length > 0 || sessions.length > 0) && (
           <div className="flex items-center justify-between px-4 py-2 border-b border-[#E8E6E1] bg-[#FAFAF8]">
@@ -1636,7 +1681,7 @@ export default function AgentChat({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isLoading || isUploading}
-                  className="px-3 py-3 bg-[#FAFAF8] border border-[#E8E6E1] rounded-xl text-[#999] hover:text-[#6B8F71] hover:border-[#6B8F71]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="self-end px-3 py-3 bg-[#FAFAF8] border border-[#E8E6E1] rounded-xl text-[#999] hover:text-[#6B8F71] hover:border-[#6B8F71]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Attach file"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1663,15 +1708,16 @@ export default function AgentChat({
               rows={1}
               className="flex-1 px-4 py-3 bg-[#FAFAF8] border border-[#E8E6E1] rounded-xl text-[#1C1C1C] placeholder-[#999] focus:outline-none focus:border-[#6B8F71] transition-colors text-sm disabled:opacity-50 resize-none max-h-32 overflow-y-auto"
             />
-            <button
+            <StatefulButton
               type="submit"
               disabled={isLoading || isUploading || !input.trim()}
-              className="px-5 py-3 bg-[#6B8F71] text-white font-semibold rounded-xl hover:bg-[#5A7D60] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              isLoading={isLoading}
+              className="self-end"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
               </svg>
-            </button>
+            </StatefulButton>
           </form>
         </div>
       </div>

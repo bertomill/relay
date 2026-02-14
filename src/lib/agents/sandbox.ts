@@ -42,10 +42,27 @@ export interface ConversationMessage {
 function buildPromptWithHistory(
   message: string,
   history: ConversationMessage[],
-  systemPrompt: string
+  systemPrompt: string,
+  documentContent?: string
 ): { prompt: string; systemPrompt: string } {
+  let augmented = systemPrompt;
+
+  // Inject current document content if provided
+  if (documentContent) {
+    augmented += `
+
+## Current Document
+The user has a document open in the collaborative editor. Here is its current content (the user may have edited it directly):
+
+<current_document>
+${documentContent}
+</current_document>
+
+When revising, write the COMPLETE updated document to /home/user/draft.md.`;
+  }
+
   if (history.length === 0) {
-    return { prompt: message, systemPrompt };
+    return { prompt: message, systemPrompt: augmented };
   }
 
   // Build conversation transcript to inject into system prompt
@@ -53,7 +70,7 @@ function buildPromptWithHistory(
     .map((msg) => `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`)
     .join("\n\n");
 
-  const augmentedSystemPrompt = `${systemPrompt}
+  augmented += `
 
 ## CRITICAL: Conversation History
 You are CONTINUING an existing conversation. The transcript below shows what has already been said. You MUST:
@@ -67,7 +84,7 @@ You are CONTINUING an existing conversation. The transcript below shows what has
 ${transcript}
 </conversation_history>`;
 
-  return { prompt: message, systemPrompt: augmentedSystemPrompt };
+  return { prompt: message, systemPrompt: augmented };
 }
 
 export async function runAgentInSandbox(
@@ -80,11 +97,16 @@ export async function runAgentInSandbox(
     throw new Error("ANTHROPIC_API_KEY is not set");
   }
 
+  // Extract documentContent before passing options to runner
+  const documentContent = agentOptions.documentContent as string | undefined;
+  delete agentOptions.documentContent;
+
   // Build prompt with conversation history for multi-turn continuity
   const { prompt, systemPrompt } = buildPromptWithHistory(
     message,
     history,
-    (agentOptions.systemPrompt as string) || ""
+    (agentOptions.systemPrompt as string) || "",
+    documentContent
   );
 
   // Build the full options object (no `resume` — sandboxes are ephemeral)

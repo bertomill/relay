@@ -44,7 +44,22 @@ export function Navigation() {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 pt-4">
+      {/* E2B for Startups partner banner */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-[#1C1C1C]">
+        <a
+          href="https://e2b.dev/startups"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2.5 py-1.5 hover:opacity-80 transition-opacity"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/e2b-black-logo.png" alt="E2B" className="h-4 invert" />
+          <span className="text-[11px] text-white/70 font-medium tracking-wide">
+            Proud partner of the E2B for Startups program
+          </span>
+        </a>
+      </div>
+      <nav className="fixed top-[32px] left-0 right-0 z-50 px-4 md:px-6 pt-4">
         <div
           className={`max-w-5xl mx-auto px-6 flex items-center justify-between rounded-full border transition-all duration-300 ease-in-out ${
             scrolled
@@ -170,8 +185,8 @@ export function Navigation() {
         </div>
       </div>
 
-      {/* Spacer */}
-      <div className="h-[72px] md:h-[84px]" />
+      {/* Spacer (32px banner + nav height) */}
+      <div className="h-[104px] md:h-[116px]" />
     </>
   );
 }

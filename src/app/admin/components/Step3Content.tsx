@@ -8,6 +8,10 @@ const AgentChat = dynamic(() => import("@/app/components/agents/AgentChat"), {
   ssr: false,
 });
 
+const DocumentEditor = dynamic(() => import("@/app/components/agents/DocumentEditor"), {
+  ssr: false,
+});
+
 const CONTENT_ICON = "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10";
 
 const INFO_ICON = "M11.25 11.25l.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z";
@@ -123,8 +127,12 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
   const [showAbout, setShowAbout] = useState(false);
   const [showIdeasSidebar, setShowIdeasSidebar] = useState(true);
   const [chatInsertText, setChatInsertText] = useState<string | undefined>();
+  const [chatInsertKey, setChatInsertKey] = useState(0);
   const [targetAudience, setTargetAudience] = useState("");
   const [autoSendPrompt, setAutoSendPrompt] = useState<string | undefined>();
+  const [documentContent, setDocumentContent] = useState("");
+  const [showDocument, setShowDocument] = useState(false);
+  const [isAgentWriting, setIsAgentWriting] = useState(false);
   const [connections, setConnections] = useState<SocialConnection[]>([]);
   const [isLoadingConnections, setIsLoadingConnections] = useState(true);
   const supabase = createClient();
@@ -257,9 +265,9 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
       return [prompt];
     }
     return [
+      "Quick Start — interview me to find content ideas",
       "Draft a LinkedIn post about AI agents for small businesses",
       "Help me write a thought leadership post about automation",
-      "Create a post sharing a lesson I learned this week",
     ];
   };
 
@@ -649,6 +657,23 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
                 </span>
               )}
             </button>
+            {/* Document toggle */}
+            <button
+              onClick={() => setShowDocument(!showDocument)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                showDocument
+                  ? "bg-[#6B8F71] text-white"
+                  : "bg-[#F5F4F0] text-[#666] hover:bg-[#ECEAE5] hover:text-[#1C1C1C]"
+              }`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              </svg>
+              Document
+              {documentContent && (
+                <span className={`w-1.5 h-1.5 rounded-full ${isAgentWriting ? "bg-white animate-pulse" : "bg-white/60"}`} />
+              )}
+            </button>
             {/* About toggle */}
             <button
               onClick={() => setShowAbout(!showAbout)}
@@ -665,10 +690,123 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
             </button>
           </div>
 
-          {/* Main content area — chat + optional shelf */}
+          {/* Main content area — ideas sidebar + chat + optional about shelf */}
           <div className="flex-1 flex min-h-0 overflow-hidden">
+            {/* Ideas sidebar — slides in from left */}
+            <div
+              className={`shrink-0 border-r border-[#E8E6E1] bg-white overflow-y-auto transition-all duration-300 ease-in-out ${
+                showIdeasSidebar ? "w-[300px] opacity-100" : "w-0 opacity-0 border-r-0"
+              }`}
+            >
+              <div className="w-[300px] p-4">
+                {/* Sidebar header */}
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-[10px] font-semibold text-[#6B8F71] uppercase tracking-[0.15em]">
+                    Your Ideas ({ideas.length})
+                  </h4>
+                  <button
+                    onClick={() => setShowAddForm(!showAddForm)}
+                    className="text-xs text-[#6B8F71] hover:text-[#5A7D60] transition-colors flex items-center gap-1"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d={showAddForm ? "M6 18L18 6M6 6l12 12" : "M12 4.5v15m7.5-7.5h-15"} />
+                    </svg>
+                    {showAddForm ? "Cancel" : "Add"}
+                  </button>
+                </div>
+
+                {/* Inline add idea form */}
+                {showAddForm && (
+                  <div className="mb-3 p-3 rounded-lg bg-[#FAFAF8] border border-[#E8E6E1]">
+                    <input
+                      type="text"
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                      placeholder="What's the idea?"
+                      className="w-full bg-white border border-[#E8E6E1] rounded-lg px-3 py-2 text-sm text-[#1C1C1C] placeholder-[#999] focus:outline-none focus:border-[#6B8F71] mb-2"
+                      onKeyDown={(e) => { if (e.key === "Enter") addIdea(); }}
+                    />
+                    <textarea
+                      value={newDescription}
+                      onChange={(e) => {
+                        setNewDescription(e.target.value);
+                        e.target.style.height = "auto";
+                        e.target.style.height = e.target.scrollHeight + "px";
+                      }}
+                      placeholder="Extra context? (optional)"
+                      rows={2}
+                      className="w-full bg-white border border-[#E8E6E1] rounded-lg px-3 py-2 text-sm text-[#1C1C1C] placeholder-[#999] focus:outline-none focus:border-[#6B8F71] resize-none mb-2 overflow-hidden"
+                    />
+                    <button
+                      onClick={addIdea}
+                      disabled={!newTitle.trim()}
+                      className="px-4 py-1.5 rounded-lg bg-[#6B8F71] text-white text-xs font-medium hover:bg-[#5A7D60] transition-colors disabled:opacity-50"
+                    >
+                      Save idea
+                    </button>
+                  </div>
+                )}
+
+                {/* Ideas list */}
+                {isLoadingIdeas ? (
+                  <div className="text-xs text-[#999] py-2">Loading ideas...</div>
+                ) : ideas.length === 0 ? (
+                  <p className="text-xs text-[#999] py-1">No ideas yet. Add one above.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {ideas.map((idea) => (
+                      <button
+                        key={idea.id}
+                        onClick={() => {
+                          const prompt = `Help me create content about: ${idea.title}.${
+                            idea.description ? ` Context: ${idea.description}.` : ""
+                          } Draft it so I can post to social media.`;
+                          setChatInsertText(prompt);
+                          setChatInsertKey((k) => k + 1);
+                        }}
+                        className="group w-full text-left p-2.5 rounded-lg border border-[#E8E6E1] hover:border-[#6B8F71]/50 hover:bg-[#6B8F71]/5 transition-all"
+                        title={idea.description || idea.title}
+                      >
+                        <div className="flex items-start gap-2">
+                          <svg className="w-3.5 h-3.5 text-[#6B8F71] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+                          </svg>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-[#1C1C1C] leading-snug line-clamp-2">{idea.title}</p>
+                            {idea.description && (
+                              <p className="text-[11px] text-[#888] mt-0.5 line-clamp-2">{idea.description}</p>
+                            )}
+                          </div>
+                          <span className="hidden group-hover:flex items-center gap-0.5 shrink-0">
+                            <span
+                              onClick={(e) => { e.stopPropagation(); markIdeaUsed(idea.id); }}
+                              className="p-0.5 text-[#6B8F71] hover:text-[#5A7D60] cursor-pointer"
+                              title="Mark as used"
+                            >
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            </span>
+                            <span
+                              onClick={(e) => { e.stopPropagation(); deleteIdea(idea.id); }}
+                              className="p-0.5 text-[#999] hover:text-red-500 cursor-pointer"
+                              title="Delete"
+                            >
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </span>
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Chat area */}
-            <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden px-4">
+            <div className={`flex flex-col min-h-0 min-w-0 overflow-hidden px-4 ${showDocument ? "w-1/2" : "flex-1"}`}>
               <AgentChat
                 agentId="content-creator"
                 apiEndpoint="/api/agents/content-creator"
@@ -690,13 +828,35 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
                 connectedPlatforms={connectedPlatforms}
                 linkedInOrgId={linkedInOrgConnection?.orgId}
                 linkedInOrgName={linkedInOrgConnection?.orgName}
+                insertText={chatInsertText}
+                insertTextKey={chatInsertKey}
                 fileUpload={{
                   accept: "audio/*,video/*,image/*",
                   maxSizeMB: 100,
                   endpoint: "/api/upload",
                 }}
+                documentContent={documentContent}
+                onDocumentUpdate={(content) => {
+                  setDocumentContent(content);
+                  setIsAgentWriting(true);
+                  // Auto-show document panel on first update
+                  if (!showDocument) setShowDocument(true);
+                  // Clear writing indicator after a short delay
+                  setTimeout(() => setIsAgentWriting(false), 1500);
+                }}
               />
             </div>
+
+            {/* Document editor panel */}
+            {showDocument && (
+              <div className="w-1/2 flex flex-col min-h-0 min-w-0 overflow-hidden pr-4 py-4">
+                <DocumentEditor
+                  content={documentContent}
+                  onChange={setDocumentContent}
+                  isAgentWriting={isAgentWriting}
+                />
+              </div>
+            )}
 
             {/* About shelf — slides in from right */}
             <div

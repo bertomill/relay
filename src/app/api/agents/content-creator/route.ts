@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const maxDuration = 600; // 10 minutes (E2B sandbox timeout)
 
 export async function POST(request: NextRequest) {
-  const { message, history = [] } = await request.json();
+  const { message, history = [], documentContent } = await request.json();
 
   if (!message) {
     return new Response(JSON.stringify({ error: "Message is required" }), {
@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const stream = await runAgentInSandbox(message, history, {
+      documentContent,
       allowedTools: [
         "Read",
         "Glob",
@@ -128,7 +129,14 @@ npx tsx scripts/content-creator/list-content.ts
 - Output ONLY the post content. No meta-commentary, no "here's your draft", no options menu. The user will copy-paste your output directly into LinkedIn/Medium
 - After the draft, generate a thumbnail image automatically
 - When the user asks for changes, output the FULL revised post (not just the diff)
-- **NEVER repeat content you already wrote.** After generating an image or running any tool, do NOT output the post text again. Just show the image and any brief follow-up. The user already has the post from your earlier message.`,
+- **NEVER repeat content you already wrote.** After generating an image or running any tool, do NOT output the post text again. Just show the image and any brief follow-up. The user already has the post from your earlier message.
+
+## Document Editor (Collaborative Drafting)
+You have a collaborative document editor. When drafting or revising content, ALWAYS write the COMPLETE document to \`/home/user/draft.md\` using the Write tool. This updates the user's document editor in real-time.
+- Write the FULL document every time (not diffs or patches)
+- The user can edit the document directly — check <current_document> tags for their latest version
+- After writing to draft.md, you can still output brief commentary in chat (e.g. "Updated the draft with your changes" or "Here's the revised version")
+- For the first draft, write to draft.md immediately after researching`,
     });
 
     return new Response(stream, {

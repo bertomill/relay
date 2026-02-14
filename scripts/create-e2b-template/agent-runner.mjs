@@ -153,6 +153,14 @@ async function run() {
                 break;
               case "Write":
                 status = "Writing file…";
+                // Detect writes to the draft document and emit document_update
+                const targetPath = block.input?.file_path || "";
+                if (targetPath.endsWith("draft.md")) {
+                  sendEvent({
+                    type: "document_update",
+                    content: block.input?.content || "",
+                  });
+                }
                 break;
               default:
                 status = `Using ${block.name}…`;
