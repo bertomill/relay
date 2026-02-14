@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "lumen": "tsx agents/lumen/index.ts",
-    "create-snapshot": "tsx scripts/create-agent-snapshot.ts"
+    "e2b:build": "tsx scripts/create-e2b-template/lighten-agent/build.prod.ts",
+    "e2b:build:dev": "tsx scripts/create-e2b-template/lighten-agent/build.dev.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.29",
@@ -18,9 +19,9 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.93.3",
     "@tailwindcss/typography": "^0.5.19",
-    "@vercel/sandbox": "^1.4.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.4",
+    "e2b": "^2.12.1",
     "motion": "^12.33.0",
     "next": "16.1.6",
     "react": "19.2.3",

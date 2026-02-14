@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 
 // Vercel deployment config
 export const runtime = "nodejs";
-export const maxDuration = 300; // 5 minutes (Vercel Pro plan max)
+export const maxDuration = 600; // 10 minutes (E2B sandbox timeout)
 
 export async function POST(request: NextRequest) {
   const { message, history = [] } = await request.json();

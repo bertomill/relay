@@ -1,22 +1,22 @@
 /**
- * Shared sandbox helper for running Agent SDK queries inside Vercel Sandbox.
+ * Shared sandbox helper for running Agent SDK queries inside E2B sandboxes.
  *
  * Each agent route calls runAgentInSandbox() with its specific options.
  * This function:
- *   1. Creates a sandbox from a pre-built snapshot
+ *   1. Creates an E2B sandbox from a pre-built template
  *   2. Writes config.json with message + options + API key
- *   3. Runs runner.mjs (detached)
+ *   3. Runs runner.mjs
  *   4. Returns a ReadableStream that pipes the runner's stdout as SSE
- *   5. Stops the sandbox when done
+ *   5. Kills the sandbox when done
  *
  * Because each sandbox is ephemeral, we can't use the SDK's `resume` feature.
  * Instead, conversation history is passed as context in the system prompt so
  * each invocation has full continuity.
  */
 
-import { Sandbox } from "@vercel/sandbox";
+import { Sandbox } from "e2b";
 
-const SNAPSHOT_ID = process.env.AGENT_SANDBOX_SNAPSHOT_ID?.trim();
+const TEMPLATE_ID = process.env.E2B_TEMPLATE_ID?.trim() || "z3edal2dwyq0rp4yuhov";
 
 export interface AgentOptions {
   allowedTools?: string[];
@@ -25,6 +25,8 @@ export interface AgentOptions {
   agents?: Record<string, unknown>;
   settingSources?: string[];
   cwd?: string;
+  /** Files to write into the sandbox before running (path relative to /home/user → content) */
+  sandboxFiles?: Record<string, string>;
   [key: string]: unknown;
 }
 
@@ -73,12 +75,6 @@ export async function runAgentInSandbox(
   history: ConversationMessage[],
   agentOptions: AgentOptions
 ): Promise<ReadableStream> {
-  if (!SNAPSHOT_ID) {
-    throw new Error(
-      "AGENT_SANDBOX_SNAPSHOT_ID is not set. Run: npx tsx scripts/create-agent-snapshot.ts"
-    );
-  }
-
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error("ANTHROPIC_API_KEY is not set");
@@ -97,33 +93,28 @@ export async function runAgentInSandbox(
     systemPrompt,
   };
 
-  // Create sandbox from snapshot
-  const sandbox = await Sandbox.create({
-    source: { type: "snapshot", snapshotId: SNAPSHOT_ID },
-    timeout: 300_000, // 5 minutes
+  // Create E2B sandbox from template
+  const sandbox = await Sandbox.create(TEMPLATE_ID, {
+    timeoutMs: 600_000, // 10 minutes
   });
 
-  // Write config for the runner (runner.mjs is already in the snapshot)
+  // Write extra files into the sandbox (e.g. skill files)
+  const sandboxFiles = agentOptions.sandboxFiles as Record<string, string> | undefined;
+  if (sandboxFiles) {
+    for (const [filePath, content] of Object.entries(sandboxFiles)) {
+      await sandbox.files.write(`/home/user/${filePath}`, content);
+    }
+    // Don't pass sandboxFiles to the runner — they're a sandbox-only concern
+    delete options.sandboxFiles;
+  }
+
+  // Write config for the runner (runner.mjs is already in the template)
   const config = JSON.stringify({ message: prompt, options, apiKey });
-  await sandbox.writeFiles([
-    { path: "config.json", content: Buffer.from(config) },
-  ]);
-
-  // Run the runner detached so we can stream logs
-  const command = await sandbox.runCommand({
-    cmd: "node",
-    args: ["runner.mjs"],
-    detached: true,
-    env: {
-      ANTHROPIC_API_KEY: apiKey,
-      FAL_KEY: process.env.FAL_KEY || "",
-      NODE_OPTIONS: "--max-old-space-size=512",
-    },
-  });
+  await sandbox.files.write("/home/user/config.json", config);
 
   const encoder = new TextEncoder();
 
-  // Return a ReadableStream that pipes command logs as SSE
+  // Return a ReadableStream that pipes command output as SSE
   return new ReadableStream({
     async start(controller) {
       try {
@@ -140,21 +131,26 @@ export async function runAgentInSandbox(
           )
         );
 
-        // Stream logs from the sandbox runner
-        for await (const log of command.logs()) {
-          if (log.stream === "stdout") {
-            controller.enqueue(encoder.encode(log.data));
-          }
-        }
+        // Run the runner and stream stdout
+        const result = await sandbox.commands.run("node runner.mjs", {
+          cwd: "/home/user",
+          envs: {
+            ANTHROPIC_API_KEY: apiKey,
+            FAL_KEY: process.env.FAL_KEY || "",
+            NODE_OPTIONS: "--max-old-space-size=512",
+          },
+          timeoutMs: 0, // no command timeout (sandbox timeout governs)
+          onStdout: (data) => {
+            controller.enqueue(encoder.encode(data));
+          },
+        });
 
         // Check exit code for errors
-        const result = await command.wait();
         if (result.exitCode !== 0) {
-          const stderr = await result.stderr();
-          console.error("[sandbox] Runner failed:", stderr);
+          console.error("[sandbox] Runner failed:", result.stderr);
           controller.enqueue(
             encoder.encode(
-              `data: ${JSON.stringify({ type: "error", error: "Runner failed", rawError: stderr })}\n\n`
+              `data: ${JSON.stringify({ type: "error", error: "Runner failed", rawError: result.stderr })}\n\n`
             )
           );
         }
@@ -175,7 +171,7 @@ export async function runAgentInSandbox(
         controller.close();
       } finally {
         try {
-          await sandbox.stop();
+          await sandbox.kill();
         } catch {
           // Sandbox may already be stopped
         }

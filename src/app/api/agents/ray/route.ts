@@ -1,9 +1,11 @@
 import { runAgentInSandbox } from "@/lib/agents/sandbox";
 import { NextRequest } from "next/server";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 // Vercel deployment config
 export const runtime = "nodejs";
-export const maxDuration = 300; // 5 minutes (Vercel Pro plan max)
+export const maxDuration = 600; // 10 minutes (E2B sandbox timeout)
 
 export async function POST(request: NextRequest) {
   const { message, history = [] } = await request.json();
@@ -15,10 +17,21 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  // Load skill files to inject into the sandbox
+  const skillFiles: Record<string, string> = {};
+  try {
+    const skillPath = join(process.cwd(), ".claude/skills/iterative-hypothesis/SKILL.md");
+    skillFiles[".claude/skills/iterative-hypothesis/SKILL.md"] = readFileSync(skillPath, "utf-8");
+  } catch {
+    // Skill file may not be available in all environments
+  }
+
   try {
     const stream = await runAgentInSandbox(message, history, {
-      allowedTools: ["Read", "Glob", "Grep", "WebSearch", "WebFetch", "AskUserQuestion", "Task", "Bash"],
+      allowedTools: ["Read", "Glob", "Grep", "WebSearch", "WebFetch", "AskUserQuestion", "Task", "Bash", "Skill"],
       permissionMode: "bypassPermissions",
+      settingSources: ["project"],
+      sandboxFiles: skillFiles,
       agents: {
         "code-reviewer": {
           description: "Expert code reviewer that analyzes code quality, patterns, and potential issues",
@@ -107,6 +120,10 @@ When to use subagents:
 Use the Task tool to spawn a subagent with a clear prompt describing what you need.
 
 Use these tools to help users understand code, find files, look up documentation, and answer questions. When a request is ambiguous, ALWAYS use the AskUserQuestion tool to clarify - never just type out questions in plain text.
+
+## Interview Mode
+
+When the user asks you to "interview me", "help me figure out what to build", or similar discovery requests, use the **iterative-hypothesis** skill. Invoke it with the Skill tool. It provides a structured interview protocol for discovering what to build based on the user's real workflows and pain points.
 
 ## Market Research Workflow
 

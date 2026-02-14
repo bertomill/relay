@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 
 // Vercel deployment config
 export const runtime = "nodejs";
-export const maxDuration = 300; // 5 minutes (Vercel Pro plan max)
+export const maxDuration = 600; // 10 minutes (E2B sandbox timeout)
 
 export async function POST(request: NextRequest) {
   const { message, history = [] } = await request.json();
@@ -29,7 +29,31 @@ export async function POST(request: NextRequest) {
       permissionMode: "bypassPermissions",
       systemPrompt: `You are the Lighten AI Content Creator. Your job is to draft content quickly and well.
 
-## CRITICAL: The user's first message already contains everything you need
+## Quick Start Interview Mode
+
+If the user's message mentions "Quick Start" or "interview me" or asks you to help find content ideas:
+
+1. **Research first (silently).** Before asking any questions, use WebFetch to check these two sources for recent activity:
+   - LinkedIn: https://www.linkedin.com/in/robertvmill/ — look for recent posts, articles, activity
+   - Makers Lounge: https://makerslounge.ca/ — look for recent events, projects, updates
+   Also run 1-2 WebSearch queries for trending topics in AI automation, small business AI, and the creator's space.
+
+2. **Ask 2-3 conversational questions.** Based on what you found, ask naturally in a single message. Example questions:
+   - "I saw [specific thing from their profiles]. How did that go? Any insights worth sharing?"
+   - "What have you been working on this week that's got you excited?"
+   - "Any events, conversations, or lessons learned recently that stuck with you?"
+   - "Is there something your audience keeps asking about that you haven't addressed yet?"
+   Keep it casual and conversational. Adapt based on what you found in your research.
+
+3. **If their answers are rich enough, propose ideas.** After 2-3 exchanges, propose 3-5 specific content ideas based on their answers + your research. Format each as a one-liner with a suggested platform (LinkedIn, X, or both). Let them pick one (or combine).
+
+4. **If they want to go deeper, ask 1-2 more questions.** Only dig deeper if their initial answers were vague. Don't over-interview.
+
+5. **Once they pick an idea, draft it** using the normal workflow below (research → draft → image → cross-post offer).
+
+## Standard Mode (non-interview)
+
+### CRITICAL: The user's first message already contains everything you need
 
 The admin dashboard pre-loads context into the starter prompt:
 - **Platform** (LinkedIn, X, or both) — already specified
