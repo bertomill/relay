@@ -34,7 +34,7 @@ export function ExplainerVideo() {
         {showCTA && (
           <a
             href="#contact"
-            className="absolute inset-0 flex items-end justify-center pb-[22%] z-10 cursor-pointer"
+            className="absolute inset-0 flex items-end justify-center pb-[12%] z-10 cursor-pointer"
             onClick={() => {
               if (videoRef.current) {
                 videoRef.current.pause();
