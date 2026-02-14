@@ -38,7 +38,6 @@ const STEPS = [
 ] as const;
 
 export function ContactForm() {
-  const [started, setStarted] = useState(false);
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({
     firstName: "",
@@ -162,32 +161,6 @@ export function ContactForm() {
     ? "animate-slideInRight"
     : "animate-slideInLeft";
 
-  // Intro screen — "Get in touch" CTA
-  if (!started) {
-    return (
-      <div className="text-center py-3 md:py-6">
-        <div className="w-11 h-11 md:w-14 md:h-14 mx-auto mb-3 md:mb-5 rounded-full bg-[#6B8F71]/10 flex items-center justify-center">
-          <svg className="w-5 h-5 md:w-7 md:h-7 text-[#6B8F71]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-          </svg>
-        </div>
-        <h2 className="text-lg md:text-xl font-semibold text-[#1C1C1C] mb-1.5 md:mb-2">Let&apos;s lighten the load</h2>
-        <p className="text-sm text-[#888] mb-4 md:mb-6 max-w-xs mx-auto">
-          Tell us where you&apos;re at. We&apos;ll show you how to lift it — takes about 2 minutes.
-        </p>
-        <button
-          onClick={() => setStarted(true)}
-          className="w-full py-3 bg-[#6B8F71] text-white text-sm font-semibold rounded-full hover:bg-[#5A7D60] transition-all duration-200 hover:shadow-lg hover:shadow-[#6B8F71]/25 cursor-pointer active:scale-[0.98]"
-        >
-          Get in Touch
-        </button>
-        <p className="text-xs text-[#aaa] mt-3 md:mt-4">
-          No spam, ever. We&apos;ll reach out within 24 hours.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <>
       {/* Header */}
@@ -203,7 +176,7 @@ export function ContactForm() {
       </div>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-2 mb-5 mt-3">
+      <div className="flex items-center gap-2 mb-4 mt-2">
         {STEPS.map((s, i) => (
           <div key={s.number} className="flex items-center gap-2 flex-1">
             <div className="flex items-center gap-1.5 flex-1">
@@ -247,7 +220,7 @@ export function ContactForm() {
 
       <form onSubmit={handleSubmit}>
         {/* Step content area with fixed min-height to prevent layout shift */}
-        <div className="overflow-hidden relative min-h-[220px]">
+        <div className="overflow-hidden relative min-h-[180px]">
           {/* Step 1: About you */}
           {step === 0 && (
             <div key="step-0" className={`space-y-3 ${animationClass}`}>
@@ -401,7 +374,7 @@ export function ContactForm() {
         )}
 
         {/* Navigation buttons */}
-        <div className="flex items-center gap-3 mt-5">
+        <div className="flex items-center gap-3 mt-4">
           {step > 0 && (
             <button
               type="button"
@@ -441,7 +414,7 @@ export function ContactForm() {
           )}
         </div>
       </form>
-      <p className="text-xs text-[#aaa] text-center mt-4">
+      <p className="text-xs text-[#aaa] text-center mt-3">
         No spam, ever. We&apos;ll reach out within 24 hours.
       </p>
 
