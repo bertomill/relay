@@ -8,7 +8,7 @@
  */
 
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, existsSync, watch } from "fs";
 
 // Try multiple paths for config
 const configPaths = ["config.json", "/home/user/config.json", "/vercel/sandbox/config.json"];
@@ -30,6 +30,31 @@ if (apiKey) {
 
 function sendEvent(data) {
   process.stdout.write(`data: ${JSON.stringify(data)}\n\n`);
+}
+
+// Track whether we've sent a document_update so we can use a fallback if not
+let sentDocumentUpdate = false;
+
+// Watch for draft.md changes as a fallback (handles Bash writes, Edit tool, etc.)
+const DRAFT_PATH = "/home/user/draft.md";
+let draftWatcher = null;
+try {
+  // Watch the directory since the file may not exist yet
+  draftWatcher = watch("/home/user", (eventType, filename) => {
+    if (filename === "draft.md" && existsSync(DRAFT_PATH)) {
+      try {
+        const content = readFileSync(DRAFT_PATH, "utf-8");
+        if (content.trim()) {
+          sendEvent({ type: "document_update", content });
+          sentDocumentUpdate = true;
+        }
+      } catch {
+        // Ignore read errors during writes
+      }
+    }
+  });
+} catch {
+  // Watcher setup may fail in some environments
 }
 
 async function run() {
@@ -70,15 +95,22 @@ async function run() {
 
       // Assistant messages with content blocks
       if (msg.type === "assistant" && msg.message?.content) {
-        // Deduplicate: skip if we already processed this assistant message
         const msgId = msg.message?.id;
-        if (msgId && processedAssistantIds.has(msgId)) {
-          sendEvent({ type: "raw", rawMessage: msg });
-          continue;
-        }
+        const isRepeat = msgId && processedAssistantIds.has(msgId);
         if (msgId) processedAssistantIds.add(msgId);
 
         for (const block of msg.message.content) {
+          // For repeat messages, only process tool_use blocks we haven't seen
+          if (isRepeat && block.type === "text") {
+            continue; // Skip duplicate text — already sent
+          }
+          if (block.type === "tool_use" && block.id && processedAssistantIds.has(`tool:${block.id}`)) {
+            continue; // Skip duplicate tool_use
+          }
+          if (block.type === "tool_use" && block.id) {
+            processedAssistantIds.add(`tool:${block.id}`);
+          }
+
           if (block.type === "text") {
             // Line-level dedup: filter out lines the LLM repeated from earlier turns
             const lines = block.text.split("\n");
@@ -154,13 +186,19 @@ async function run() {
               case "Write":
                 status = "Writing file…";
                 // Detect writes to the draft document and emit document_update
-                const targetPath = block.input?.file_path || "";
-                if (targetPath.endsWith("draft.md")) {
+                const writeTargetPath = block.input?.file_path || "";
+                if (writeTargetPath.endsWith("draft.md")) {
                   sendEvent({
                     type: "document_update",
                     content: block.input?.content || "",
                   });
+                  sentDocumentUpdate = true;
                 }
+                break;
+              case "Edit":
+                status = "Editing file…";
+                // Edit tool targets draft.md — we can't reconstruct full content
+                // from old_string/new_string, but the fs watcher will catch the result
                 break;
               default:
                 status = `Using ${block.name}…`;
@@ -180,6 +218,20 @@ async function run() {
       }
     }
 
+    // Final fallback: if no document_update was sent via tool detection,
+    // check if draft.md exists on disk (agent may have used Bash or Edit)
+    if (!sentDocumentUpdate && existsSync(DRAFT_PATH)) {
+      try {
+        const content = readFileSync(DRAFT_PATH, "utf-8");
+        if (content.trim()) {
+          process.stderr.write(`[runner] Sending fallback document_update from disk\n`);
+          sendEvent({ type: "document_update", content });
+        }
+      } catch {
+        // Ignore
+      }
+    }
+
     process.stderr.write(`[runner] Query complete. ${rawMessages.length} messages.\n`);
     sendEvent({ type: "complete", allRawMessages: rawMessages });
     process.stdout.write("data: [DONE]\n\n");
@@ -190,6 +242,11 @@ async function run() {
       error: "An error occurred",
       rawError: String(error),
     });
+  } finally {
+    // Clean up file watcher
+    if (draftWatcher) {
+      try { draftWatcher.close(); } catch { /* ignore */ }
+    }
   }
 }
 

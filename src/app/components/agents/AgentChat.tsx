@@ -85,6 +85,8 @@ interface AgentChatProps {
   onDocumentUpdate?: (content: string) => void;
   /** Current document content to send with API requests */
   documentContent?: string;
+  /** Called when the active session changes (new chat, resume, or first session from server) */
+  onSessionChange?: (sessionId: string | null) => void;
 }
 
 export default function AgentChat({
@@ -108,6 +110,7 @@ export default function AgentChat({
   insertTextKey,
   onDocumentUpdate,
   documentContent,
+  onSessionChange,
 }: AgentChatProps) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -157,6 +160,12 @@ export default function AgentChat({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
+
+  // Notify parent when session changes
+  useEffect(() => {
+    onSessionChange?.(sessionId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
 
   // Auto-send initialPrompt on mount (e.g. when opened from a platform card with context)
   useEffect(() => {
@@ -786,8 +795,15 @@ export default function AgentChat({
     const key = `${messageIndex}-${platform}${asOrganization ? "-org" : ""}`;
     setPostingState((prev) => ({ ...prev, [key]: "posting" }));
 
+    // Use document content if available, otherwise fall back to message content
+    const sourceContent = documentContent || message.content;
+
+    // Extract first image URL from content (for LinkedIn image posts)
+    const imageMatch = sourceContent.match(/!\[.*?\]\((.*?)\)/);
+    const imageUrl = imageMatch?.[1] || undefined;
+
     // Strip markdown for posting
-    const plainText = message.content
+    const plainText = sourceContent
       .replace(/^#{1,6}\s+/gm, "")
       .replace(/\*\*(.+?)\*\*/g, "$1")
       .replace(/\*(.+?)\*/g, "$1")
@@ -803,7 +819,7 @@ export default function AgentChat({
       const res = await fetch("/api/social/post", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform, text: plainText, asOrganization }),
+        body: JSON.stringify({ platform, text: plainText, asOrganization, imageUrl }),
       });
 
       const data = await res.json();

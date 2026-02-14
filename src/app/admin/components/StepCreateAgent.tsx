@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import dynamic from "next/dynamic";
 
 const AgentChat = dynamic(() => import("@/app/components/agents/AgentChat"), {
+  ssr: false,
+});
+
+const DocumentEditor = dynamic(() => import("@/app/components/agents/DocumentEditor"), {
   ssr: false,
 });
 
@@ -16,16 +20,16 @@ const ABOUT_SECTIONS = [
   {
     title: "What it does",
     content:
-      "The Agent Builder is a conversational workspace for designing, prototyping, and iterating on AI agents for your business. Powered by Ray — a multi-tool general-purpose agent — it can research, write code, analyze your codebase, and help you go from idea to working agent.",
+      "Origin is a dedicated agent builder that helps you design, spec out, and iterate on AI agents. Chat on the left to discuss ideas, and build the Agent Spec document on the right — a structured blueprint for your agent's system prompt, tools, architecture, and guardrails.",
   },
   {
     title: "How a session works",
     items: [
       "Describe the agent you want to build — its purpose, target audience, and key behaviors.",
-      "The builder researches best practices, reviews your existing agents and codebase, and proposes an architecture.",
-      "It can write system prompts, define tool configurations, and scaffold agent code.",
-      "Ask follow-up questions to iterate on tone, capabilities, edge cases, or error handling.",
-      "Each conversation is stored locally so you can pick up where you left off.",
+      "Origin asks clarifying questions, then writes an initial Agent Spec to the document panel.",
+      "Iterate together — edit the spec directly or ask Origin to refine sections through chat.",
+      "Origin researches SDK patterns, reviews your codebase, and suggests best practices.",
+      "The spec is saved to Supabase automatically — pick up where you left off anytime.",
     ],
   },
   {
@@ -43,15 +47,15 @@ const ABOUT_SECTIONS = [
     subsections: [
       {
         label: "Runtime",
-        detail: "Each request runs in an ephemeral Vercel Sandbox — fully isolated, no persistent server state. The sandbox spins up, executes, and tears down automatically.",
+        detail: "Each request runs in an ephemeral E2B sandbox — fully isolated, no persistent server state. The sandbox spins up, executes, and tears down automatically.",
       },
       {
         label: "Streaming",
         detail: "Responses stream in real time via Server-Sent Events (SSE). You see output as it's generated, including status updates for tool usage.",
       },
       {
-        label: "Memory",
-        detail: "Full conversation history is passed with each request. The agent picks up exactly where you left off without repeating itself or re-running previous work.",
+        label: "Document Sync",
+        detail: "When Origin writes to draft.md, the Agent Spec panel updates in real time. You can also edit it directly — Origin sees your changes on the next message.",
       },
     ],
   },
@@ -59,20 +63,20 @@ const ABOUT_SECTIONS = [
     title: "Core tools",
     subsections: [
       {
+        label: "Write",
+        detail: "Writes the Agent Spec document (draft.md). Every update replaces the full document so the spec stays in sync.",
+      },
+      {
         label: "Read / Glob / Grep",
-        detail: "Reads files, finds files by pattern, and searches code — so it can review your existing agents, components, and configurations.",
+        detail: "Reads files, finds files by pattern, and searches code — reviews your existing agents and codebase for context.",
       },
       {
         label: "WebSearch / WebFetch",
-        detail: "Searches the web and reads documentation pages for the latest SDK patterns, API references, and best practices.",
-      },
-      {
-        label: "Bash",
-        detail: "Runs shell commands for tasks like generating images, running scripts, or testing configurations.",
+        detail: "Searches the web for SDK documentation, agent patterns, and market research.",
       },
       {
         label: "AskUserQuestion",
-        detail: "Asks you structured clarifying questions with multiple-choice options to nail down requirements before building.",
+        detail: "Asks structured clarifying questions with multiple-choice options to nail down requirements before building.",
       },
     ],
   },
@@ -80,32 +84,28 @@ const ABOUT_SECTIONS = [
     title: "Specialist subagents",
     subsections: [
       {
-        label: "Code Reviewer",
-        detail: "Analyzes agent code for quality, bugs, security, and maintainability. Delegated automatically for thorough reviews.",
-      },
-      {
-        label: "Researcher",
-        detail: "Deep dives into multiple sources to find best practices, compare approaches, and synthesize findings with links.",
-      },
-      {
-        label: "Explainer",
-        detail: "Breaks down complex SDK concepts step-by-step with analogies and examples. Great for understanding unfamiliar patterns.",
+        label: "SDK Researcher",
+        detail: "Deep dives into Claude Agents SDK documentation to find the right patterns, tools, and configurations for your agent.",
       },
       {
         label: "Architect",
-        detail: "Reviews system design, dependencies, scalability, and technical debt. Helps you plan agent architectures that scale.",
+        detail: "Reviews agent designs for scalability, tool selection, security, and SDK fit. Catches issues before you build.",
+      },
+      {
+        label: "Market Researcher",
+        detail: "Researches demand signals across Reddit, X, Product Hunt, and Hacker News to validate agent ideas.",
       },
     ],
   },
   {
     title: "Tech stack",
     items: [
-      "API route: Next.js App Router (POST /api/agents/ray)",
+      "API route: Next.js App Router (POST /api/agents/origin)",
       "LLM: Claude via Anthropic API",
-      "Execution: Vercel Sandbox with ephemeral snapshots",
+      "Execution: E2B ephemeral sandbox",
       "Agent SDK: @anthropic-ai/claude-agent-sdk",
       "Frontend: React with dynamic import, SSE streaming",
-      "Chat UI: AgentChat component with session persistence",
+      "Chat UI: AgentChat + DocumentEditor with Supabase persistence",
     ],
   },
 ];
@@ -135,6 +135,11 @@ export default function StepCreateAgent({ onComplete, isComplete }: StepCreateAg
   const [showAbout, setShowAbout] = useState(false);
   const [autoStartPrompt, setAutoStartPrompt] = useState<string | undefined>(undefined);
   const headerPortalRef = useRef<HTMLDivElement | null>(null);
+  const [documentContent, setDocumentContent] = useState("");
+  const [showDocument, setShowDocument] = useState(false);
+  const [isAgentWriting, setIsAgentWriting] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [ideas, setIdeas] = useState<AgentIdea[]>([]);
@@ -204,6 +209,65 @@ export default function StepCreateAgent({ onComplete, isComplete }: StepCreateAg
       setLoading(false);
     }
   };
+
+  // Load document from Supabase when session changes
+  const loadDocument = useCallback(async (sessionId: string) => {
+    try {
+      const { data } = await supabase
+        .from("agent_documents")
+        .select("content")
+        .eq("session_id", sessionId)
+        .single();
+      if (data) {
+        setDocumentContent(data.content || "");
+        if (data.content) setShowDocument(true);
+      } else {
+        setDocumentContent("");
+      }
+    } catch {
+      setDocumentContent("");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Debounced save to Supabase
+  const saveDocument = useCallback(async (sessionId: string, content: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase
+        .from("agent_documents")
+        .upsert(
+          { user_id: user.id, session_id: sessionId, agent_id: "origin", content, updated_at: new Date().toISOString() },
+          { onConflict: "user_id,session_id" }
+        );
+    } catch {
+      // Silent fail
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // When session changes, load its document
+  const handleSessionChange = useCallback((sessionId: string | null) => {
+    setCurrentSessionId(sessionId);
+    if (sessionId) {
+      loadDocument(sessionId);
+    } else {
+      setDocumentContent("");
+    }
+  }, [loadDocument]);
+
+  // Auto-save document on changes (debounced 1s)
+  useEffect(() => {
+    if (!currentSessionId || !documentContent) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveDocument(currentSessionId, documentContent);
+    }, 1000);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [documentContent, currentSessionId, saveDocument]);
 
   return (
     <div>
@@ -335,11 +399,28 @@ export default function StepCreateAgent({ onComplete, isComplete }: StepCreateAg
                 <path strokeLinecap="round" strokeLinejoin="round" d={AGENT_ICON} />
               </svg>
               <span className="text-sm font-medium text-[#1C1C1C] truncate">
-                Agent Builder
+                Origin — Agent Builder
               </span>
             </div>
             {/* Portal target for AgentChat header controls */}
             <div ref={headerPortalRef} className="ml-auto" />
+            {/* Document toggle */}
+            <button
+              onClick={() => setShowDocument(!showDocument)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                showDocument
+                  ? "bg-[#6B8F71] text-white"
+                  : "bg-[#F5F4F0] text-[#666] hover:bg-[#ECEAE5] hover:text-[#1C1C1C]"
+              }`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              </svg>
+              Agent Spec
+              {documentContent && (
+                <span className={`w-1.5 h-1.5 rounded-full ${isAgentWriting ? "bg-white animate-pulse" : "bg-white/60"}`} />
+              )}
+            </button>
             {/* About toggle */}
             <button
               onClick={() => setShowAbout(!showAbout)}
@@ -359,27 +440,46 @@ export default function StepCreateAgent({ onComplete, isComplete }: StepCreateAg
           {/* Main content area — chat + optional shelf */}
           <div className="flex-1 flex min-h-0 overflow-hidden">
             {/* Chat area */}
-            <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden px-4">
+            <div className={`flex flex-col min-h-0 min-w-0 overflow-hidden px-4 ${showDocument ? "w-1/2" : "flex-1"}`}>
               <AgentChat
-                agentId="ray"
-                apiEndpoint="/api/agents/ray"
-                storageKey="agent-builder-sessions"
+                agentId="origin"
+                apiEndpoint="/api/agents/origin"
+                storageKey="origin-builder-sessions"
                 placeholder="Describe the agent you want to build..."
-                emptyStateTitle="Agent Builder"
-                emptyStateDescription="I'll research real market demand, then help you design and build agents with the Claude Agents SDK. Start with research or jump straight to building."
+                emptyStateTitle="Origin — Agent Builder"
+                emptyStateDescription="I'll help you design and spec out AI agents. We'll build the spec together in the document panel. Start with an idea or let me research what to build."
                 loadingText="Thinking..."
                 agentIcon={AGENT_ICON}
-                agentName="Agent Builder"
+                agentName="Origin"
                 variant="full"
                 headerPortalRef={headerPortalRef}
                 initialPrompt={autoStartPrompt}
                 starterPrompts={[
-                  "I already have an idea — help me design and build it",
-                  "Research market demand for AI agents across Reddit, X, and Product Hunt — then suggest ideas",
-                  "Ask me questions to figure out the best agent for my business",
+                  "Interview me — help me figure out the best agent to build for my business",
+                  "I already have an idea — help me design and spec it out",
+                  "Research market demand for AI agents and suggest what to build",
                 ]}
+                documentContent={documentContent}
+                onDocumentUpdate={(content) => {
+                  setDocumentContent(content);
+                  setIsAgentWriting(true);
+                  if (!showDocument) setShowDocument(true);
+                  setTimeout(() => setIsAgentWriting(false), 1500);
+                }}
+                onSessionChange={handleSessionChange}
               />
             </div>
+
+            {/* Document editor panel */}
+            {showDocument && (
+              <div className="w-1/2 flex flex-col min-h-0 min-w-0 overflow-hidden pr-4 py-4">
+                <DocumentEditor
+                  content={documentContent}
+                  onChange={setDocumentContent}
+                  isAgentWriting={isAgentWriting}
+                />
+              </div>
+            )}
 
             {/* About shelf — slides in from right */}
             <div
@@ -396,8 +496,8 @@ export default function StepCreateAgent({ onComplete, isComplete }: StepCreateAg
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-[#1C1C1C]">Agent Builder</h3>
-                    <p className="text-[11px] text-[#999]">Powered by Ray</p>
+                    <h3 className="text-sm font-semibold text-[#1C1C1C]">Origin</h3>
+                    <p className="text-[11px] text-[#999]">Agent Builder</p>
                   </div>
                 </div>
 

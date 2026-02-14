@@ -15,8 +15,21 @@
  */
 
 import { Sandbox } from "e2b";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 
 const TEMPLATE_ID = process.env.E2B_TEMPLATE_ID?.trim() || "z3edal2dwyq0rp4yuhov";
+
+// Read the latest runner at module load so template staleness never causes issues
+let latestRunner: string | null = null;
+try {
+  latestRunner = readFileSync(
+    resolve(process.cwd(), "scripts/create-e2b-template/agent-runner.mjs"),
+    "utf-8"
+  );
+} catch {
+  // Runner file not found — fall back to whatever is in the template
+}
 
 export interface AgentOptions {
   allowedTools?: string[];
@@ -130,7 +143,12 @@ export async function runAgentInSandbox(
     delete options.sandboxFiles;
   }
 
-  // Write config for the runner (runner.mjs is already in the template)
+  // Always upload the latest runner to avoid template staleness
+  if (latestRunner) {
+    await sandbox.files.write("/home/user/runner.mjs", latestRunner);
+  }
+
+  // Write config for the runner
   const config = JSON.stringify({ message: prompt, options, apiKey });
   await sandbox.files.write("/home/user/config.json", config);
 

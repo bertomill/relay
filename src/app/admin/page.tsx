@@ -10,6 +10,7 @@ import StepCreateAgent from "./components/StepCreateAgent";
 import Step3Content from "./components/Step3Content";
 import Step1Leads from "./components/Step1Leads";
 import Step5Improve from "./components/Step5Improve";
+import Step6Visuals from "./components/Step6Visuals";
 
 
 function formatDateDisplay(dateStr: string): string {
@@ -51,6 +52,7 @@ export default function AdminDashboard() {
     markContentCreated,
     markInquiriesReviewed,
     markWebsiteImproved,
+    markVisualsGenerated,
   } = useDailyProgress(selectedDate);
 
   const goToPreviousDay = useCallback(() => {
@@ -110,7 +112,7 @@ export default function AdminDashboard() {
 
   const advanceToNext = useCallback((currentStep: number) => {
     const next = currentStep + 1;
-    if (next < 5) {
+    if (next < 6) {
       setExpandedStep(next);
     } else {
       setExpandedStep(null);
@@ -151,6 +153,13 @@ export default function AdminDashboard() {
     markWebsiteImproved();
     if (!wasComplete) advanceToNext(4);
   }, [markWebsiteImproved, advanceToNext, stepsComplete]);
+
+  // Step 5: Generate Visuals
+  const handleVisualsComplete = useCallback(() => {
+    const wasComplete = stepsComplete[5];
+    markVisualsGenerated();
+    if (!wasComplete) advanceToNext(5);
+  }, [markVisualsGenerated, advanceToNext, stepsComplete]);
 
   // Greeting based on time of day
   const getGreeting = () => {
@@ -248,7 +257,7 @@ export default function AdminDashboard() {
             {isToday ? "Morning routine complete!" : "This day was completed!"}
           </h2>
           <p className="text-sm text-[#666]">
-            {isToday ? "Great start to your day. Everything's handled." : `All 5 steps were completed on ${formatDateDisplay(selectedDate)}.`}
+            {isToday ? "Great start to your day. Everything's handled." : `All 6 steps were completed on ${formatDateDisplay(selectedDate)}.`}
           </p>
         </div>
       )}
@@ -347,6 +356,22 @@ export default function AdminDashboard() {
           <Step5Improve
             onComplete={handleImproveComplete}
             isComplete={stepsComplete[4]}
+          />
+        </StepCard>
+
+        {/* Step 6: Generate Visuals */}
+        <StepCard
+          stepNumber={6}
+          label="Design"
+          title="Generate Visuals"
+          timeEstimate="~5 min"
+          isComplete={stepsComplete[5]}
+          isExpanded={expandedStep === 5}
+          onToggle={() => toggleStep(5)}
+        >
+          <Step6Visuals
+            onComplete={handleVisualsComplete}
+            isComplete={stepsComplete[5]}
           />
         </StepCard>
       </div>

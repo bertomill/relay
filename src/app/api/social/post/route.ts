@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { postToX, postToLinkedIn, refreshXToken } from "@/lib/social/oauth";
+import { postToX, postToLinkedIn, postToInstagram, refreshXToken, refreshInstagramToken } from "@/lib/social/oauth";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -10,9 +10,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { platform, text, asOrganization } = await request.json();
+  const { platform, text, asOrganization, imageUrl } = await request.json();
 
-  if (!platform || !["x", "linkedin"].includes(platform)) {
+  if (!platform || !["x", "linkedin", "instagram"].includes(platform)) {
     return NextResponse.json({ error: "Invalid platform" }, { status: 400 });
   }
 
@@ -63,17 +63,45 @@ export async function POST(request: NextRequest) {
           { status: 401 }
         );
       }
+    } else if (platform === "instagram") {
+      try {
+        const refreshed = await refreshInstagramToken(accessToken);
+        accessToken = refreshed.access_token;
+
+        await supabase
+          .from("social_connections")
+          .update({
+            access_token: refreshed.access_token,
+            token_expires_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("user_id", user.id)
+          .eq("platform", "instagram");
+      } catch {
+        return NextResponse.json(
+          { error: "TOKEN_EXPIRED", message: "Please reconnect your Instagram account" },
+          { status: 401 }
+        );
+      }
     } else {
+      const platformName = platform === "x" ? "X" : platform === "instagram" ? "Instagram" : "LinkedIn";
       return NextResponse.json(
-        { error: "TOKEN_EXPIRED", message: `Please reconnect your ${platform === "x" ? "X" : "LinkedIn"} account` },
+        { error: "TOKEN_EXPIRED", message: `Please reconnect your ${platformName} account` },
         { status: 401 }
       );
     }
   }
 
   try {
-    if (platform === "x") {
-      const result = await postToX(accessToken, text.trim());
+    if (platform === "instagram") {
+      if (!imageUrl) {
+        return NextResponse.json({ error: "Instagram requires an image. Add an image to your document first." }, { status: 400 });
+      }
+      const igUserId = connection.platform_user_id;
+      const result = await postToInstagram(accessToken, igUserId, text.trim(), imageUrl);
+      return NextResponse.json({ success: true, postId: result.id });
+    } else if (platform === "x") {
+      const result = await postToX(accessToken, text.trim(), imageUrl);
       return NextResponse.json({ success: true, postId: result.data?.id });
     } else if (asOrganization) {
       // Org posting uses the linkedin_org connection's token + org_id
@@ -81,7 +109,7 @@ export async function POST(request: NextRequest) {
       if (!orgId) {
         return NextResponse.json({ error: "No org ID configured" }, { status: 400 });
       }
-      const result = await postToLinkedIn(accessToken, orgId, "organization", text.trim());
+      const result = await postToLinkedIn(accessToken, orgId, "organization", text.trim(), imageUrl);
       return NextResponse.json({ success: true, postId: result.id });
     } else {
       // Personal posting
@@ -92,7 +120,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      const result = await postToLinkedIn(accessToken, authorId, "person", text.trim());
+      const result = await postToLinkedIn(accessToken, authorId, "person", text.trim(), imageUrl);
       return NextResponse.json({ success: true, postId: result.id });
     }
   } catch (err) {

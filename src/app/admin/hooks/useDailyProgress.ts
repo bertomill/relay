@@ -10,6 +10,7 @@ interface DailyProgressState {
   learningCompleted: boolean;
   agentCreated: boolean;
   websiteImproved: boolean;
+  visualsGenerated: boolean;
 }
 
 const LOCAL_STORAGE_KEY = "lighten-morning-dashboard";
@@ -30,6 +31,7 @@ function getDefaultState(date: string): DailyProgressState {
     learningCompleted: false,
     agentCreated: false,
     websiteImproved: false,
+    visualsGenerated: false,
   };
 }
 
@@ -191,13 +193,18 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     update((prev) => ({ ...prev, websiteImproved: !prev.websiteImproved }));
   }, [update]);
 
-  // Order: Learn, Create Agent, Create Content, Review Leads, Improve Website
+  const markVisualsGenerated = useCallback(() => {
+    update((prev) => ({ ...prev, visualsGenerated: !prev.visualsGenerated }));
+  }, [update]);
+
+  // Order: Learn, Create Agent, Create Content, Review Leads, Improve Website, Generate Visuals
   const stepsComplete = [
     progress.learningCompleted,
     progress.agentCreated ?? false,
     progress.contentCreated,
     progress.inquiriesReviewed,
     progress.websiteImproved,
+    progress.visualsGenerated ?? false,
   ];
 
   const completedCount = stepsComplete.filter(Boolean).length;
@@ -206,7 +213,7 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     progress,
     stepsComplete,
     completedCount,
-    totalSteps: 5,
+    totalSteps: 6,
     isToday,
     isLoadingProgress,
     markInquiriesReviewed,
@@ -214,6 +221,7 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     markLearningCompleted,
     markAgentCreated,
     markWebsiteImproved,
+    markVisualsGenerated,
   };
 }
 

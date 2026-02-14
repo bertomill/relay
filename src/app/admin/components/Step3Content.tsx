@@ -135,6 +135,8 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
   const [isAgentWriting, setIsAgentWriting] = useState(false);
   const [connections, setConnections] = useState<SocialConnection[]>([]);
   const [isLoadingConnections, setIsLoadingConnections] = useState(true);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const supabase = createClient();
   const prevIdeaId = useRef<string | null>(null);
   const headerPortalRef = useRef<HTMLDivElement | null>(null);
@@ -271,6 +273,64 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
     ];
   };
 
+  // Load document from Supabase when session changes
+  const loadDocument = useCallback(async (sessionId: string) => {
+    try {
+      const { data } = await supabase
+        .from("agent_documents")
+        .select("content")
+        .eq("session_id", sessionId)
+        .single();
+      if (data) {
+        setDocumentContent(data.content || "");
+        if (data.content) setShowDocument(true);
+      } else {
+        setDocumentContent("");
+      }
+    } catch {
+      setDocumentContent("");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Debounced save to Supabase
+  const saveDocument = useCallback(async (sessionId: string, content: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase
+        .from("agent_documents")
+        .upsert(
+          { user_id: user.id, session_id: sessionId, agent_id: "content-creator", content, updated_at: new Date().toISOString() },
+          { onConflict: "user_id,session_id" }
+        );
+    } catch {
+      // Silent fail
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSessionChange = useCallback((sessionId: string | null) => {
+    setCurrentSessionId(sessionId);
+    if (sessionId) {
+      loadDocument(sessionId);
+    } else {
+      setDocumentContent("");
+    }
+  }, [loadDocument]);
+
+  // Auto-save document on changes (debounced 1s)
+  useEffect(() => {
+    if (!currentSessionId || !documentContent) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveDocument(currentSessionId, documentContent);
+    }, 1000);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [documentContent, currentSessionId, saveDocument]);
+
   const getConnection = (platform: string) =>
     connections.find((c) => c.platform === platform);
 
@@ -312,6 +372,18 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
     .map((c) => c.platform);
 
   const hasLinkedInOrg = !!linkedInOrgConnection;
+
+  const handlePostToSocial = useCallback(async (platform: string, text: string, imageUrl?: string, asOrganization?: boolean) => {
+    const res = await fetch("/api/social/post", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ platform, text, imageUrl, asOrganization }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Post failed");
+    }
+  }, []);
 
   return (
     <div>
@@ -391,6 +463,53 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
                   </svg>
                   Connect LinkedIn
                 </a>
+              );
+            })()}
+
+            {/* Instagram connection */}
+            {(() => {
+              const igConn = getConnection("instagram");
+              return igConn ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-[#E8E6E1]">
+                  <svg className="w-4 h-4 text-[#E1306C]" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+                  </svg>
+                  <span className="text-xs text-[#1C1C1C] font-medium">{igConn.profileName}</span>
+                  {igConn.isExpired && (
+                    <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Expired</span>
+                  )}
+                  <button
+                    onClick={() => handleDisconnect("instagram")}
+                    className="text-[#999] hover:text-red-500 transition-colors ml-1"
+                    title="Disconnect"
+                  >
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch("/api/auth/instagram", { method: "POST" });
+                      const data = await res.json();
+                      if (data.success) {
+                        loadConnections();
+                      } else {
+                        alert(data.error || "Failed to connect Instagram");
+                      }
+                    } catch {
+                      alert("Failed to connect Instagram");
+                    }
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-[#E8E6E1] text-[#666] hover:border-[#E1306C]/50 hover:text-[#1C1C1C] hover:bg-[#E1306C]/5 transition-all text-xs font-medium"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+                  </svg>
+                  Connect Instagram
+                </button>
               );
             })()}
 
@@ -839,21 +958,23 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
                 onDocumentUpdate={(content) => {
                   setDocumentContent(content);
                   setIsAgentWriting(true);
-                  // Auto-show document panel on first update
                   if (!showDocument) setShowDocument(true);
-                  // Clear writing indicator after a short delay
                   setTimeout(() => setIsAgentWriting(false), 1500);
                 }}
+                onSessionChange={handleSessionChange}
               />
             </div>
 
             {/* Document editor panel */}
             {showDocument && (
-              <div className="w-1/2 flex flex-col min-h-0 min-w-0 overflow-hidden pr-4 py-4">
+              <div className="w-1/2 flex flex-col min-h-0 min-w-0 overflow-hidden border-l border-[#E8E6E1] bg-white">
                 <DocumentEditor
                   content={documentContent}
                   onChange={setDocumentContent}
                   isAgentWriting={isAgentWriting}
+                  connectedPlatforms={connectedPlatforms}
+                  onPostToSocial={handlePostToSocial}
+                  linkedInOrgName={linkedInOrgConnection?.orgName}
                 />
               </div>
             )}

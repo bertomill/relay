@@ -108,14 +108,70 @@ export async function getXProfile(accessToken: string) {
   };
 }
 
-export async function postToX(accessToken: string, text: string) {
+/**
+ * Upload an image to X/Twitter and return the media ID.
+ * Uses the simple (non-chunked) v1.1 media/upload endpoint with base64.
+ */
+async function uploadXImage(accessToken: string, imageUrl: string): Promise<string | null> {
+  try {
+    // 1. Download the image
+    const imgRes = await fetch(imageUrl);
+    if (!imgRes.ok) {
+      console.warn("X: failed to download image:", imageUrl);
+      return null;
+    }
+    const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+    console.log("X: downloaded image, size:", imgBuffer.length, "bytes");
+
+    // 2. Simple upload with base64-encoded media_data
+    const uploadRes = await fetch(
+      "https://upload.twitter.com/1.1/media/upload.json",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          media_data: imgBuffer.toString("base64"),
+        }),
+      }
+    );
+
+    if (!uploadRes.ok) {
+      const err = await uploadRes.text();
+      console.warn("X: media upload failed:", uploadRes.status, err);
+      return null;
+    }
+
+    const { media_id_string } = await uploadRes.json();
+    console.log("X: image uploaded, media_id:", media_id_string);
+    return media_id_string;
+  } catch (err) {
+    console.warn("X: image upload error:", err);
+    return null;
+  }
+}
+
+export async function postToX(accessToken: string, text: string, imageUrl?: string) {
+  // Upload image if provided
+  let mediaId: string | null = null;
+  if (imageUrl) {
+    mediaId = await uploadXImage(accessToken, imageUrl);
+  }
+
+  const tweetBody: Record<string, unknown> = { text };
+  if (mediaId) {
+    tweetBody.media = { media_ids: [mediaId] };
+  }
+
   const res = await fetch("https://api.twitter.com/2/tweets", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify(tweetBody),
   });
 
   if (!res.ok) {
@@ -233,9 +289,110 @@ export async function getLinkedInProfile(accessToken: string) {
   return { id, name, profileImage, sub, memberId };
 }
 
-export async function postToLinkedIn(accessToken: string, authorId: string, authorType: "person" | "organization", text: string) {
+/**
+ * Upload an image to LinkedIn and return the image URN.
+ * Uses the /rest/images API (initializeUpload → PUT binary).
+ */
+async function uploadLinkedInImage(
+  accessToken: string,
+  authorUrn: string,
+  imageUrl: string
+): Promise<string | null> {
+  try {
+    // 1. Download the image
+    const imgRes = await fetch(imageUrl);
+    if (!imgRes.ok) {
+      console.warn("LinkedIn: failed to download image:", imageUrl);
+      return null;
+    }
+    const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+    const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+
+    // 2. Initialize upload
+    const initRes = await fetch(
+      "https://api.linkedin.com/rest/images?action=initializeUpload",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "LinkedIn-Version": "202502",
+        },
+        body: JSON.stringify({
+          initializeUploadRequest: { owner: authorUrn },
+        }),
+      }
+    );
+
+    if (!initRes.ok) {
+      const err = await initRes.text();
+      console.warn("LinkedIn: initializeUpload failed:", err);
+      return null;
+    }
+
+    const initData = await initRes.json();
+    const uploadUrl = initData.value?.uploadUrl;
+    const imageUrn = initData.value?.image;
+
+    if (!uploadUrl || !imageUrn) {
+      console.warn("LinkedIn: missing uploadUrl or image URN");
+      return null;
+    }
+
+    // 3. Upload the binary
+    const putRes = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": contentType,
+      },
+      body: imgBuffer,
+    });
+
+    if (!putRes.ok) {
+      const err = await putRes.text();
+      console.warn("LinkedIn: image PUT failed:", err);
+      return null;
+    }
+
+    console.log("LinkedIn: image uploaded:", imageUrn);
+    return imageUrn;
+  } catch (err) {
+    console.warn("LinkedIn: image upload error:", err);
+    return null;
+  }
+}
+
+export async function postToLinkedIn(accessToken: string, authorId: string, authorType: "person" | "organization", text: string, imageUrl?: string) {
   const authorUrn = `urn:li:${authorType}:${authorId}`;
-  console.log(`LinkedIn: posting as ${authorUrn} (${text.length} chars)`);
+  console.log(`LinkedIn: posting as ${authorUrn} (${text.length} chars)${imageUrl ? " with image" : ""}`);
+
+  // Upload image if provided
+  let imageUrn: string | null = null;
+  if (imageUrl) {
+    imageUrn = await uploadLinkedInImage(accessToken, authorUrn, imageUrl);
+  }
+
+  // Build post body
+  const postBody: Record<string, unknown> = {
+    author: authorUrn,
+    commentary: text,
+    visibility: "PUBLIC",
+    distribution: {
+      feedDistribution: "MAIN_FEED",
+      targetEntities: [],
+      thirdPartyDistributionChannels: [],
+    },
+    lifecycleState: "PUBLISHED",
+    isReshareDisabledByAuthor: false,
+  };
+
+  // Add image content if upload succeeded
+  if (imageUrn) {
+    postBody.content = {
+      media: { id: imageUrn },
+    };
+  }
 
   // Try the newer /rest/posts API first (works with OpenID Connect sub values)
   const restRes = await fetch("https://api.linkedin.com/rest/posts", {
@@ -246,18 +403,7 @@ export async function postToLinkedIn(accessToken: string, authorId: string, auth
       "LinkedIn-Version": "202502",
       "X-Restli-Protocol-Version": "2.0.0",
     },
-    body: JSON.stringify({
-      author: authorUrn,
-      commentary: text,
-      visibility: "PUBLIC",
-      distribution: {
-        feedDistribution: "MAIN_FEED",
-        targetEntities: [],
-        thirdPartyDistributionChannels: [],
-      },
-      lifecycleState: "PUBLISHED",
-      isReshareDisabledByAuthor: false,
-    }),
+    body: JSON.stringify(postBody),
   });
 
   if (restRes.ok || restRes.status === 201) {
@@ -270,6 +416,17 @@ export async function postToLinkedIn(accessToken: string, authorId: string, auth
   console.warn(`LinkedIn /rest/posts failed (${restRes.status}):`, restErr);
 
   // Fall back to legacy /v2/ugcPosts API
+  const ugcShareContent: Record<string, unknown> = imageUrn
+    ? {
+        shareCommentary: { text },
+        shareMediaCategory: "IMAGE",
+        media: [{ status: "READY", media: imageUrn }],
+      }
+    : {
+        shareCommentary: { text },
+        shareMediaCategory: "NONE",
+      };
+
   const ugcRes = await fetch("https://api.linkedin.com/v2/ugcPosts", {
     method: "POST",
     headers: {
@@ -281,10 +438,7 @@ export async function postToLinkedIn(accessToken: string, authorId: string, auth
       author: authorUrn,
       lifecycleState: "PUBLISHED",
       specificContent: {
-        "com.linkedin.ugc.ShareContent": {
-          shareCommentary: { text },
-          shareMediaCategory: "NONE",
-        },
+        "com.linkedin.ugc.ShareContent": ugcShareContent,
       },
       visibility: {
         "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
@@ -306,6 +460,156 @@ export async function postToLinkedIn(accessToken: string, authorId: string, auth
   }
 
   throw new Error(`LinkedIn posting failed. /rest/posts: ${restRes.status} — ${restErr}. /v2/ugcPosts: ${ugcRes.status} — ${ugcErr}`);
+}
+
+// --- Instagram Graph API ---
+
+const GRAPH_API_VERSION = "v21.0";
+
+/** Exchange a short-lived Instagram token for a long-lived one (~60 days). */
+export async function exchangeInstagramToken(shortLivedToken: string) {
+  const params = new URLSearchParams({
+    grant_type: "ig_exchange_token",
+    client_secret: process.env.INSTAGRAM_APP_SECRET!,
+    access_token: shortLivedToken,
+  });
+
+  const res = await fetch(
+    `https://graph.instagram.com/access_token?${params.toString()}`
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Instagram token exchange failed: ${err}`);
+  }
+
+  return res.json() as Promise<{
+    access_token: string;
+    token_type: string;
+    expires_in: number;
+  }>;
+}
+
+/** Refresh a long-lived Instagram token (before it expires). */
+export async function refreshInstagramToken(longLivedToken: string) {
+  const params = new URLSearchParams({
+    grant_type: "ig_refresh_token",
+    access_token: longLivedToken,
+  });
+
+  const res = await fetch(
+    `https://graph.instagram.com/refresh_access_token?${params.toString()}`
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Instagram token refresh failed: ${err}`);
+  }
+
+  return res.json() as Promise<{
+    access_token: string;
+    token_type: string;
+    expires_in: number;
+  }>;
+}
+
+/** Get the Instagram user profile. */
+export async function getInstagramProfile(accessToken: string) {
+  const res = await fetch(
+    `https://graph.instagram.com/${GRAPH_API_VERSION}/me?fields=id,username,name,profile_picture_url&access_token=${accessToken}`
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Instagram profile fetch failed: ${err}`);
+  }
+
+  const data = await res.json();
+  return {
+    id: data.id as string,
+    username: data.username as string,
+    name: (data.name as string) || data.username,
+    profileImage: data.profile_picture_url as string | undefined,
+  };
+}
+
+/**
+ * Post to Instagram. Requires an image URL — text-only posts are not supported.
+ * Flow: create media container → wait for it to finish → publish.
+ */
+export async function postToInstagram(
+  accessToken: string,
+  igUserId: string,
+  caption: string,
+  imageUrl: string
+) {
+  // 1. Create media container
+  const createRes = await fetch(
+    `https://graph.facebook.com/${GRAPH_API_VERSION}/${igUserId}/media`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        image_url: imageUrl,
+        caption,
+        access_token: accessToken,
+      }),
+    }
+  );
+
+  if (!createRes.ok) {
+    const err = await createRes.text();
+    if (createRes.status === 401 || createRes.status === 190) {
+      throw new Error("TOKEN_EXPIRED");
+    }
+    throw new Error(`Instagram media creation failed: ${err}`);
+  }
+
+  const { id: creationId } = await createRes.json();
+
+  // 2. Check container status (poll briefly)
+  let ready = false;
+  for (let i = 0; i < 10; i++) {
+    const statusRes = await fetch(
+      `https://graph.facebook.com/${GRAPH_API_VERSION}/${creationId}?fields=status_code&access_token=${accessToken}`
+    );
+    if (statusRes.ok) {
+      const statusData = await statusRes.json();
+      if (statusData.status_code === "FINISHED") {
+        ready = true;
+        break;
+      }
+      if (statusData.status_code === "ERROR") {
+        throw new Error("Instagram media processing failed");
+      }
+    }
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+
+  if (!ready) {
+    throw new Error("Instagram media processing timed out");
+  }
+
+  // 3. Publish
+  const publishRes = await fetch(
+    `https://graph.facebook.com/${GRAPH_API_VERSION}/${igUserId}/media_publish`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        creation_id: creationId,
+        access_token: accessToken,
+      }),
+    }
+  );
+
+  if (!publishRes.ok) {
+    const err = await publishRes.text();
+    throw new Error(`Instagram publish failed: ${err}`);
+  }
+
+  const result = await publishRes.json();
+  return { id: result.id as string };
 }
 
 // --- LinkedIn Org OAuth 2.0 (Company Page — "Community Management API" product) ---
