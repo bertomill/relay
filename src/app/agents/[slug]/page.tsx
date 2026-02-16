@@ -1,10 +1,10 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getAgentBySlug } from "@/lib/agents/data";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { AgentConfig } from "@/lib/agents/types";
 import { AnimateIn } from "@/app/components/AnimateIn";
 import FAQAccordion from "@/app/components/agents/FAQAccordion";
 import AgentChatWidget from "@/app/components/agents/AgentChatWidget";
@@ -12,11 +12,42 @@ import AgentChatWidget from "@/app/components/agents/AgentChatWidget";
 export default function AgentShowcase() {
   const params = useParams();
   const slug = params.slug as string;
-  const agent = getAgentBySlug(slug);
+  const [agent, setAgent] = useState<AgentConfig | null>(getAgentBySlug(slug) || null);
   const [activeNode, setActiveNode] = useState<string | null>(null);
+  const [loading, setLoading] = useState(!agent);
+
+  useEffect(() => {
+    if (agent) return; // Already found statically
+    fetch(`/api/agents?slug=${slug}`)
+      .then((res) => {
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then((data: AgentConfig | null) => {
+        if (data) setAgent(data);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [slug, agent]);
+
+  if (loading) {
+    return (
+      <div className="flex-1 py-12 flex items-center justify-center">
+        <div className="text-[#999] text-sm">Loading agent...</div>
+      </div>
+    );
+  }
 
   if (!agent) {
-    notFound();
+    return (
+      <div className="flex-1 py-12 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-[#1C1C1C] mb-2">Agent not found</h1>
+          <p className="text-[#666] mb-4">The agent &ldquo;{slug}&rdquo; doesn&apos;t exist.</p>
+          <Link href="/agents" className="text-[#6B8F71] hover:underline text-sm">Back to agents</Link>
+        </div>
+      </div>
+    );
   }
 
   return (

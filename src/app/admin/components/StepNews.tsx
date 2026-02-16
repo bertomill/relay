@@ -7,7 +7,7 @@ const AgentChat = dynamic(() => import("@/app/components/agents/AgentChat"), {
   ssr: false,
 });
 
-const LEARN_ICON = "M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5";
+const NEWS_ICON = "M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 0 1-2.25 2.25M16.5 7.5V18a2.25 2.25 0 0 0 2.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 0 0 2.25 2.25h13.5";
 
 const INFO_ICON = "M11.25 11.25l.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z";
 
@@ -15,25 +15,25 @@ const ABOUT_SECTIONS = [
   {
     title: "What it does",
     content:
-      "The SDK Tutor is an AI-powered quiz agent that tests your knowledge of the Claude Agents SDK. Each session, it researches the latest official documentation in real time, then delivers 5 interactive multiple-choice questions with instant feedback after every answer.",
+      "The News Agent is a daily briefing assistant that searches for the latest Claude Agents SDK updates, Anthropic announcements, and AI agent ecosystem news. It finds 2-3 high-quality articles and summarizes them with key takeaways and relevance to your work.",
   },
   {
     title: "How a session works",
     items: [
-      "You click \"Start today's quiz\" and the agent begins by searching the web for the latest Claude Agents SDK docs.",
-      "It reads the relevant documentation pages to build an up-to-date question bank.",
-      "Questions are delivered one at a time — each with 4 options (A, B, C, D).",
-      "After each answer you get immediate feedback: whether you were right, a brief explanation, and a practical tip.",
-      "After question 5, you receive your final score and a summary of what to review.",
+      "You click \"Get today's briefing\" and the agent searches the web for recent news.",
+      "It reads the top 2-3 most relevant articles in full.",
+      "Each article is summarized with key takeaways and why it matters for building agents.",
+      "A bottom-line summary ties the day's news together.",
+      "You can ask follow-up questions about any article or topic.",
     ],
   },
   {
-    title: "Question design",
+    title: "What it covers",
     items: [
-      "5 questions per session, delivered sequentially",
-      "Difficulty mix: 2 easy, 2 medium, 1 hard",
-      "Topics: tools, streaming, sessions, permissions, system prompts, error handling, subagents",
-      "Each question includes a short teaching context before the options",
+      "Claude Agents SDK updates and new features",
+      "Anthropic blog posts and announcements",
+      "AI agent development ecosystem news",
+      "Relevant engineering blog posts and tutorials",
     ],
   },
   {
@@ -49,7 +49,7 @@ const ABOUT_SECTIONS = [
       },
       {
         label: "Memory",
-        detail: "Conversation history is passed in full with each request. The agent picks up exactly where you left off without re-researching.",
+        detail: "Conversation history is passed in full with each request. Ask follow-ups without losing context.",
       },
     ],
   },
@@ -58,22 +58,18 @@ const ABOUT_SECTIONS = [
     subsections: [
       {
         label: "WebSearch",
-        detail: "Searches the web for the latest Claude Agents SDK documentation and release notes.",
+        detail: "Searches the web for the latest Claude SDK, Anthropic, and AI agent news from the past 24-72 hours.",
       },
       {
         label: "WebFetch",
-        detail: "Fetches and reads full documentation pages to extract accurate, up-to-date content for questions.",
-      },
-      {
-        label: "AskUserQuestion",
-        detail: "Delivers each quiz question as an interactive multiple-choice prompt with structured options.",
+        detail: "Fetches and reads full articles to extract accurate summaries and key takeaways.",
       },
     ],
   },
   {
     title: "Tech stack",
     items: [
-      "API route: Next.js App Router (POST /api/agents/sdk-tutor)",
+      "API route: Next.js App Router (POST /api/agents/sdk-news)",
       "LLM: Claude via Anthropic API",
       "Execution: Vercel Sandbox (runAgentInSandbox)",
       "Frontend: React with dynamic import (no SSR)",
@@ -82,7 +78,7 @@ const ABOUT_SECTIONS = [
   },
 ];
 
-interface Step4LearnProps {
+interface StepNewsProps {
   onComplete: () => void;
   isComplete: boolean;
 }
@@ -91,7 +87,7 @@ const MIN_SHELF_WIDTH = 240;
 const MAX_SHELF_WIDTH = 600;
 const DEFAULT_SHELF_WIDTH = 380;
 
-export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) {
+export default function StepNews({ onComplete, isComplete }: StepNewsProps) {
   const [showChat, setShowChat] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [shelfWidth, setShelfWidth] = useState(DEFAULT_SHELF_WIDTH);
@@ -101,7 +97,7 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
   // Sync URL hash with chat overlay state
   useEffect(() => {
     const hash = window.location.hash.replace("#", "");
-    if (hash === "sdk-tutor") {
+    if (hash === "sdk-news") {
       setShowChat(true);
     }
   }, []);
@@ -109,7 +105,7 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
   useEffect(() => {
     const onPopState = () => {
       const hash = window.location.hash.replace("#", "");
-      if (hash !== "sdk-tutor") {
+      if (hash !== "sdk-news") {
         setShowChat(false);
       }
     };
@@ -125,7 +121,6 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging.current) return;
-      // Dragging left increases width, dragging right decreases
       const delta = startX - e.clientX;
       const newWidth = Math.min(MAX_SHELF_WIDTH, Math.max(MIN_SHELF_WIDTH, startWidth + delta));
       setShelfWidth(newWidth);
@@ -149,23 +144,23 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
     <div>
       {/* Description */}
       <p className="text-sm text-[#666] mb-4 leading-relaxed">
-        Test your knowledge of the Claude Agents SDK with an AI-powered quiz. The tutor
-        researches the latest docs, then asks 5 interactive questions — with instant
-        feedback and practical tips after each answer.
+        Stay current on Claude Agents SDK updates, Anthropic announcements, and
+        AI agent ecosystem news. Get a daily briefing with 2-3 curated articles,
+        key takeaways, and why they matter for your work.
       </p>
 
-      {/* Start Quiz button */}
+      {/* Open Briefing button */}
       <button
         onClick={() => {
           setShowChat(true);
-          window.history.pushState(null, "", "#sdk-tutor");
+          window.history.pushState(null, "", "#sdk-news");
         }}
         className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[#6B8F71]/30 bg-[#6B8F71]/5 text-[#6B8F71] text-sm font-medium hover:bg-[#6B8F71]/10 hover:border-[#6B8F71]/50 transition-colors duration-200"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d={LEARN_ICON} />
+          <path strokeLinecap="round" strokeLinejoin="round" d={NEWS_ICON} />
         </svg>
-        Start SDK Quiz
+        Get Today&apos;s Briefing
       </button>
 
       {/* Full-screen agent chat overlay */}
@@ -187,10 +182,10 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
             </button>
             <div className="flex items-center gap-2">
               <svg className="w-3.5 h-3.5 text-[#6B8F71] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d={LEARN_ICON} />
+                <path strokeLinecap="round" strokeLinejoin="round" d={NEWS_ICON} />
               </svg>
               <span className="text-sm font-medium text-[#1C1C1C] truncate">
-                SDK Tutor
+                SDK News
               </span>
             </div>
             {/* Portal target for AgentChat header controls */}
@@ -216,15 +211,15 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
             {/* Chat area */}
             <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden px-4">
               <AgentChat
-                agentId="sdk-tutor"
-                apiEndpoint="/api/agents/sdk-tutor"
-                storageKey="sdk-tutor-sessions"
-                placeholder="Ask about the Claude Agents SDK..."
-                emptyStateTitle="Claude Agents SDK Quiz"
-                emptyStateDescription="I'll research the latest SDK docs, then quiz you with 5 interactive questions. Ready?"
-                loadingText="Researching..."
-                agentIcon={LEARN_ICON}
-                agentName="SDK Tutor"
+                agentId="sdk-news"
+                apiEndpoint="/api/agents/sdk-news"
+                storageKey="sdk-news-sessions"
+                placeholder="Ask about Claude SDK or AI agent news..."
+                emptyStateTitle="Daily SDK & AI News"
+                emptyStateDescription="I'll search for the latest Claude Agents SDK updates, Anthropic announcements, and AI agent news. Ready for today's briefing?"
+                loadingText="Searching for news..."
+                agentIcon={NEWS_ICON}
+                agentName="SDK News"
                 variant="full"
                 headerPortalRef={headerPortalRef}
                 fileUpload={{
@@ -233,9 +228,9 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
                   endpoint: "/api/upload",
                 }}
                 starterPrompts={[
-                  "Start today's quiz",
-                  "Quiz me on advanced topics",
-                  "What's new in the SDK?",
+                  "What's new today?",
+                  "Latest SDK changes",
+                  "Anthropic engineering updates",
                 ]}
               />
             </div>
@@ -261,12 +256,12 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
                 <div className="flex items-center gap-3 mb-5 pb-4 border-b border-[#E8E6E1]">
                   <div className="w-10 h-10 rounded-xl bg-[#6B8F71]/10 flex items-center justify-center">
                     <svg className="w-5 h-5 text-[#6B8F71]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d={LEARN_ICON} />
+                      <path strokeLinecap="round" strokeLinejoin="round" d={NEWS_ICON} />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-[#1C1C1C]">SDK Tutor</h3>
-                    <p className="text-[11px] text-[#999]">Interactive quiz agent</p>
+                    <h3 className="text-sm font-semibold text-[#1C1C1C]">SDK News</h3>
+                    <p className="text-[11px] text-[#999]">Daily briefing agent</p>
                   </div>
                 </div>
 
@@ -328,7 +323,7 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
           onClick={onComplete}
           className="mt-3 w-full px-4 py-2.5 rounded-lg bg-[#6B8F71] text-white text-sm font-medium hover:bg-[#5A7D60] transition-colors duration-200"
         >
-          Mark Learning Complete
+          Mark News Complete
         </button>
       )}
 
@@ -337,7 +332,7 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
           onClick={onComplete}
           className="mt-3 w-full py-2.5 text-center rounded-lg bg-[#6B8F71]/5 hover:bg-[#6B8F71]/10 transition-colors"
         >
-          <p className="text-sm text-[#6B8F71] font-medium">Learning complete! (click to undo)</p>
+          <p className="text-sm text-[#6B8F71] font-medium">News complete! (click to undo)</p>
         </button>
       )}
     </div>

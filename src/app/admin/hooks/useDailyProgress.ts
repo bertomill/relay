@@ -8,6 +8,7 @@ interface DailyProgressState {
   inquiriesReviewed: boolean;
   contentCreated: boolean;
   learningCompleted: boolean;
+  newsRead: boolean;
   agentCreated: boolean;
   websiteImproved: boolean;
   visualsGenerated: boolean;
@@ -29,6 +30,7 @@ function getDefaultState(date: string): DailyProgressState {
     inquiriesReviewed: false,
     contentCreated: false,
     learningCompleted: false,
+    newsRead: false,
     agentCreated: false,
     websiteImproved: false,
     visualsGenerated: false,
@@ -197,9 +199,14 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     update((prev) => ({ ...prev, visualsGenerated: !prev.visualsGenerated }));
   }, [update]);
 
-  // Order: Learn, Create Agent, Create Content, Review Leads, Improve Website, Generate Visuals
+  const markNewsRead = useCallback(() => {
+    update((prev) => ({ ...prev, newsRead: !prev.newsRead }));
+  }, [update]);
+
+  // Order: Learn, News, Create Agent, Create Content, Review Leads, Improve Website, Generate Visuals
   const stepsComplete = [
     progress.learningCompleted,
+    progress.newsRead ?? false,
     progress.agentCreated ?? false,
     progress.contentCreated,
     progress.inquiriesReviewed,
@@ -213,12 +220,13 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     progress,
     stepsComplete,
     completedCount,
-    totalSteps: 6,
+    totalSteps: 7,
     isToday,
     isLoadingProgress,
     markInquiriesReviewed,
     markContentCreated,
     markLearningCompleted,
+    markNewsRead,
     markAgentCreated,
     markWebsiteImproved,
     markVisualsGenerated,

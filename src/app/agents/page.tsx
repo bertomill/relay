@@ -1,11 +1,24 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getAllAgents } from "@/lib/agents/data";
+import { AgentConfig } from "@/lib/agents/types";
 import { AnimateIn } from "../components/AnimateIn";
 
 export default function Agents() {
-  const agents = getAllAgents();
+  const [agents, setAgents] = useState<AgentConfig[]>(getAllAgents());
+
+  useEffect(() => {
+    fetch("/api/agents")
+      .then((res) => res.json())
+      .then((data: AgentConfig[]) => {
+        if (Array.isArray(data)) setAgents(data);
+      })
+      .catch(() => {
+        // Keep static agents on error
+      });
+  }, []);
 
   return (
     <main className="flex-1 py-12">

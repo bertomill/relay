@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { exchangeInstagramToken, getInstagramProfile } from "@/lib/social/oauth";
+
+const GRAPH_API_VERSION = "v21.0";
 
 /**
  * POST /api/auth/instagram
- * Connects Instagram by exchanging the short-lived token from env for a long-lived one,
- * fetching the profile, and storing the connection.
+ * Connects Instagram using the Page Access Token and Instagram Business Account ID
+ * from environment variables (Instagram Graph API via Facebook Login).
  */
 export async function POST() {
   const supabase = await createClient();
@@ -15,39 +16,41 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const shortLivedToken = process.env.INSTAGRAM_ACCESS_TOKEN;
-  if (!shortLivedToken) {
-    return NextResponse.json({ error: "Instagram access token not configured" }, { status: 500 });
+  const pageAccessToken = process.env.INSTAGRAM_PAGE_ACCESS_TOKEN;
+  const igBusinessId = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
+
+  if (!pageAccessToken) {
+    return NextResponse.json({ error: "Instagram Page Access Token not configured" }, { status: 500 });
+  }
+  if (!igBusinessId) {
+    return NextResponse.json({ error: "Instagram Business Account ID not configured" }, { status: 500 });
   }
 
   try {
-    // Exchange for long-lived token
-    let accessToken: string;
-    let expiresIn: number;
+    // Fetch Instagram business profile using the Graph API
+    const profileRes = await fetch(
+      `https://graph.facebook.com/${GRAPH_API_VERSION}/${igBusinessId}?fields=id,username,name,profile_picture_url&access_token=${pageAccessToken}`
+    );
 
-    try {
-      const exchanged = await exchangeInstagramToken(shortLivedToken);
-      accessToken = exchanged.access_token;
-      expiresIn = exchanged.expires_in;
-    } catch {
-      // Token might already be long-lived, try using it directly
-      accessToken = shortLivedToken;
-      expiresIn = 5184000; // ~60 days default
+    if (!profileRes.ok) {
+      const err = await profileRes.text();
+      console.error("Instagram profile fetch error:", err);
+      return NextResponse.json({ error: "Failed to fetch Instagram profile" }, { status: 500 });
     }
 
-    // Fetch profile
-    const profile = await getInstagramProfile(accessToken);
+    const profile = await profileRes.json();
+    console.log("Instagram profile fetched:", profile.username, profile.id);
 
-    // Upsert connection
+    // Upsert connection — store the page access token (which can publish)
     const { error } = await supabase.from("social_connections").upsert(
       {
         user_id: user.id,
         platform: "instagram",
-        platform_user_id: profile.id,
+        platform_user_id: igBusinessId,
         profile_name: profile.name || profile.username,
-        profile_image: profile.profileImage || null,
-        access_token: accessToken,
-        token_expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
+        profile_image: profile.profile_picture_url || null,
+        access_token: pageAccessToken,
+        token_expires_at: new Date(Date.now() + 5184000 * 1000).toISOString(), // ~60 days
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id,platform" }

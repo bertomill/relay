@@ -1,6 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { postToX, postToLinkedIn, postToInstagram, refreshXToken, refreshInstagramToken } from "@/lib/social/oauth";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { postToX, postToLinkedIn, postToInstagram, postToMedium, postToFacebook, refreshXToken, refreshInstagramToken } from "@/lib/social/oauth";
+
+import sharp from "sharp";
+
+/**
+ * Re-upload an image to Supabase Storage as JPEG so Instagram can access it.
+ * Instagram Graph API only supports JPEG. fal.ai CDN URLs are also blocked.
+ */
+async function getPublicImageUrl(imageUrl: string): Promise<string> {
+  const supabase = createAdminClient();
+  const imgRes = await fetch(imageUrl);
+  if (!imgRes.ok) throw new Error("Failed to download image for re-upload");
+
+  const buffer = Buffer.from(await imgRes.arrayBuffer());
+
+  // Convert to JPEG (Instagram API only supports JPEG)
+  const jpegBuffer = await sharp(buffer).jpeg({ quality: 90 }).toBuffer();
+
+  const fileName = `social/${Date.now()}.jpg`;
+
+  const { error } = await supabase.storage
+    .from("visuals")
+    .upload(fileName, jpegBuffer, { contentType: "image/jpeg", upsert: false });
+
+  if (error) throw new Error(`Storage upload failed: ${error.message}`);
+
+  const { data } = supabase.storage.from("visuals").getPublicUrl(fileName);
+  return data.publicUrl;
+}
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -10,9 +39,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { platform, text, asOrganization, imageUrl } = await request.json();
+  const { platform, text, asOrganization, imageUrl, markdownContent } = await request.json();
 
-  if (!platform || !["x", "linkedin", "instagram"].includes(platform)) {
+  if (!platform || !["x", "linkedin", "instagram", "medium", "facebook"].includes(platform)) {
     return NextResponse.json({ error: "Invalid platform" }, { status: 400 });
   }
 
@@ -93,12 +122,34 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    if (platform === "instagram") {
+    if (platform === "medium") {
+      // Use markdown content for Medium articles
+      const mdContent = markdownContent || text;
+      // Extract title from first heading or use first line
+      const titleMatch = mdContent.match(/^#\s+(.+)$/m) || mdContent.match(/^(.+)$/m);
+      const title = titleMatch ? titleMatch[1].replace(/[#*_`]/g, "").trim() : "Untitled";
+      const authorId = connection.platform_user_id;
+      const result = await postToMedium(accessToken, authorId, title, mdContent);
+      return NextResponse.json({ success: true, postId: result.id, url: result.url, draft: true });
+    } else if (platform === "facebook") {
+      const pageId = connection.platform_user_id;
+      const plainText = text.trim();
+      let fbImageUrl = imageUrl;
+      if (fbImageUrl) {
+        // Re-upload to Supabase for a public URL (same as Instagram)
+        fbImageUrl = await getPublicImageUrl(fbImageUrl);
+      }
+      const result = await postToFacebook(accessToken, pageId, plainText, fbImageUrl);
+      return NextResponse.json({ success: true, postId: result.id });
+    } else if (platform === "instagram") {
       if (!imageUrl) {
         return NextResponse.json({ error: "Instagram requires an image. Add an image to your document first." }, { status: 400 });
       }
+      // Instagram can't fetch from fal.ai CDN — re-upload to Supabase for a public URL
+      const publicUrl = await getPublicImageUrl(imageUrl);
+      console.log("Instagram: using public image URL:", publicUrl);
       const igUserId = connection.platform_user_id;
-      const result = await postToInstagram(accessToken, igUserId, text.trim(), imageUrl);
+      const result = await postToInstagram(accessToken, igUserId, text.trim(), publicUrl);
       return NextResponse.json({ success: true, postId: result.id });
     } else if (platform === "x") {
       const result = await postToX(accessToken, text.trim(), imageUrl);

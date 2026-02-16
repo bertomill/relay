@@ -8,7 +8,7 @@ interface DocumentEditorProps {
   onChange: (content: string) => void;
   isAgentWriting: boolean;
   connectedPlatforms?: string[];
-  onPostToSocial?: (platform: string, text: string, imageUrl?: string, asOrganization?: boolean) => Promise<void>;
+  onPostToSocial?: (platform: string, text: string, imageUrl?: string, asOrganization?: boolean, markdownContent?: string) => Promise<void>;
   linkedInOrgName?: string | null;
 }
 
@@ -176,7 +176,9 @@ export default function DocumentEditor({ content, onChange, isAgentWriting, conn
     const firstImage = imageUrls[0] || undefined;
 
     try {
-      await onPostToSocial(platform, plainText, firstImage, asOrganization);
+      // For Medium, send the raw markdown content so articles preserve formatting
+      const mdContent = platform === "medium" ? content : undefined;
+      await onPostToSocial(platform, plainText, firstImage, asOrganization, mdContent);
       setPostingState((prev) => ({ ...prev, [key]: "posted" }));
     } catch {
       setPostingState((prev) => ({ ...prev, [key]: "error" }));
@@ -502,6 +504,62 @@ export default function DocumentEditor({ content, onChange, isAgentWriting, conn
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
                 </svg>
               )}
+            </button>
+          )}
+
+          {/* Medium */}
+          {connectedPlatforms.includes("medium") && (
+            <button
+              onClick={() => handlePost("medium")}
+              disabled={postingState["medium"] === "posting"}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                postingState["medium"] === "posted"
+                  ? "bg-[#6B8F71]/10 text-[#6B8F71] border border-[#6B8F71]/30"
+                  : postingState["medium"] === "error"
+                  ? "bg-red-50 text-red-600 border border-red-200"
+                  : "bg-white border border-[#E8E6E1] text-[#00AB6C] hover:border-[#00AB6C]/30 hover:bg-[#00AB6C]/5"
+              } disabled:opacity-60`}
+            >
+              {postingState["medium"] === "posting" ? (
+                <span className="w-3 h-3 border-2 border-[#00AB6C] border-t-transparent rounded-full animate-spin" />
+              ) : postingState["medium"] === "posted" ? (
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M13.54 12a6.8 6.8 0 01-6.77 6.82A6.8 6.8 0 010 12a6.8 6.8 0 016.77-6.82A6.8 6.8 0 0113.54 12zM20.96 12c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z" />
+                </svg>
+              )}
+              {postingState["medium"] === "posted" ? "Draft saved" : postingState["medium"] === "error" ? "Failed" : "Medium"}
+            </button>
+          )}
+
+          {/* Facebook Page */}
+          {connectedPlatforms.includes("facebook") && (
+            <button
+              onClick={() => handlePost("facebook")}
+              disabled={postingState["facebook"] === "posting"}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                postingState["facebook"] === "posted"
+                  ? "bg-[#6B8F71]/10 text-[#6B8F71] border border-[#6B8F71]/30"
+                  : postingState["facebook"] === "error"
+                  ? "bg-red-50 text-red-600 border border-red-200"
+                  : "bg-white border border-[#E8E6E1] text-[#1877F2] hover:border-[#1877F2]/30 hover:bg-[#1877F2]/5"
+              } disabled:opacity-60`}
+            >
+              {postingState["facebook"] === "posting" ? (
+                <span className="w-3 h-3 border-2 border-[#1877F2] border-t-transparent rounded-full animate-spin" />
+              ) : postingState["facebook"] === "posted" ? (
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                </svg>
+              )}
+              {postingState["facebook"] === "posted" ? "Posted" : postingState["facebook"] === "error" ? "Failed" : "Facebook"}
             </button>
           )}
 

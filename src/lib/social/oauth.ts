@@ -612,6 +612,118 @@ export async function postToInstagram(
   return { id: result.id as string };
 }
 
+// --- Medium API ---
+
+export async function getMediumProfile(integrationToken: string) {
+  const res = await fetch("https://api.medium.com/v1/me", {
+    headers: {
+      Authorization: `Bearer ${integrationToken}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Medium profile fetch failed: ${err}`);
+  }
+
+  const { data } = await res.json();
+  return {
+    id: data.id as string,
+    username: data.username as string,
+    name: data.name as string,
+    imageUrl: data.imageUrl as string | undefined,
+  };
+}
+
+export async function postToMedium(
+  integrationToken: string,
+  authorId: string,
+  title: string,
+  content: string
+) {
+  const res = await fetch(
+    `https://api.medium.com/v1/users/${authorId}/posts`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${integrationToken}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        title,
+        contentFormat: "markdown",
+        content,
+        publishStatus: "draft",
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    if (res.status === 401) throw new Error("TOKEN_EXPIRED");
+    throw new Error(`Medium post failed: ${err}`);
+  }
+
+  const { data } = await res.json();
+  return { id: data.id as string, url: data.url as string };
+}
+
+// --- Facebook Page API ---
+
+export async function getFacebookPageInfo(pageAccessToken: string, pageId: string) {
+  const res = await fetch(
+    `https://graph.facebook.com/${GRAPH_API_VERSION}/${pageId}?fields=id,name,picture&access_token=${pageAccessToken}`
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Facebook page info fetch failed: ${err}`);
+  }
+
+  const data = await res.json();
+  return {
+    id: data.id as string,
+    name: data.name as string,
+    picture: data.picture?.data?.url as string | undefined,
+  };
+}
+
+export async function postToFacebook(
+  pageAccessToken: string,
+  pageId: string,
+  message: string,
+  imageUrl?: string
+) {
+  let endpoint: string;
+  let body: Record<string, string>;
+
+  if (imageUrl) {
+    endpoint = `https://graph.facebook.com/${GRAPH_API_VERSION}/${pageId}/photos`;
+    body = { url: imageUrl, caption: message, access_token: pageAccessToken };
+  } else {
+    endpoint = `https://graph.facebook.com/${GRAPH_API_VERSION}/${pageId}/feed`;
+    body = { message, access_token: pageAccessToken };
+  }
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    if (res.status === 401 || res.status === 190) throw new Error("TOKEN_EXPIRED");
+    throw new Error(`Facebook post failed: ${err}`);
+  }
+
+  const data = await res.json();
+  return { id: (data.id || data.post_id) as string };
+}
+
 // --- LinkedIn Org OAuth 2.0 (Company Page — "Community Management API" product) ---
 
 const ORG_REDIRECT_URI = "https://www.lightenai.site/api/auth/linkedin-org/callback";

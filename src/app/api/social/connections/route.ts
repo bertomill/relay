@@ -41,7 +41,7 @@ export async function PATCH(request: NextRequest) {
 
   const { platform, orgId, orgName } = await request.json();
 
-  if (!platform || !["x", "linkedin", "instagram"].includes(platform)) {
+  if (!platform || !["x", "linkedin", "instagram", "medium", "facebook"].includes(platform)) {
     return NextResponse.json({ error: "Invalid platform" }, { status: 400 });
   }
 
@@ -62,7 +62,7 @@ export async function DELETE(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const platform = searchParams.get("platform");
 
-  if (!platform || !["x", "linkedin", "linkedin_org", "instagram"].includes(platform)) {
+  if (!platform || !["x", "linkedin", "linkedin_org", "instagram", "medium", "facebook"].includes(platform)) {
     return NextResponse.json({ error: "Invalid platform" }, { status: 400 });
   }
 

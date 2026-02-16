@@ -5,8 +5,8 @@ interface MorningProgressProps {
   completedCount: number;
 }
 
-const STEP_LABELS = ["Learn", "Agent", "Content", "Leads", "Improve", "Visuals"];
-const TIME_ESTIMATES = [15, 20, 25, 5, 10, 5]; // minutes per step
+const STEP_LABELS = ["Learn", "News", "Agent", "Content", "Leads", "Improve", "Visuals"];
+const TIME_ESTIMATES = [15, 10, 20, 25, 5, 10, 5]; // minutes per step
 
 export default function MorningProgress({ stepsComplete, completedCount }: MorningProgressProps) {
   const remainingMinutes = TIME_ESTIMATES.reduce(

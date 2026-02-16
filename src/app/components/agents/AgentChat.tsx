@@ -316,9 +316,8 @@ export default function AgentChat({
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!fileUpload || !e.target.files?.length) return;
-    const file = e.target.files[0];
+  const uploadFile = async (file: File) => {
+    if (!fileUpload) return;
 
     if (file.size > fileUpload.maxSizeMB * 1024 * 1024) {
       alert(`File too large. Max size: ${fileUpload.maxSizeMB}MB`);
@@ -353,6 +352,26 @@ export default function AgentChat({
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!fileUpload || !e.target.files?.length) return;
+    uploadFile(e.target.files[0]);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    if (!fileUpload || isUploading) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) uploadFile(file);
+        return;
+      }
     }
   };
 
@@ -1719,6 +1738,7 @@ export default function AgentChat({
                   formRef.current?.requestSubmit();
                 }
               }}
+              onPaste={handlePaste}
               placeholder={placeholder}
               disabled={isLoading}
               rows={1}
