@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const maxDuration = 600; // 10 minutes (E2B sandbox timeout)
 
 export async function POST(request: NextRequest) {
-  const { message, history = [] } = await request.json();
+  const { message, history = [], imageAttachments } = await request.json();
 
   if (!message) {
     return new Response(JSON.stringify({ error: "Message is required" }), {
@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const stream = await runAgentInSandbox(message, history, {
+      imageAttachments,
       allowedTools: ["WebSearch", "WebFetch", "AskUserQuestion"],
       permissionMode: "bypassPermissions",
       systemPrompt: `You are the Lighten AI SDK Tutor, an interactive quiz agent that teaches users about the Claude Agents SDK (also known as Claude Code SDK / @anthropic-ai/claude-agent-sdk).

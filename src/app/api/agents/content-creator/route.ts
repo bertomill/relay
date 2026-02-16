@@ -1,4 +1,5 @@
 import { runAgentInSandbox } from "@/lib/agents/sandbox";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest } from "next/server";
 
 // Vercel deployment config
@@ -6,7 +7,7 @@ export const runtime = "nodejs";
 export const maxDuration = 600; // 10 minutes (E2B sandbox timeout)
 
 export async function POST(request: NextRequest) {
-  const { message, history = [], documentContent } = await request.json();
+  const { message, history = [], documentContent, userId, imageAttachments } = await request.json();
 
   if (!message) {
     return new Response(JSON.stringify({ error: "Message is required" }), {
@@ -15,9 +16,31 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  // Load user's custom style rules from Supabase
+  let customRulesSection = "";
+  if (userId) {
+    try {
+      const supabase = createAdminClient();
+      const { data } = await supabase
+        .from("agent_preferences")
+        .select("custom_rules")
+        .eq("user_id", userId)
+        .eq("agent_id", "content-creator")
+        .single();
+
+      const rules = (data?.custom_rules as string[]) || [];
+      if (rules.length > 0) {
+        customRulesSection = `\n\n## Your Custom Style Rules\nThe user has saved these personal style preferences. ALWAYS follow them when creating content:\n${rules.map((r) => `- ${r}`).join("\n")}`;
+      }
+    } catch {
+      // No preferences found or table doesn't exist yet — continue without them
+    }
+  }
+
   try {
     const stream = await runAgentInSandbox(message, history, {
       documentContent,
+      imageAttachments,
       allowedTools: [
         "Read",
         "Glob",
@@ -136,7 +159,29 @@ You have a collaborative document editor. When drafting or revising content, ALW
 - Write the FULL document every time (not diffs or patches)
 - The user can edit the document directly — check <current_document> tags for their latest version
 - After writing to draft.md, you can still output brief commentary in chat (e.g. "Updated the draft with your changes" or "Here's the revised version")
-- For the first draft, write to draft.md immediately after researching`,
+- For the first draft, write to draft.md immediately after researching${customRulesSection}
+
+## Self-Editing Preferences
+When the user asks you to "always do X", "remember to Y", "from now on Z", or any request to change your default writing style persistently:
+
+Save a rule:
+\`\`\`bash
+echo '{"action":"add","rule":"<the rule>","userId":"${userId || ""}"}' | npx tsx scripts/content-creator/save-preferences.ts
+\`\`\`
+
+Remove a rule:
+\`\`\`bash
+echo '{"action":"remove","rule":"<the rule>","userId":"${userId || ""}"}' | npx tsx scripts/content-creator/save-preferences.ts
+\`\`\`
+
+List current rules:
+\`\`\`bash
+echo '{"action":"list","userId":"${userId || ""}"}' | npx tsx scripts/content-creator/save-preferences.ts
+\`\`\`
+
+After saving a rule, confirm to the user that you'll remember it for future sessions.
+When the user asks "what are my rules" or "what do you remember", use the list action.
+When the user asks to forget or stop doing something, use the remove action.`,
     });
 
     return new Response(stream, {

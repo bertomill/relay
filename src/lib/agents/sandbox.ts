@@ -114,6 +114,10 @@ export async function runAgentInSandbox(
   const documentContent = agentOptions.documentContent as string | undefined;
   delete agentOptions.documentContent;
 
+  // Extract imageAttachments — written as files in the sandbox
+  const imageAttachments = agentOptions.imageAttachments as Array<{ data: string; mediaType: string }> | undefined;
+  delete agentOptions.imageAttachments;
+
   // Build prompt with conversation history for multi-turn continuity
   const { prompt, systemPrompt } = buildPromptWithHistory(
     message,
@@ -143,13 +147,31 @@ export async function runAgentInSandbox(
     delete options.sandboxFiles;
   }
 
+  // Write image attachments as files in the sandbox so the agent can Read them
+  let finalPrompt = prompt;
+  if (imageAttachments && imageAttachments.length > 0) {
+    const imagePaths: string[] = [];
+    for (let i = 0; i < imageAttachments.length; i++) {
+      const img = imageAttachments[i];
+      const ext = img.mediaType.split("/")[1]?.replace("jpeg", "jpg") || "png";
+      const fileName = `uploaded-image-${i + 1}.${ext}`;
+      const buffer = Buffer.from(img.data, "base64");
+      const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+      await sandbox.files.write(`/home/user/${fileName}`, arrayBuffer);
+      imagePaths.push(`/home/user/${fileName}`);
+    }
+    // Prepend image references so the agent knows to Read them
+    const imageList = imagePaths.map((p) => `- ${p}`).join("\n");
+    finalPrompt = `The user has uploaded ${imagePaths.length} image(s). Use the Read tool to view them:\n${imageList}\n\n${prompt}`;
+  }
+
   // Always upload the latest runner to avoid template staleness
   if (latestRunner) {
     await sandbox.files.write("/home/user/runner.mjs", latestRunner);
   }
 
   // Write config for the runner
-  const config = JSON.stringify({ message: prompt, options, apiKey });
+  const config = JSON.stringify({ message: finalPrompt, options, apiKey });
   await sandbox.files.write("/home/user/config.json", config);
 
   const encoder = new TextEncoder();
@@ -177,6 +199,8 @@ export async function runAgentInSandbox(
           envs: {
             ANTHROPIC_API_KEY: apiKey,
             FAL_KEY: process.env.FAL_KEY || "",
+            NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+            SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
             NODE_OPTIONS: "--max-old-space-size=512",
           },
           timeoutMs: 0, // no command timeout (sandbox timeout governs)

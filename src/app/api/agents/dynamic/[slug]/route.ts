@@ -10,7 +10,7 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-  const { message, history = [] } = await request.json();
+  const { message, history = [], imageAttachments } = await request.json();
 
   if (!message) {
     return new Response(JSON.stringify({ error: "Message is required" }), {
@@ -36,6 +36,7 @@ export async function POST(
 
   try {
     const stream = await runAgentInSandbox(message, history, {
+      imageAttachments,
       allowedTools: agent.allowed_tools || ["Read", "Glob", "Grep", "WebSearch", "WebFetch", "AskUserQuestion"],
       permissionMode: agent.permission_mode || "bypassPermissions",
       agents: agent.agents || undefined,

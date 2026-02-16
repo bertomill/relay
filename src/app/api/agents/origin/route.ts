@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const maxDuration = 600; // 10 minutes (E2B sandbox timeout)
 
 export async function POST(request: NextRequest) {
-  const { message, history = [], documentContent } = await request.json();
+  const { message, history = [], documentContent, imageAttachments } = await request.json();
 
   if (!message) {
     return new Response(JSON.stringify({ error: "Message is required" }), {
@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
   try {
     const stream = await runAgentInSandbox(message, history, {
       documentContent,
+      imageAttachments,
       allowedTools: [
         "Read",
         "Glob",

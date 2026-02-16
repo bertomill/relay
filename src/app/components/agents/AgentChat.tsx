@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import { StatefulButton } from "@/components/ui/stateful-button";
+import { createClient } from "@/lib/supabase/client";
 
 interface QuestionOption {
   label: string;
@@ -49,6 +50,7 @@ interface UploadedFile {
   mimeType: string;
   filePath: string;
   url?: string;
+  base64Data?: string;
 }
 
 interface FileUploadConfig {
@@ -132,6 +134,7 @@ export default function AgentChat({
   const [selectionQuery, setSelectionQuery] = useState("");
   const [postingState, setPostingState] = useState<Record<string, "idle" | "posting" | "posted" | "error">>({});
   const [sessionIdCopied, setSessionIdCopied] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -142,6 +145,14 @@ export default function AgentChat({
 
   const isFull = variant === "full";
   const accent = "#6B8F71";
+
+  // Fetch authenticated user ID on mount
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setUserId(user.id);
+    });
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
@@ -335,15 +346,28 @@ export default function AgentChat({
       const res = await fetch(endpoint, { method: "POST", body: formData });
       const data = await res.json();
       if (data.success) {
-        setUploadedFiles((prev) => [
-          ...prev,
-          {
-            name: data.fileName,
-            mimeType: data.mimeType,
-            filePath: data.filePath || "",
-            url: data.url,
-          },
-        ]);
+        const newFile: UploadedFile = {
+          name: data.fileName,
+          mimeType: data.mimeType,
+          filePath: data.filePath || "",
+          url: data.url,
+        };
+        setUploadedFiles((prev) => [...prev, newFile]);
+
+        // Read image as base64 for vision API support
+        if (isImage) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result as string;
+            const base64 = dataUrl.split(",")[1];
+            setUploadedFiles((prev) =>
+              prev.map((f) =>
+                f.name === data.fileName ? { ...f, base64Data: base64 } : f
+              )
+            );
+          };
+          reader.readAsDataURL(file);
+        }
       } else {
         alert(data.error || "Upload failed");
       }
@@ -384,6 +408,11 @@ export default function AgentChat({
     if (!input.trim() || isLoading || isUploading) return;
 
     let userMessage = input.trim();
+
+    // Collect image attachments for vision API before clearing
+    const imageAttachments = uploadedFiles
+      .filter((f) => f.base64Data && f.mimeType.startsWith("image/"))
+      .map((f) => ({ data: f.base64Data!, mediaType: f.mimeType }));
 
     // Prepend uploaded file info
     if (uploadedFiles.length > 0) {
@@ -428,6 +457,10 @@ export default function AgentChat({
           history: messages.map((m) => ({ role: m.role, content: m.content })),
           // Include current document content so the agent can see user edits
           ...(documentContent ? { documentContent } : {}),
+          // Include userId for agent preferences (style rules)
+          ...(userId ? { userId } : {}),
+          // Include base64 image data for vision API
+          ...(imageAttachments.length > 0 ? { imageAttachments } : {}),
         }),
       });
 
@@ -860,6 +893,73 @@ export default function AgentChat({
     }
   };
 
+  // Render user message content with image previews instead of raw [Uploaded...] text
+  const renderUserContent = (content: string) => {
+    // Match both URL-based and path-based upload markers
+    const uploadRegex = /\[Uploaded(?:\s+image)?:\s*([^\]]+)\]/g;
+    const parts: (string | { type: "image"; src: string; name: string })[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = uploadRegex.exec(content)) !== null) {
+      // Add text before the match
+      if (match.index > lastIndex) {
+        parts.push(content.slice(lastIndex, match.index));
+      }
+
+      const inner = match[1].trim();
+
+      // Check if it's a URL (starts with / or http)
+      if (inner.startsWith("/") || inner.startsWith("http")) {
+        parts.push({ type: "image", src: inner, name: "Uploaded image" });
+      } else {
+        // Parse "filename (mimetype) at /path" format
+        const pathMatch = inner.match(/^(.+?)\s+\(([^)]+)\)\s+at\s+(.+)$/);
+        if (pathMatch) {
+          const [, fileName, mimeType, filePath] = pathMatch;
+          if (mimeType.startsWith("image/")) {
+            // Extract the filename from the full path to build a serving URL
+            const basename = filePath.split("/").pop() || "";
+            const src = `/api/upload?file=${encodeURIComponent(basename)}`;
+            parts.push({ type: "image", src, name: fileName });
+          } else {
+            // Non-image file — show styled pill
+            parts.push(content.slice(match.index, match.index + match[0].length));
+          }
+        } else {
+          parts.push(content.slice(match.index, match.index + match[0].length));
+        }
+      }
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < content.length) {
+      parts.push(content.slice(lastIndex));
+    }
+
+    return (
+      <>
+        {parts.map((part, i) => {
+          if (typeof part === "string") {
+            return <span key={i}>{part}</span>;
+          }
+          return (
+            <figure key={i} className="my-2 first:mt-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={part.src}
+                alt={part.name}
+                className="max-w-full max-h-64 rounded-xl border border-white/20 shadow-sm"
+              />
+            </figure>
+          );
+        })}
+      </>
+    );
+  };
+
   // Header controls (session ID, History, New, Online) — rendered inline or portaled
   const headerControls = isFull ? (
     <div className="flex items-center gap-3">
@@ -1197,7 +1297,9 @@ export default function AgentChat({
                               </ReactMarkdown>
                             </div>
                           ) : (
-                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                            <div className="text-sm whitespace-pre-wrap">
+                              {renderUserContent(message.content)}
+                            </div>
                           )
                         ) : (
                           message.role === "assistant" && isLoading ? (
