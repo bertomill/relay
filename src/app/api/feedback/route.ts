@@ -14,9 +14,18 @@ function escapeHtml(str: string | null | undefined): string {
     .replace(/'/g, "&#39;");
 }
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
+
 export async function POST(request: NextRequest) {
   try {
-    const { email, page_url, category, message } = await request.json();
+    const formData = await request.formData();
+
+    const message = formData.get("message") as string | null;
+    const category = formData.get("category") as string | null;
+    const email = formData.get("email") as string | null;
+    const page_url = formData.get("page_url") as string | null;
+    const screenshot = formData.get("screenshot") as File | null;
 
     if (!message || typeof message !== "string" || !message.trim()) {
       return NextResponse.json(
@@ -26,9 +35,47 @@ export async function POST(request: NextRequest) {
     }
 
     const validCategories = ["bug", "improvement", "feature", "other"];
-    const safeCategory = validCategories.includes(category) ? category : "other";
+    const safeCategory = validCategories.includes(category || "") ? category : "other";
 
     const supabase = createAdminClient();
+
+    // Upload screenshot if provided
+    let screenshot_url: string | null = null;
+    if (screenshot && screenshot.size > 0) {
+      if (screenshot.size > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          { error: "Screenshot must be under 5MB" },
+          { status: 400 }
+        );
+      }
+      if (!ALLOWED_TYPES.includes(screenshot.type)) {
+        return NextResponse.json(
+          { error: "Screenshot must be PNG, JPEG, or WebP" },
+          { status: 400 }
+        );
+      }
+
+      const ext = screenshot.type.split("/")[1] === "jpeg" ? "jpg" : screenshot.type.split("/")[1];
+      const filename = `${Date.now()}-${crypto.randomUUID()}.${ext}`;
+      const buffer = Buffer.from(await screenshot.arrayBuffer());
+
+      const { error: uploadError } = await supabase.storage
+        .from("feedback-screenshots")
+        .upload(filename, buffer, { contentType: screenshot.type });
+
+      if (uploadError) {
+        console.error("Screenshot upload error:", uploadError.message);
+        return NextResponse.json(
+          { error: `Screenshot upload failed: ${uploadError.message}` },
+          { status: 500 }
+        );
+      }
+
+      const { data: urlData } = supabase.storage
+        .from("feedback-screenshots")
+        .getPublicUrl(filename);
+      screenshot_url = urlData.publicUrl;
+    }
 
     const { data, error } = await supabase
       .from("feedback")
@@ -38,6 +85,7 @@ export async function POST(request: NextRequest) {
           page_url: page_url || null,
           category: safeCategory,
           message: message.trim(),
+          screenshot_url,
         },
       ])
       .select();
@@ -71,6 +119,7 @@ export async function POST(request: NextRequest) {
               <tr><td style="padding:8px 12px;font-weight:bold;color:#555;border-bottom:1px solid #eee;">Message</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${escapeHtml(message)}</td></tr>
               ${email ? `<tr><td style="padding:8px 12px;font-weight:bold;color:#555;border-bottom:1px solid #eee;">Email</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${escapeHtml(email)}</td></tr>` : ""}
               ${page_url ? `<tr><td style="padding:8px 12px;font-weight:bold;color:#555;border-bottom:1px solid #eee;">Page</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${escapeHtml(page_url)}</td></tr>` : ""}
+              ${screenshot_url ? `<tr><td style="padding:8px 12px;font-weight:bold;color:#555;border-bottom:1px solid #eee;">Screenshot</td><td style="padding:8px 12px;border-bottom:1px solid #eee;"><a href="${escapeHtml(screenshot_url)}">View screenshot</a></td></tr>` : ""}
             </table>
           `,
         })
