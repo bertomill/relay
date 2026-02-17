@@ -116,7 +116,7 @@ export default function Home() {
 
           <AnimateIn animation="fade-up" delay={50}>
             <h1 className="font-sans font-light text-5xl md:text-7xl lg:text-8xl leading-[1.05] tracking-tight mb-6">
-              Scale <span className="text-[#6B8F71]">lighter.</span>
+              AI Agent <span className="text-[#6B8F71]">Design Studio.</span>
             </h1>
           </AnimateIn>
 

@@ -233,7 +233,6 @@ export function ContactForm() {
                   className={inputClasses}
                   value={formData.firstName}
                   onChange={(e) => handleChange("firstName", e.target.value)}
-                  autoFocus
                 />
                 <input
                   type="text"
@@ -267,7 +266,6 @@ export function ContactForm() {
                   className={inputClasses}
                   value={formData.company}
                   onChange={(e) => handleChange("company", e.target.value)}
-                  autoFocus
                 />
                 <input
                   type="text"
