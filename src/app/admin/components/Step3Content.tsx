@@ -114,9 +114,10 @@ interface ContentIdea {
 interface Step3ContentProps {
   onComplete: () => void;
   isComplete: boolean;
+  externalPrompt?: string;
 }
 
-export default function Step3Content({ onComplete, isComplete }: Step3ContentProps) {
+export default function Step3Content({ onComplete, isComplete, externalPrompt }: Step3ContentProps) {
   const [ideas, setIdeas] = useState<ContentIdea[]>([]);
   const [isLoadingIdeas, setIsLoadingIdeas] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -216,6 +217,15 @@ export default function Step3Content({ onComplete, isComplete }: Step3ContentPro
       prevIdeaId.current = idea.id;
     }
   };
+
+  // Open chat when an external prompt is passed in (e.g. from News step)
+  useEffect(() => {
+    if (externalPrompt) {
+      setAutoSendPrompt(externalPrompt);
+      setShowChat(true);
+      window.history.pushState(null, "", "#content-creator");
+    }
+  }, [externalPrompt]);
 
   // Sync URL hash with chat overlay state
   useEffect(() => {

@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Navigation } from "../components/Navigation";
+import FeedbackWidget from "../components/FeedbackWidget";
 
 const NAV_ITEMS = [
   {
@@ -157,6 +158,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {children}
         </main>
       </div>
+
+      <FeedbackWidget />
     </div>
   );
 }

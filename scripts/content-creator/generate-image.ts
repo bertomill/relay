@@ -56,13 +56,18 @@ async function main() {
 
   const { prompt, size, saveAs, imageUrl, strength } = parseArgs(args);
 
+  // Append style direction to every prompt to avoid generic AI-slop aesthetics
+  const styleSuffix =
+    ", editorial design aesthetic, muted earth tone palette, paper texture, clean composition with negative space, no glowing neon, no 3D renders, no holographic elements";
+  const styledPrompt = prompt + styleSuffix;
+
   let resultData: { images?: { url: string }[] };
 
   if (imageUrl) {
     // Image-to-image mode (no image_size param — output matches input dimensions)
     const result = await fal.subscribe("fal-ai/flux/dev/image-to-image", {
       input: {
-        prompt,
+        prompt: styledPrompt,
         image_url: imageUrl,
         strength,
         num_inference_steps: 40,
@@ -73,7 +78,7 @@ async function main() {
     // Text-to-image mode
     const result = await fal.subscribe("fal-ai/flux/dev", {
       input: {
-        prompt,
+        prompt: styledPrompt,
         image_size: size as
           | "landscape_16_9"
           | "square_hd"

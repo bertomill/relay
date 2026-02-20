@@ -75,17 +75,89 @@ async function run() {
   // in the frontend UI — the user's answer triggers a fresh sandbox invocation.
   let sentAskUserQuestion = false;
 
+  // --- Streaming state ---
+  // When includePartialMessages is enabled, the SDK yields stream_event
+  // messages with token-level deltas. We track whether we're inside a tool
+  // call so we can suppress text echoes while a tool runs.
+  let inToolBlock = false;
+  let currentToolName = "";
+  // Track content block indices that were streamed so we skip their text
+  // when the full assistant message arrives.
+  const streamedTextBlockIndices = new Set();
+  // Track which tool_use content blocks have been streamed (by block index)
+  const streamedToolBlockIndices = new Set();
+
   try {
     process.stderr.write(`[runner] Starting query with message: ${message.slice(0, 100)}...\n`);
     process.stderr.write(`[runner] Options keys: ${Object.keys(options).join(", ")}\n`);
 
-    for await (const msg of query({ prompt: message, options })) {
+    // Enable streaming for real-time token delivery
+    const queryOptions = { ...options, includePartialMessages: true };
+
+    for await (const msg of query({ prompt: message, options: queryOptions })) {
       rawMessages.push(msg);
 
       // Once we've sent an AskUserQuestion to the frontend, ignore everything
       // else the agent produces — it's just the post-tool-result duplicate.
       if (sentAskUserQuestion) {
         continue;
+      }
+
+      // --- Handle streaming events (token-by-token) ---
+      if (msg.type === "stream_event") {
+        const event = msg.event;
+
+        if (event.type === "content_block_start") {
+          if (event.content_block?.type === "tool_use") {
+            inToolBlock = true;
+            currentToolName = event.content_block.name || "";
+            streamedToolBlockIndices.add(event.index);
+
+            // Emit a status indicator for tool start
+            if (currentToolName === "AskUserQuestion") {
+              // AskUserQuestion will be handled when the full message arrives
+            } else if (currentToolName === "Task") {
+              // Subagent — handled on full message
+            } else {
+              let status = `Using ${currentToolName}…`;
+              switch (currentToolName) {
+                case "Skill": status = "Loading guidelines…"; break;
+                case "WebSearch": status = "Searching the web…"; break;
+                case "WebFetch": status = "Reading page…"; break;
+                case "Bash": status = "Running command…"; break;
+                case "Read": status = "Reading file…"; break;
+                case "Glob": status = "Finding files…"; break;
+                case "Grep": status = "Searching code…"; break;
+                case "Write": status = "Writing file…"; break;
+                case "Edit": status = "Editing file…"; break;
+              }
+              sendEvent({ type: "thinking_step", step: status });
+              sendEvent({ type: "status", status });
+            }
+          } else if (event.content_block?.type === "text") {
+            streamedTextBlockIndices.add(event.index);
+          }
+        } else if (event.type === "content_block_delta") {
+          if (event.delta?.type === "text_delta" && !inToolBlock) {
+            const text = event.delta.text;
+            if (text) {
+              sendEvent({ type: "text", text });
+              // Track lines for dedup against full-message processing
+              for (const line of text.split("\n")) {
+                const trimmed = line.trim();
+                if (trimmed.length > 40) sentLines.add(trimmed);
+              }
+            }
+          }
+          // Tool input deltas — we could parse these for more granular status
+          // (e.g. extracting WebSearch query), but the full message handles it.
+        } else if (event.type === "content_block_stop") {
+          if (inToolBlock) {
+            inToolBlock = false;
+            currentToolName = "";
+          }
+        }
+        continue; // Don't process stream_event as a regular message
       }
 
       // Session init
@@ -99,7 +171,9 @@ async function run() {
         const isRepeat = msgId && processedAssistantIds.has(msgId);
         if (msgId) processedAssistantIds.add(msgId);
 
-        for (const block of msg.message.content) {
+        for (let blockIdx = 0; blockIdx < msg.message.content.length; blockIdx++) {
+          const block = msg.message.content[blockIdx];
+
           // For repeat messages, only process tool_use blocks we haven't seen
           if (isRepeat && block.type === "text") {
             continue; // Skip duplicate text — already sent
@@ -109,6 +183,11 @@ async function run() {
           }
           if (block.type === "tool_use" && block.id) {
             processedAssistantIds.add(`tool:${block.id}`);
+          }
+
+          // Skip text blocks that were already streamed token-by-token
+          if (block.type === "text" && streamedTextBlockIndices.has(blockIdx)) {
+            continue;
           }
 
           if (block.type === "text") {
@@ -153,6 +232,18 @@ async function run() {
               rawMessage: msg,
             });
           } else if (block.type === "tool_use") {
+            // Only emit status for tools that weren't already streamed
+            if (streamedToolBlockIndices.has(blockIdx)) {
+              // Still need to handle Write → document_update detection
+              if (block.name === "Write") {
+                const writeTargetPath = block.input?.file_path || "";
+                if (writeTargetPath.endsWith("draft.md")) {
+                  sendEvent({ type: "document_update", content: block.input?.content || "" });
+                  sentDocumentUpdate = true;
+                }
+              }
+              continue;
+            }
             let status = "";
             switch (block.name) {
               case "Skill":
@@ -210,6 +301,11 @@ async function run() {
             }
           }
         }
+
+        // Reset streamed block indices after processing the full message,
+        // since block indices reset per assistant message
+        streamedTextBlockIndices.clear();
+        streamedToolBlockIndices.clear();
       } else {
         if (msg.type === "result") {
           sendEvent({ type: "status", status: "Thinking..." });

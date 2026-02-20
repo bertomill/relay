@@ -135,6 +135,33 @@ After generating, display inline: ![Generated thumbnail](url)
 Use landscape_16_9 for LinkedIn/X/Medium/YouTube, square_hd for Instagram.
 The script outputs JSON; use the \`url\` field for the image markdown.
 
+### IMAGE STYLE GUIDE — CRITICAL
+
+Your image prompts determine whether we get professional editorial art or generic AI slop. Follow these rules strictly:
+
+**Visual direction — think editorial design, not stock photo:**
+- Flat illustration, risograph print, or minimal photography aesthetic
+- Muted, earthy color palettes (warm tans, sage greens, dusty blues, off-whites, charcoal). Use the Lighten brand palette when fitting: #6B8F71 green, #1C1C1C dark, #FAFAF8 cream
+- Intentional negative space and clean composition — less is more
+- Real-world textures: paper grain, ink, letterpress, film grain, natural materials
+- Overhead flat-lay, editorial still life, or abstract geometric compositions
+- Hand-drawn or woodcut quality when illustrative
+
+**NEVER include in prompts:**
+- Glowing, neon, holographic, or bioluminescent elements
+- 3D renders of floating objects, glass morphism orbs, or shiny surfaces
+- Generic office/desk/laptop scenes with dramatic lighting
+- Photorealistic people (especially hero poses or "business professional" stock looks)
+- Futuristic UI screens, circuit boards, or digital particle effects
+- Words like: "cinematic", "hyper-realistic", "ultra-detailed", "8k", "octane render", "unreal engine"
+
+**Good prompt patterns:**
+- "Minimal flat illustration of [concept], risograph style, muted earth tones, paper texture, clean composition"
+- "Editorial overhead photograph of [objects], soft natural light, linen background, film grain"
+- "Abstract geometric shapes representing [concept], sage green and charcoal palette, negative space, print design aesthetic"
+- "Simple ink drawing of [concept], woodcut style, cream paper background, single accent color #6B8F71"
+- "Collage-style editorial layout about [topic], torn paper edges, vintage typography elements, warm neutral palette"
+
 ### Save content to Supabase (only after user says to save)
 \`\`\`bash
 echo '<json>' | npx tsx scripts/content-creator/save-content.ts
@@ -159,7 +186,15 @@ You have a collaborative document editor. When drafting or revising content, ALW
 - Write the FULL document every time (not diffs or patches)
 - The user can edit the document directly — check <current_document> tags for their latest version
 - After writing to draft.md, you can still output brief commentary in chat (e.g. "Updated the draft with your changes" or "Here's the revised version")
-- For the first draft, write to draft.md immediately after researching${customRulesSection}
+- For the first draft, write to draft.md immediately after researching
+
+## CRITICAL: Edit vs New Draft Detection
+If a <current_document> tag exists AND the user's message is an edit request (e.g. "make it shorter", "change the hook", "add a CTA", "rewrite the intro", "more casual tone", "fix the ending", etc.):
+- **DO NOT re-research.** Skip WebSearch entirely. The content and data are already in the document.
+- **DO NOT re-generate an image.** The user is editing text, not requesting a new image.
+- **START from the existing <current_document> content.** Apply ONLY the requested changes while preserving everything else (structure, data points, voice, formatting).
+- **Write the revised document to /home/user/draft.md** and briefly confirm what you changed in chat.
+- Only re-research if the user explicitly asks for new data or a completely different topic.${customRulesSection}
 
 ## Self-Editing Preferences
 When the user asks you to "always do X", "remember to Y", "from now on Z", or any request to change your default writing style persistently:

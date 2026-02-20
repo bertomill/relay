@@ -81,16 +81,18 @@ const ABOUT_SECTIONS = [
 interface StepNewsProps {
   onComplete: () => void;
   isComplete: boolean;
+  onCreateContent?: (newsText: string) => void;
 }
 
 const MIN_SHELF_WIDTH = 240;
 const MAX_SHELF_WIDTH = 600;
 const DEFAULT_SHELF_WIDTH = 380;
 
-export default function StepNews({ onComplete, isComplete }: StepNewsProps) {
+export default function StepNews({ onComplete, isComplete, onCreateContent }: StepNewsProps) {
   const [showChat, setShowChat] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [shelfWidth, setShelfWidth] = useState(DEFAULT_SHELF_WIDTH);
+  const [chatMessages, setChatMessages] = useState<{ role: string; content: string }[]>([]);
   const isDragging = useRef(false);
   const headerPortalRef = useRef<HTMLDivElement | null>(null);
 
@@ -190,6 +192,26 @@ export default function StepNews({ onComplete, isComplete }: StepNewsProps) {
             </div>
             {/* Portal target for AgentChat header controls */}
             <div ref={headerPortalRef} className="ml-auto" />
+            {/* Create content from news */}
+            {onCreateContent && chatMessages.some(m => m.role === "assistant" && m.content.length > 50) && (
+              <button
+                onClick={() => {
+                  const newsText = chatMessages
+                    .filter(m => m.role === "assistant")
+                    .map(m => m.content)
+                    .join("\n\n");
+                  onCreateContent(newsText);
+                  setShowChat(false);
+                  window.history.pushState(null, "", window.location.pathname);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[#6B8F71] text-white hover:bg-[#5A7D60] transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                </svg>
+                Create content from this news
+              </button>
+            )}
             {/* About toggle */}
             <button
               onClick={() => setShowAbout(!showAbout)}
@@ -232,6 +254,7 @@ export default function StepNews({ onComplete, isComplete }: StepNewsProps) {
                   "Latest SDK changes",
                   "Anthropic engineering updates",
                 ]}
+                onMessagesChange={(msgs) => setChatMessages(msgs.map(m => ({ role: m.role, content: m.content })))}
               />
             </div>
 

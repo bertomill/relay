@@ -2,13 +2,12 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { createClient } from "@/lib/supabase/client";
 
 const AgentChat = dynamic(() => import("@/app/components/agents/AgentChat"), {
   ssr: false,
 });
 
-const LEARN_ICON = "M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5";
+const REDDIT_ICON = "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm-1.5-5.25a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Zm3 0a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Zm-4.94 1.69a.75.75 0 0 1 1.06-.06c.853.74 1.93 1.12 3.38 1.12s2.527-.38 3.38-1.12a.75.75 0 0 1 .998 1.12c-1.148.996-2.598 1.5-4.378 1.5s-3.23-.504-4.378-1.5a.75.75 0 0 1-.06-1.06Z";
 
 const INFO_ICON = "M11.25 11.25l.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z";
 
@@ -16,25 +15,26 @@ const ABOUT_SECTIONS = [
   {
     title: "What it does",
     content:
-      "The SDK Tutor is an AI-powered quiz agent that tests your knowledge of the Claude Agents SDK. Each session, it researches the latest official documentation in real time, then delivers 5 interactive multiple-choice questions with instant feedback after every answer.",
+      "The Reddit Agent searches Reddit for recent questions about the Claude Agents SDK, Anthropic API, and AI agent development. It finds unanswered or under-answered posts and drafts helpful, technically accurate replies you can post.",
   },
   {
     title: "How a session works",
     items: [
-      "You click \"Start today's quiz\" and the agent begins by searching the web for the latest Claude Agents SDK docs.",
-      "It reads the relevant documentation pages to build an up-to-date question bank.",
-      "Questions are delivered one at a time — each with 4 options (A, B, C, D).",
-      "After each answer you get immediate feedback: whether you were right, a brief explanation, and a practical tip.",
-      "After question 5, you receive your final score and a summary of what to review.",
+      "You click \"Find Questions\" and the agent searches Reddit for recent SDK-related questions.",
+      "It reads the top threads to understand what people are asking.",
+      "It picks the 3-5 best opportunities (unanswered, recent, high-value).",
+      "For each, it drafts a genuinely helpful answer with code examples where relevant.",
+      "You review, edit, and post the answers yourself.",
     ],
   },
   {
-    title: "Question design",
+    title: "Subreddits covered",
     items: [
-      "5 questions per session, delivered sequentially",
-      "Difficulty mix: 2 easy, 2 medium, 1 hard",
-      "Topics: tools, streaming, sessions, permissions, system prompts, error handling, subagents",
-      "Each question includes a short teaching context before the options",
+      "r/ClaudeAI — Primary Claude community",
+      "r/artificial — Broader AI discussion",
+      "r/MachineLearning — Technical ML community",
+      "r/LangChain — Agent framework discussion",
+      "r/LocalLLaMA — LLM development community",
     ],
   },
   {
@@ -50,7 +50,7 @@ const ABOUT_SECTIONS = [
       },
       {
         label: "Memory",
-        detail: "Conversation history is passed in full with each request. The agent picks up exactly where you left off without re-researching.",
+        detail: "Conversation history is passed in full with each request. Ask follow-ups without losing context.",
       },
     ],
   },
@@ -59,40 +59,17 @@ const ABOUT_SECTIONS = [
     subsections: [
       {
         label: "WebSearch",
-        detail: "Searches the web for the latest Claude Agents SDK documentation and release notes.",
+        detail: "Searches Reddit with site-specific queries for Claude SDK, Anthropic API, and agent development questions.",
       },
       {
         label: "WebFetch",
-        detail: "Fetches and reads full documentation pages to extract accurate, up-to-date content for questions.",
+        detail: "Reads full Reddit threads to understand the question, existing answers, and context.",
       },
-      {
-        label: "AskUserQuestion",
-        detail: "Delivers each quiz question as an interactive multiple-choice prompt with structured options.",
-      },
-    ],
-  },
-  {
-    title: "Tech stack",
-    items: [
-      "API route: Next.js App Router (POST /api/agents/sdk-tutor)",
-      "LLM: Claude via Anthropic API",
-      "Execution: Vercel Sandbox (runAgentInSandbox)",
-      "Frontend: React with dynamic import (no SSR)",
-      "Chat UI: AgentChat component with SSE streaming",
     ],
   },
 ];
 
-interface QuizScore {
-  id: string;
-  score: number;
-  total: number;
-  date: string;
-  created_at: string;
-  session_id?: string;
-}
-
-interface Step4LearnProps {
+interface StepRedditProps {
   onComplete: () => void;
   isComplete: boolean;
 }
@@ -101,83 +78,16 @@ const MIN_SHELF_WIDTH = 240;
 const MAX_SHELF_WIDTH = 600;
 const DEFAULT_SHELF_WIDTH = 380;
 
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-function formatTimestamp(ts: string): string {
-  const d = new Date(ts);
-  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-}
-
-export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) {
+export default function StepReddit({ onComplete, isComplete }: StepRedditProps) {
   const [showChat, setShowChat] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [shelfWidth, setShelfWidth] = useState(DEFAULT_SHELF_WIDTH);
   const isDragging = useRef(false);
   const headerPortalRef = useRef<HTMLDivElement | null>(null);
-  const [scores, setScores] = useState<QuizScore[]>([]);
-  const [scoreSavedForSession, setScoreSavedForSession] = useState<string | null>(null);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
-  // Load quiz scores from Supabase
-  useEffect(() => {
-    async function loadScores() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data } = await supabase
-        .from("quiz_scores")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (data) setScores(data);
-    }
-    loadScores();
-  }, []);
-
-  // Handle quiz score detection from AgentChat
-  const handleQuizScore = useCallback(async (score: number, total: number) => {
-    // Prevent duplicate saves for the same session
-    if (activeSessionId && scoreSavedForSession === activeSessionId) return;
-
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const today = new Date().toISOString().split("T")[0];
-    const { data, error } = await supabase
-      .from("quiz_scores")
-      .insert({
-        user_id: user.id,
-        date: today,
-        score,
-        total,
-        session_id: activeSessionId,
-      })
-      .select()
-      .single();
-
-    if (!error && data) {
-      setScores((prev) => [data, ...prev]);
-      if (activeSessionId) setScoreSavedForSession(activeSessionId);
-    }
-  }, [activeSessionId, scoreSavedForSession]);
-
-  const handleSessionChange = useCallback((sessionId: string | null) => {
-    setActiveSessionId(sessionId);
-    // Reset saved flag when session changes
-    setScoreSavedForSession(null);
-  }, []);
-
-  // Sync URL hash with chat overlay state
   useEffect(() => {
     const hash = window.location.hash.replace("#", "");
-    if (hash === "sdk-tutor") {
+    if (hash === "reddit-sdk") {
       setShowChat(true);
     }
   }, []);
@@ -185,7 +95,7 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
   useEffect(() => {
     const onPopState = () => {
       const hash = window.location.hash.replace("#", "");
-      if (hash !== "sdk-tutor") {
+      if (hash !== "reddit-sdk") {
         setShowChat(false);
       }
     };
@@ -201,7 +111,6 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging.current) return;
-      // Dragging left increases width, dragging right decreases
       const delta = startX - e.clientX;
       const newWidth = Math.min(MAX_SHELF_WIDTH, Math.max(MIN_SHELF_WIDTH, startWidth + delta));
       setShelfWidth(newWidth);
@@ -221,92 +130,29 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
     document.addEventListener("mouseup", handleMouseUp);
   }, [shelfWidth]);
 
-  const latestScore = scores[0] || null;
-
   return (
     <div>
-      {/* Description */}
       <p className="text-sm text-[#666] mb-4 leading-relaxed">
-        Test your knowledge of the Claude Agents SDK with an AI-powered quiz. The tutor
-        researches the latest docs, then asks 5 interactive questions — with instant
-        feedback and practical tips after each answer.
+        Search Reddit for questions about Claude Agents SDK, Anthropic API, and
+        AI agent development. Find unanswered posts and draft helpful replies to
+        build community presence.
       </p>
 
-      {/* Start Quiz button */}
       <button
         onClick={() => {
           setShowChat(true);
-          window.history.pushState(null, "", "#sdk-tutor");
+          window.history.pushState(null, "", "#reddit-sdk");
         }}
         className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[#6B8F71]/30 bg-[#6B8F71]/5 text-[#6B8F71] text-sm font-medium hover:bg-[#6B8F71]/10 hover:border-[#6B8F71]/50 transition-colors duration-200"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d={LEARN_ICON} />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
         </svg>
-        Start SDK Quiz
+        Find Questions
       </button>
 
-      {/* Quiz History */}
-      {scores.length > 0 && (
-        <div className="mt-4 border border-[#E8E6E1] rounded-2xl overflow-hidden">
-          {/* Header */}
-          <div className="px-4 py-3 border-b border-[#E8E6E1] bg-[#FAFAF8]">
-            <span className="text-[10px] font-semibold text-[#6B8F71] uppercase tracking-[0.15em]">
-              Quiz History
-            </span>
-          </div>
-
-          {/* Latest score highlight */}
-          {latestScore && (
-            <div className="px-4 py-4 bg-[#6B8F71]/5 border-b border-[#E8E6E1]">
-              <div className="flex items-center gap-3">
-                <span className="font-serif text-3xl text-[#6B8F71] leading-none">
-                  {latestScore.score}/{latestScore.total}
-                </span>
-                <div>
-                  <p className="text-xs font-medium text-[#1C1C1C]">Latest Score</p>
-                  <p className="text-[11px] text-[#999]">
-                    {formatDate(latestScore.date)} at {formatTimestamp(latestScore.created_at)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Score list */}
-          <div className="max-h-48 overflow-y-auto">
-            {scores.map((s) => (
-              <div
-                key={s.id}
-                className="flex items-center gap-3 px-4 py-2.5 border-b border-[#E8E6E1] last:border-b-0"
-              >
-                <span className="text-xs text-[#999] w-16 shrink-0">
-                  {formatDate(s.date)}
-                </span>
-                {/* Visual dot bar */}
-                <div className="flex gap-1 flex-1">
-                  {Array.from({ length: s.total }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-4 h-2 rounded-sm ${
-                        i < s.score ? "bg-[#6B8F71]" : "bg-[#E8E6E1]"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs font-medium text-[#1C1C1C] w-8 text-right">
-                  {s.score}/{s.total}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Full-screen agent chat overlay */}
       {showChat && (
         <div className="fixed inset-0 z-50 bg-[#FAFAF8] flex flex-col">
-          {/* Header bar */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-[#E8E6E1] bg-white shrink-0">
             <button
               onClick={() => {
@@ -322,15 +168,13 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
             </button>
             <div className="flex items-center gap-2">
               <svg className="w-3.5 h-3.5 text-[#6B8F71] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d={LEARN_ICON} />
+                <path strokeLinecap="round" strokeLinejoin="round" d={REDDIT_ICON} />
               </svg>
               <span className="text-sm font-medium text-[#1C1C1C] truncate">
-                SDK Tutor
+                Reddit SDK Q&A
               </span>
             </div>
-            {/* Portal target for AgentChat header controls */}
             <div ref={headerPortalRef} className="ml-auto" />
-            {/* About toggle */}
             <button
               onClick={() => setShowAbout(!showAbout)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
@@ -346,20 +190,18 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
             </button>
           </div>
 
-          {/* Main content area — chat + optional shelf */}
           <div className="flex-1 flex min-h-0 overflow-hidden">
-            {/* Chat area */}
             <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden px-4">
               <AgentChat
-                agentId="sdk-tutor"
-                apiEndpoint="/api/agents/sdk-tutor"
-                storageKey="sdk-tutor-sessions"
-                placeholder="Ask about the Claude Agents SDK..."
-                emptyStateTitle="Claude Agents SDK Quiz"
-                emptyStateDescription="I'll research the latest SDK docs, then quiz you with 5 interactive questions. Ready?"
-                loadingText="Researching..."
-                agentIcon={LEARN_ICON}
-                agentName="SDK Tutor"
+                agentId="reddit-sdk"
+                apiEndpoint="/api/agents/reddit-sdk"
+                storageKey="reddit-sdk-sessions"
+                placeholder="Ask about Reddit questions on Claude SDK..."
+                emptyStateTitle="Reddit SDK Q&A"
+                emptyStateDescription="I'll search Reddit for recent questions about Claude Agents SDK and AI agent development, then draft helpful answers you can post."
+                loadingText="Searching Reddit..."
+                agentIcon={REDDIT_ICON}
+                agentName="Reddit SDK"
                 variant="full"
                 headerPortalRef={headerPortalRef}
                 fileUpload={{
@@ -368,16 +210,13 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
                   endpoint: "/api/upload",
                 }}
                 starterPrompts={[
-                  "Start today's quiz",
-                  "Quiz me on advanced topics",
-                  "What's new in the SDK?",
+                  "Find unanswered questions",
+                  "Search r/ClaudeAI",
+                  "SDK help opportunities",
                 ]}
-                onQuizScore={handleQuizScore}
-                onSessionChange={handleSessionChange}
               />
             </div>
 
-            {/* About shelf — slides in from right, draggable */}
             <div
               className={`shrink-0 bg-white overflow-hidden transition-all duration-300 ease-in-out ${
                 showAbout ? "opacity-100" : "opacity-0 border-l-0"
@@ -385,7 +224,6 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
               style={{ width: showAbout ? shelfWidth : 0 }}
             >
               <div className="relative h-full flex">
-                {/* Drag handle */}
                 <div
                   onMouseDown={handleMouseDown}
                   className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize z-10 group"
@@ -394,20 +232,18 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
                   <div className="h-full w-px bg-[#E8E6E1] group-hover:bg-[#6B8F71] group-active:bg-[#6B8F71] transition-colors" />
                 </div>
               <div className="flex-1 overflow-y-auto p-5 pl-3">
-                {/* Shelf header */}
                 <div className="flex items-center gap-3 mb-5 pb-4 border-b border-[#E8E6E1]">
                   <div className="w-10 h-10 rounded-xl bg-[#6B8F71]/10 flex items-center justify-center">
                     <svg className="w-5 h-5 text-[#6B8F71]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d={LEARN_ICON} />
+                      <path strokeLinecap="round" strokeLinejoin="round" d={REDDIT_ICON} />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-[#1C1C1C]">SDK Tutor</h3>
-                    <p className="text-[11px] text-[#999]">Interactive quiz agent</p>
+                    <h3 className="text-sm font-semibold text-[#1C1C1C]">Reddit SDK Q&A</h3>
+                    <p className="text-[11px] text-[#999]">Community engagement agent</p>
                   </div>
                 </div>
 
-                {/* Sections */}
                 <div className="space-y-5">
                   {ABOUT_SECTIONS.map((section) => (
                     <div key={section.title}>
@@ -415,14 +251,12 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
                         {section.title}
                       </h4>
 
-                      {/* Plain text content */}
                       {section.content && (
                         <p className="text-[13px] text-[#555] leading-relaxed">
                           {section.content}
                         </p>
                       )}
 
-                      {/* Bulleted items */}
                       {section.items && (
                         <ul className="space-y-1.5">
                           {section.items.map((item, i) => (
@@ -438,7 +272,6 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
                         </ul>
                       )}
 
-                      {/* Labeled subsections (tools, architecture) */}
                       {section.subsections && (
                         <div className="space-y-2.5">
                           {section.subsections.map((sub) => (
@@ -459,13 +292,12 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
         </div>
       )}
 
-      {/* Mark complete / undo */}
       {!isComplete && (
         <button
           onClick={onComplete}
           className="mt-3 w-full px-4 py-2.5 rounded-lg bg-[#6B8F71] text-white text-sm font-medium hover:bg-[#5A7D60] transition-colors duration-200"
         >
-          Mark Learning Complete
+          Mark Reddit Complete
         </button>
       )}
 
@@ -474,7 +306,7 @@ export default function Step4Learn({ onComplete, isComplete }: Step4LearnProps) 
           onClick={onComplete}
           className="mt-3 w-full py-2.5 text-center rounded-lg bg-[#6B8F71]/5 hover:bg-[#6B8F71]/10 transition-colors"
         >
-          <p className="text-sm text-[#6B8F71] font-medium">Learning complete! (click to undo)</p>
+          <p className="text-sm text-[#6B8F71] font-medium">Reddit complete! (click to undo)</p>
         </button>
       )}
     </div>

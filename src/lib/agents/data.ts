@@ -297,6 +297,79 @@ const agents: AgentConfig[] = [
       },
     ],
   },
+  {
+    id: "data-analyst",
+    name: "Data Analyst",
+    tagline: "Explore and analyze your Supabase data",
+    description:
+      "A read-only data exploration agent that can query all Supabase tables, inspect schemas, count rows, and surface insights. Powered by custom MCP tools for safe database access.",
+    status: "active",
+    iconPath:
+      "M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6",
+    chatConfig: {
+      apiEndpoint: "/api/agents/data-analyst",
+      storageKey: "data-analyst-sessions",
+      placeholder: "Ask about your data...",
+      emptyStateTitle: "Explore your data",
+      emptyStateDescription:
+        "Ask me to query tables, inspect schemas, count records, or find patterns in your Supabase database.",
+      loadingText: "Querying...",
+      starterPrompts: [
+        "What tables are available and how many rows does each have?",
+        "Show me the latest 5 inquiries",
+        "How many posts exist per platform?",
+        "Describe the schema of the social_leads table",
+      ],
+    },
+    capabilities: [
+      {
+        title: "Database Querying",
+        description:
+          "Query any Supabase table with filters, ordering, and limits. Supports read-only SELECT operations on all application tables.",
+        icon: "M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125",
+      },
+      {
+        title: "Schema Inspection",
+        description:
+          "Examine table structures — column names, data types, and sample values — to understand your data model before querying.",
+        icon: "M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5M12 14.625v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 14.625c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m0 0v.375",
+      },
+      {
+        title: "Data Aggregation",
+        description:
+          "Count rows with filters to get quick breakdowns — how many posts per platform, inquiries this month, leads by status, and more.",
+        icon: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z",
+      },
+      {
+        title: "Insight Generation",
+        description:
+          "Interprets query results to surface patterns, trends, and actionable insights from your data.",
+        icon: "M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18",
+      },
+    ],
+    faq: [
+      {
+        question: "What data can the Data Analyst access?",
+        answer:
+          "The Data Analyst has read-only access to all application tables in Supabase, including content (columns, topics, posts), leads (inquiries, social_leads, outreach_contacts), feedback, reviews, and more. It cannot modify any data.",
+      },
+      {
+        question: "Is my data safe?",
+        answer:
+          "Yes. The agent uses strictly read-only operations — it can only SELECT data, never INSERT, UPDATE, or DELETE. All queries are limited to 100 rows maximum to prevent performance issues.",
+      },
+      {
+        question: "What kinds of questions can I ask?",
+        answer:
+          'You can ask things like "How many inquiries came in this month?", "Show me all posts with status draft", "What does the social_leads table look like?", or "Which platform has the most content?".',
+      },
+      {
+        question: "Can it join data across tables?",
+        answer:
+          "The agent can query individual tables and make multiple queries to correlate data across tables. It uses Supabase's select syntax which supports basic relationship queries for related tables.",
+      },
+    ],
+  },
 ];
 
 export function getAllAgents(): AgentConfig[] {

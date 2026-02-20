@@ -12,6 +12,8 @@ import Step3Content from "./components/Step3Content";
 import Step1Leads from "./components/Step1Leads";
 import Step5Improve from "./components/Step5Improve";
 import Step6Visuals from "./components/Step6Visuals";
+import StepReddit from "./components/StepReddit";
+import StepCustDev from "./components/StepCustDev";
 
 
 function formatDateDisplay(dateStr: string): string {
@@ -39,6 +41,7 @@ export default function AdminDashboard() {
   const [expandedStep, setExpandedStep] = useState<number | null>(null);
   const [newInquiryCount, setNewInquiryCount] = useState(0);
   const [feedbackCount, setFeedbackCount] = useState(0);
+  const [newsForContent, setNewsForContent] = useState<string | undefined>();
   const [selectedDate, setSelectedDate] = useState(getTodayString);
   const supabase = createClient();
 
@@ -55,6 +58,8 @@ export default function AdminDashboard() {
     markInquiriesReviewed,
     markWebsiteImproved,
     markVisualsGenerated,
+    markRedditEngaged,
+    markCustDevCompleted,
   } = useDailyProgress(selectedDate);
 
   const goToPreviousDay = useCallback(() => {
@@ -114,7 +119,7 @@ export default function AdminDashboard() {
 
   const advanceToNext = useCallback((currentStep: number) => {
     const next = currentStep + 1;
-    if (next < 7) {
+    if (next < 9) {
       setExpandedStep(next);
     } else {
       setExpandedStep(null);
@@ -134,6 +139,12 @@ export default function AdminDashboard() {
     markNewsRead();
     if (!wasComplete) advanceToNext(1);
   }, [markNewsRead, advanceToNext, stepsComplete]);
+
+  const handleCreateContentFromNews = useCallback((newsText: string) => {
+    const prompt = `I just read today's SDK & AI news briefing. Help me create a social media post based on this news. Here's the briefing:\n\n${newsText}\n\nDraft a LinkedIn or X post highlighting the most interesting takeaway.`;
+    setNewsForContent(prompt);
+    setExpandedStep(3); // Expand the Content step
+  }, []);
 
   // Step 2: Create Agent
   const handleAgentComplete = useCallback(() => {
@@ -169,6 +180,20 @@ export default function AdminDashboard() {
     markVisualsGenerated();
     if (!wasComplete) advanceToNext(6);
   }, [markVisualsGenerated, advanceToNext, stepsComplete]);
+
+  // Step 7: Reddit Engagement
+  const handleRedditComplete = useCallback(() => {
+    const wasComplete = stepsComplete[7];
+    markRedditEngaged();
+    if (!wasComplete) advanceToNext(7);
+  }, [markRedditEngaged, advanceToNext, stepsComplete]);
+
+  // Step 8: Customer Development
+  const handleCustDevComplete = useCallback(() => {
+    const wasComplete = stepsComplete[8];
+    markCustDevCompleted();
+    if (!wasComplete) advanceToNext(8);
+  }, [markCustDevCompleted, advanceToNext, stepsComplete]);
 
   // Greeting based on time of day
   const getGreeting = () => {
@@ -302,6 +327,7 @@ export default function AdminDashboard() {
           <StepNews
             onComplete={handleNewsComplete}
             isComplete={stepsComplete[1]}
+            onCreateContent={handleCreateContentFromNews}
           />
         </StepCard>
 
@@ -334,6 +360,7 @@ export default function AdminDashboard() {
           <Step3Content
             onComplete={handleContentComplete}
             isComplete={stepsComplete[3]}
+            externalPrompt={newsForContent}
           />
         </StepCard>
 
@@ -397,6 +424,38 @@ export default function AdminDashboard() {
           <Step6Visuals
             onComplete={handleVisualsComplete}
             isComplete={stepsComplete[6]}
+          />
+        </StepCard>
+
+        {/* Step 8: Reddit Engagement */}
+        <StepCard
+          stepNumber={8}
+          label="Engage"
+          title="Reddit SDK Q&A"
+          timeEstimate="~15 min"
+          isComplete={stepsComplete[7]}
+          isExpanded={expandedStep === 7}
+          onToggle={() => toggleStep(7)}
+        >
+          <StepReddit
+            onComplete={handleRedditComplete}
+            isComplete={stepsComplete[7]}
+          />
+        </StepCard>
+
+        {/* Step 9: Customer Development */}
+        <StepCard
+          stepNumber={9}
+          label="Develop"
+          title="Customer Development"
+          timeEstimate="~10 min"
+          isComplete={stepsComplete[8]}
+          isExpanded={expandedStep === 8}
+          onToggle={() => toggleStep(8)}
+        >
+          <StepCustDev
+            onComplete={handleCustDevComplete}
+            isComplete={stepsComplete[8]}
           />
         </StepCard>
       </div>

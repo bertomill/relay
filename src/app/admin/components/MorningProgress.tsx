@@ -5,8 +5,8 @@ interface MorningProgressProps {
   completedCount: number;
 }
 
-const STEP_LABELS = ["Learn", "News", "Agent", "Content", "Leads", "Improve", "Visuals"];
-const TIME_ESTIMATES = [15, 10, 20, 25, 5, 10, 5]; // minutes per step
+const STEP_LABELS = ["Learn", "News", "Agent", "Content", "Leads", "Improve", "Visuals", "Reddit", "CustDev"];
+const TIME_ESTIMATES = [15, 10, 20, 25, 5, 10, 5, 15, 10]; // minutes per step
 
 export default function MorningProgress({ stepsComplete, completedCount }: MorningProgressProps) {
   const remainingMinutes = TIME_ESTIMATES.reduce(
@@ -35,7 +35,7 @@ export default function MorningProgress({ stepsComplete, completedCount }: Morni
                 i + 1
               )}
             </div>
-            {i < 5 && (
+            {i < STEP_LABELS.length - 1 && (
               <div
                 className={`w-8 h-0.5 transition-colors duration-500 ${
                   complete ? "bg-[#6B8F71]" : "bg-[#E8E6E1]"
@@ -58,7 +58,7 @@ export default function MorningProgress({ stepsComplete, completedCount }: Morni
               >
                 {label}
               </span>
-              {i < 5 && <div className="w-8" />}
+              {i < STEP_LABELS.length - 1 && <div className="w-8" />}
             </div>
           ))}
         </div>
@@ -66,11 +66,11 @@ export default function MorningProgress({ stepsComplete, completedCount }: Morni
 
       {/* Status text */}
       <p className="text-center text-sm text-[#666]">
-        {completedCount === 6 ? (
+        {completedCount === STEP_LABELS.length ? (
           <span className="text-[#6B8F71] font-medium">All done for today!</span>
         ) : (
           <>
-            <span className="font-medium text-[#1C1C1C]">{completedCount} of 6</span>
+            <span className="font-medium text-[#1C1C1C]">{completedCount} of {STEP_LABELS.length}</span>
             {" complete"}
             {remainingMinutes > 0 && (
               <span className="text-[#999]"> &middot; ~{remainingMinutes} min remaining</span>

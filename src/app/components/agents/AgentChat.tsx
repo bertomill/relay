@@ -89,6 +89,10 @@ interface AgentChatProps {
   documentContent?: string;
   /** Called when the active session changes (new chat, resume, or first session from server) */
   onSessionChange?: (sessionId: string | null) => void;
+  /** Called when a quiz score is detected in the agent's response (e.g. "You scored 4/5!") */
+  onQuizScore?: (score: number, total: number) => void;
+  /** Called whenever the messages array changes — lets parents track chat content */
+  onMessagesChange?: (messages: Message[]) => void;
 }
 
 export default function AgentChat({
@@ -113,6 +117,8 @@ export default function AgentChat({
   onDocumentUpdate,
   documentContent,
   onSessionChange,
+  onQuizScore,
+  onMessagesChange,
 }: AgentChatProps) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -127,6 +133,7 @@ export default function AgentChat({
   const [statusText, setStatusText] = useState<string | null>(null);
   const [thinkingSteps, setThinkingSteps] = useState<string[]>([]);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const wasLoadingRef = useRef(false);
   const loadingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [selectedText, setSelectedText] = useState("");
@@ -235,6 +242,11 @@ export default function AgentChat({
     }
   }, [sessionId, messages]);
 
+  // Notify parent of message changes
+  useEffect(() => {
+    onMessagesChange?.(messages);
+  }, [messages, onMessagesChange]);
+
   // Generate a title for the session after first exchange completes
   useEffect(() => {
     if (
@@ -296,6 +308,66 @@ export default function AgentChat({
       if (loadingTimerRef.current) clearInterval(loadingTimerRef.current);
     };
   }, [isLoading]);
+
+  // Favicon checkmark notification when agent finishes responding
+  useEffect(() => {
+    if (wasLoadingRef.current && !isLoading && messages.length > 0) {
+      // Agent just finished — swap favicon to checkmark if tab is hidden
+      if (document.hidden) {
+        const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+        const originalHref = link?.href;
+
+        // Create a checkmark favicon using canvas
+        const canvas = document.createElement("canvas");
+        canvas.width = 32;
+        canvas.height = 32;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          // Green rounded background
+          ctx.beginPath();
+          ctx.roundRect(0, 0, 32, 32, 8);
+          ctx.fillStyle = "#6B8F71";
+          ctx.fill();
+
+          // White checkmark
+          ctx.beginPath();
+          ctx.moveTo(8, 17);
+          ctx.lineTo(13, 22);
+          ctx.lineTo(24, 10);
+          ctx.strokeStyle = "white";
+          ctx.lineWidth = 3;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.stroke();
+
+          const checkmarkUrl = canvas.toDataURL("image/png");
+
+          if (link) {
+            link.href = checkmarkUrl;
+          } else {
+            const newLink = document.createElement("link");
+            newLink.rel = "icon";
+            newLink.href = checkmarkUrl;
+            document.head.appendChild(newLink);
+          }
+
+          // Restore original favicon when tab gets focus
+          const restoreFavicon = () => {
+            const currentLink = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+            if (currentLink && originalHref) {
+              currentLink.href = originalHref;
+            } else if (currentLink) {
+              // Reset to default SVG icon
+              currentLink.href = "/icon.svg";
+            }
+            window.removeEventListener("focus", restoreFavicon);
+          };
+          window.addEventListener("focus", restoreFavicon);
+        }
+      }
+    }
+    wasLoadingRef.current = isLoading;
+  }, [isLoading, messages.length]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -446,6 +518,8 @@ export default function AgentChat({
       rawOutput: []
     }]);
 
+    let accumulatedContentForScore = "";
+
     try {
       const response = await fetch(apiEndpoint, {
         method: "POST",
@@ -546,6 +620,7 @@ export default function AgentChat({
 
                 const newText = separator + parsed.text;
                 accumulatedContent += newText;
+                accumulatedContentForScore = accumulatedContent;
                 setStatusText(null);
                 setMessages((prev) => {
                   const newMessages = [...prev];
@@ -609,6 +684,21 @@ export default function AgentChat({
 
               if (parsed.type === "ask_user_question") {
                 receivedQuestion = true;
+
+                // Build a text summary of the question so it appears in
+                // conversation history sent to the next sandbox invocation.
+                // Without this the agent doesn't know what it already asked
+                // and re-asks the same question.
+                const questionSummary = (parsed.questions as Array<{ header?: string; question: string; options?: Array<{ label: string }> }>)
+                  .map((q) => {
+                    const hdr = q.header ? `[${q.header}] ` : "";
+                    const opts = q.options
+                      ? "\n" + q.options.map((o, i) => `  ${String.fromCharCode(65 + i)}. ${o.label}`).join("\n")
+                      : "";
+                    return `${hdr}${q.question}${opts}`;
+                  })
+                  .join("\n\n");
+
                 setMessages((prev) => {
                   const newMessages = [...prev];
                   const lastIdx = newMessages.length - 1;
@@ -616,6 +706,7 @@ export default function AgentChat({
                   if (lastMessage.role === "assistant") {
                     newMessages[lastIdx] = {
                       ...lastMessage,
+                      content: lastMessage.content + "\n\n" + questionSummary,
                       pendingQuestion: {
                         toolUseId: parsed.toolUseId,
                         questions: parsed.questions,
@@ -690,6 +781,14 @@ export default function AgentChat({
       setIsLoading(false);
       setStatusText(null);
       setThinkingSteps([]);
+
+      // Detect quiz scores in the accumulated response
+      if (onQuizScore && accumulatedContentForScore) {
+        const scoreMatch = accumulatedContentForScore.match(/(?:you\s+scored|score[:\s]+)(\d+)\s*\/\s*(\d+)/i);
+        if (scoreMatch) {
+          onQuizScore(parseInt(scoreMatch[1], 10), parseInt(scoreMatch[2], 10));
+        }
+      }
     }
   };
 
@@ -1080,7 +1179,20 @@ export default function AgentChat({
   ) : null;
 
   return (
-    <div className={`flex flex-col ${isFull ? `flex-1 min-h-0 ${headerPortalRef ? "pt-4 pb-8" : "py-8"}` : "h-full"}`}>
+    <div className={`flex flex-col relative ${isFull ? `flex-1 min-h-0 ${headerPortalRef ? "pt-4 pb-8" : "py-8"}` : "h-full"}`}>
+      {/* Subtle green-tinted film grain — fades in from the bottom-right corner */}
+      <div
+        className="absolute inset-0 pointer-events-none z-0"
+        aria-hidden="true"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.4 0 0 0 0.42 0.4 0 0 0 0.56 0.4 0 0 0 0.44 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)'/%3E%3C/svg%3E")`,
+          backgroundRepeat: "repeat",
+          maskImage: "linear-gradient(to bottom right, transparent 30%, rgba(0,0,0,0.35) 100%)",
+          WebkitMaskImage: "linear-gradient(to bottom right, transparent 30%, rgba(0,0,0,0.35) 100%)",
+          opacity: 0.4,
+        }}
+      />
+      <div className={`flex flex-col relative z-10 ${isFull ? "flex-1 min-h-0" : "h-full"}`}>
       {/* Portal header controls to external container if ref provided */}
       {headerControls && headerPortalRef?.current && createPortal(headerControls, headerPortalRef.current)}
 
@@ -1858,6 +1970,7 @@ export default function AgentChat({
             </StatefulButton>
           </form>
         </div>
+      </div>
       </div>
     </div>
   );

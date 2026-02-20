@@ -12,6 +12,8 @@ interface DailyProgressState {
   agentCreated: boolean;
   websiteImproved: boolean;
   visualsGenerated: boolean;
+  redditEngaged: boolean;
+  custDevCompleted: boolean;
 }
 
 const LOCAL_STORAGE_KEY = "lighten-morning-dashboard";
@@ -34,6 +36,8 @@ function getDefaultState(date: string): DailyProgressState {
     agentCreated: false,
     websiteImproved: false,
     visualsGenerated: false,
+    redditEngaged: false,
+    custDevCompleted: false,
   };
 }
 
@@ -199,6 +203,14 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     update((prev) => ({ ...prev, visualsGenerated: !prev.visualsGenerated }));
   }, [update]);
 
+  const markRedditEngaged = useCallback(() => {
+    update((prev) => ({ ...prev, redditEngaged: !prev.redditEngaged }));
+  }, [update]);
+
+  const markCustDevCompleted = useCallback(() => {
+    update((prev) => ({ ...prev, custDevCompleted: !prev.custDevCompleted }));
+  }, [update]);
+
   const markNewsRead = useCallback(() => {
     update((prev) => ({ ...prev, newsRead: !prev.newsRead }));
   }, [update]);
@@ -212,6 +224,8 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     progress.inquiriesReviewed,
     progress.websiteImproved,
     progress.visualsGenerated ?? false,
+    progress.redditEngaged ?? false,
+    progress.custDevCompleted ?? false,
   ];
 
   const completedCount = stepsComplete.filter(Boolean).length;
@@ -220,7 +234,7 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     progress,
     stepsComplete,
     completedCount,
-    totalSteps: 7,
+    totalSteps: 9,
     isToday,
     isLoadingProgress,
     markInquiriesReviewed,
@@ -230,6 +244,8 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     markAgentCreated,
     markWebsiteImproved,
     markVisualsGenerated,
+    markRedditEngaged,
+    markCustDevCompleted,
   };
 }
 
