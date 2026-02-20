@@ -126,7 +126,7 @@ export default function Step3Content({ onComplete, isComplete, externalPrompt }:
   const [selectedIdea, setSelectedIdea] = useState<ContentIdea | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
-  const [showIdeasSidebar, setShowIdeasSidebar] = useState(true);
+  const [showIdeasSidebar, setShowIdeasSidebar] = useState(false);
   const [chatInsertText, setChatInsertText] = useState<string | undefined>();
   const [chatInsertKey, setChatInsertKey] = useState(0);
   const [targetAudience, setTargetAudience] = useState("");
@@ -910,12 +910,13 @@ export default function Step3Content({ onComplete, isComplete, externalPrompt }:
           {/* Main content area — ideas sidebar + chat + optional about shelf */}
           <div className="flex-1 flex min-h-0 overflow-hidden">
             {/* Ideas sidebar — slides in from left */}
-            <div
-              className={`shrink-0 border-r border-[#E8E6E1] bg-white overflow-y-auto transition-all duration-300 ease-in-out ${
-                showIdeasSidebar ? "w-[300px] opacity-100" : "w-0 opacity-0 border-r-0"
-              }`}
-            >
-              <div className="w-[300px] p-4">
+            <div className="relative shrink-0 flex">
+              <div
+                className={`border-r border-[#E8E6E1] bg-white overflow-y-auto transition-all duration-300 ease-in-out ${
+                  showIdeasSidebar ? "w-[300px] opacity-100" : "w-0 opacity-0 border-r-0"
+                }`}
+              >
+                <div className="w-[300px] p-4">
                 {/* Sidebar header */}
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-[10px] font-semibold text-[#6B8F71] uppercase tracking-[0.15em]">
@@ -1020,6 +1021,17 @@ export default function Step3Content({ onComplete, isComplete, externalPrompt }:
                   </div>
                 )}
               </div>
+              </div>
+              {/* Edge arrow toggle */}
+              <button
+                onClick={() => setShowIdeasSidebar(!showIdeasSidebar)}
+                className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-6 h-12 flex items-center justify-center bg-white border border-[#E8E6E1] rounded-r-lg shadow-sm hover:bg-[#F5F4F0] transition-colors"
+                title={showIdeasSidebar ? "Collapse ideas" : "Expand ideas"}
+              >
+                <svg className={`w-3.5 h-3.5 text-[#666] transition-transform duration-300 ${showIdeasSidebar ? "" : "rotate-180"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
             </div>
 
             {/* Chat area */}
@@ -1064,18 +1076,34 @@ export default function Step3Content({ onComplete, isComplete, externalPrompt }:
             </div>
 
             {/* Document editor panel */}
-            {showDocument && (
-              <div className="w-1/2 flex flex-col min-h-0 min-w-0 overflow-hidden border-l border-[#E8E6E1] bg-white">
-                <DocumentEditor
-                  content={documentContent}
-                  onChange={setDocumentContent}
-                  isAgentWriting={isAgentWriting}
-                  connectedPlatforms={connectedPlatforms}
-                  onPostToSocial={handlePostToSocial}
-                  linkedInOrgName={linkedInOrgConnection?.orgName}
-                />
+            <div className={`relative flex transition-all duration-300 ease-in-out ${showDocument ? "w-1/2" : "w-0"}`}>
+              {/* Edge arrow toggle */}
+              <button
+                onClick={() => setShowDocument(!showDocument)}
+                className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-6 h-12 flex items-center justify-center bg-white border border-[#E8E6E1] rounded-l-lg shadow-sm hover:bg-[#F5F4F0] transition-colors"
+                title={showDocument ? "Collapse document" : "Expand document"}
+              >
+                <svg className={`w-3.5 h-3.5 text-[#666] transition-transform duration-300 ${showDocument ? "" : "rotate-180"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              <div
+                className={`flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden border-l border-[#E8E6E1] bg-white ${
+                  showDocument ? "opacity-100" : "opacity-0 border-l-0"
+                }`}
+              >
+                {showDocument && (
+                  <DocumentEditor
+                    content={documentContent}
+                    onChange={setDocumentContent}
+                    isAgentWriting={isAgentWriting}
+                    connectedPlatforms={connectedPlatforms}
+                    onPostToSocial={handlePostToSocial}
+                    linkedInOrgName={linkedInOrgConnection?.orgName}
+                  />
+                )}
               </div>
-            )}
+            </div>
 
             {/* About shelf — slides in from right */}
             <div

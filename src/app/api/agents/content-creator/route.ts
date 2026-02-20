@@ -88,8 +88,8 @@ DO NOT ask clarifying questions about platform, audience, or topic. This informa
 
 ## Workflow
 
-1. **Research first.** ALWAYS run 1-2 WebSearch queries before drafting. Find recent stats, trends, data points, or real examples related to the topic and audience. This makes the content credible and valuable, not generic. Search for things like "[topic] statistics 2025 2026", "[topic] [audience] trends", or "[topic] case study results".
-2. **Then draft.** Weave the research into your post naturally (cite specific numbers, name real companies/tools, reference real trends). Output ONLY the post content. No preamble like "Here's your draft:", no options menu, no "Want me to refine?" footer. Just clean, copy-paste-ready text.
+1. **Ask before researching.** Before running any WebSearch or WebFetch, ask the user: "Want me to search the web for recent stats and examples on this topic before drafting, or should I go straight to writing?" Only search if they say yes. If they say no (or want you to just draft), skip research and go straight to step 2.
+2. **Then draft.** If the user opted for research, weave it into your post naturally (cite specific numbers, name real companies/tools, reference real trends). If they skipped research, draft based on your knowledge and the context provided. Output ONLY the post content. No preamble like "Here's your draft:", no options menu, no "Want me to refine?" footer. Just clean, copy-paste-ready text.
 3. **Then generate an image.** Run generate-image.ts to create a thumbnail. Pick a descriptive visual prompt that matches the post topic (no text in images). Display the image inline. IMPORTANT: After image generation, do NOT repeat the post text. Just show the image.
 4. **Then offer X cross-post.** After the image, briefly ask: "Want me to draft an X post to promote this?" Do NOT repeat the LinkedIn/main post. If they say yes, draft a punchy tweet or short thread that teases the article. Output it clean and copy-paste-ready.
 5. **Transcribe if uploaded.** If the user uploaded audio/video, run transcribe.ts first, then draft from the transcript.
@@ -175,7 +175,7 @@ npx tsx scripts/content-creator/list-content.ts
 
 ## Key rules
 - NEVER use AskUserQuestion — it does not work in this context
-- ALWAYS research before drafting. 1-2 targeted web searches. Real data makes the content worth reading.
+- ASK the user before searching the web. Only research if they want it. Do NOT auto-search.
 - Output ONLY the post content. No meta-commentary, no "here's your draft", no options menu. The user will copy-paste your output directly into LinkedIn/Medium
 - After the draft, generate a thumbnail image automatically
 - When the user asks for changes, output the FULL revised post (not just the diff)

@@ -149,6 +149,7 @@ export default function AgentChat({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const titledSessions = useRef<Set<string>>(new Set());
   const hasAutoSent = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const isFull = variant === "full";
   const accent = "#6B8F71";
@@ -520,10 +521,14 @@ export default function AgentChat({
 
     let accumulatedContentForScore = "";
 
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     try {
       const response = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: abortController.signal,
         body: JSON.stringify({
           message: userMessage,
           sessionId,
@@ -763,21 +768,35 @@ export default function AgentChat({
         }
       }
     } catch (error) {
-      console.error("Error:", error);
-      setMessages((prev) => {
-        const newMessages = [...prev];
-        const lastIdx = newMessages.length - 1;
-        const lastMessage = newMessages[lastIdx];
-        if (lastMessage.role === "assistant") {
-          newMessages[lastIdx] = {
-            ...lastMessage,
-            content: "Sorry, I couldn't connect to the server. Please try again.",
-            rawOutput: [{ error: String(error) }],
-          };
-        }
-        return newMessages;
-      });
+      if (error instanceof DOMException && error.name === "AbortError") {
+        // User stopped the response — keep whatever content was accumulated
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          const lastIdx = newMessages.length - 1;
+          const lastMessage = newMessages[lastIdx];
+          if (lastMessage.role === "assistant" && !lastMessage.content) {
+            newMessages[lastIdx] = { ...lastMessage, content: "(Stopped)" };
+          }
+          return newMessages;
+        });
+      } else {
+        console.error("Error:", error);
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          const lastIdx = newMessages.length - 1;
+          const lastMessage = newMessages[lastIdx];
+          if (lastMessage.role === "assistant") {
+            newMessages[lastIdx] = {
+              ...lastMessage,
+              content: "Sorry, I couldn't connect to the server. Please try again.",
+              rawOutput: [{ error: String(error) }],
+            };
+          }
+          return newMessages;
+        });
+      }
     } finally {
+      abortControllerRef.current = null;
       setIsLoading(false);
       setStatusText(null);
       setThinkingSteps([]);
@@ -1958,16 +1977,29 @@ export default function AgentChat({
               rows={1}
               className="flex-1 px-4 py-3 bg-[#FAFAF8] border border-[#E8E6E1] rounded-xl text-[#1C1C1C] placeholder-[#999] focus:outline-none focus:border-[#6B8F71] transition-colors text-sm disabled:opacity-50 resize-none max-h-32 overflow-y-auto"
             />
-            <StatefulButton
-              type="submit"
-              disabled={isLoading || isUploading || !input.trim()}
-              isLoading={isLoading}
-              className="self-end"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
-              </svg>
-            </StatefulButton>
+            {isLoading ? (
+              <button
+                type="button"
+                onClick={() => abortControllerRef.current?.abort()}
+                className="self-end flex items-center justify-center w-10 h-10 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                title="Stop generating"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <rect x="6" y="6" width="12" height="12" rx="2" />
+                </svg>
+              </button>
+            ) : (
+              <StatefulButton
+                type="submit"
+                disabled={isUploading || !input.trim()}
+                isLoading={false}
+                className="self-end"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                </svg>
+              </StatefulButton>
+            )}
           </form>
         </div>
       </div>
