@@ -106,23 +106,14 @@ export default function Home() {
         <HeroBackground />
         <div className="max-w-6xl mx-auto px-6 py-14 md:py-20 lg:py-24 text-center relative z-10">
           <AnimateIn animation="fade-up">
-            <div className="inline-flex items-center gap-2 border border-[#E8E6E1] rounded-full px-4 py-1.5 mb-8">
-              <span className="w-2 h-2 rounded-full bg-[#6B8F71]" />
-              <span className="text-xs font-semibold uppercase tracking-[0.15em] text-[#555]">
-                Fractional AI Officer
-              </span>
-            </div>
-          </AnimateIn>
-
-          <AnimateIn animation="fade-up" delay={50}>
             <h1 className="font-sans font-light text-5xl md:text-7xl lg:text-8xl leading-[1.05] tracking-tight mb-6">
-              AI Agent <span className="text-[#6B8F71]">Design Studio.</span>
+              Agentic AI <span className="text-[#6B8F71]">Engineers.</span>
             </h1>
           </AnimateIn>
 
-          <AnimateIn animation="fade-up" delay={100}>
+          <AnimateIn animation="fade-up" delay={50}>
             <p className="text-lg md:text-xl text-[#555] leading-relaxed mb-10 max-w-2xl mx-auto">
-              Your trusted partner that identifies profit gaps, wasted hours, bottlenecks, and inefficiencies, and shows you where AI can run your processes strategically.
+              We help your company identify profit gaps, wasted hours, bottlenecks, and inefficiencies — then show you exactly where AI can lighten your workload.
             </p>
           </AnimateIn>
 
