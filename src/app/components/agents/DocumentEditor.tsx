@@ -229,7 +229,9 @@ export default function DocumentEditor({ content, onChange, isAgentWriting, conn
 
     try {
       const mdContent = platform === "medium" ? content : undefined;
-      await onSchedulePost(platform, plainText, scheduledAt, firstImage, asOrganization, mdContent);
+      // Convert local datetime-local value to UTC ISO string so the server gets the correct time
+      const scheduledAtISO = new Date(scheduledAt).toISOString();
+      await onSchedulePost(platform, plainText, scheduledAtISO, firstImage, asOrganization, mdContent);
       setPostingState((prev) => ({ ...prev, [key]: "posted" }));
       // Reset after 3s
       setTimeout(() => {
