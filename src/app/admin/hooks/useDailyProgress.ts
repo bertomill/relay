@@ -11,7 +11,6 @@ interface DailyProgressState {
   newsRead: boolean;
   agentCreated: boolean;
   websiteImproved: boolean;
-  visualsGenerated: boolean;
   redditEngaged: boolean;
   custDevCompleted: boolean;
 }
@@ -35,7 +34,6 @@ function getDefaultState(date: string): DailyProgressState {
     newsRead: false,
     agentCreated: false,
     websiteImproved: false,
-    visualsGenerated: false,
     redditEngaged: false,
     custDevCompleted: false,
   };
@@ -199,10 +197,6 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     update((prev) => ({ ...prev, websiteImproved: !prev.websiteImproved }));
   }, [update]);
 
-  const markVisualsGenerated = useCallback(() => {
-    update((prev) => ({ ...prev, visualsGenerated: !prev.visualsGenerated }));
-  }, [update]);
-
   const markRedditEngaged = useCallback(() => {
     update((prev) => ({ ...prev, redditEngaged: !prev.redditEngaged }));
   }, [update]);
@@ -215,7 +209,7 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     update((prev) => ({ ...prev, newsRead: !prev.newsRead }));
   }, [update]);
 
-  // Order: Learn, News, Create Agent, Create Content, Review Leads, Improve Website, Generate Visuals
+  // Order: Learn, News, Create Agent, Create Content, Review Leads, Improve Website, Reddit, CustDev
   const stepsComplete = [
     progress.learningCompleted,
     progress.newsRead ?? false,
@@ -223,7 +217,6 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     progress.contentCreated,
     progress.inquiriesReviewed,
     progress.websiteImproved,
-    progress.visualsGenerated ?? false,
     progress.redditEngaged ?? false,
     progress.custDevCompleted ?? false,
   ];
@@ -234,7 +227,7 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     progress,
     stepsComplete,
     completedCount,
-    totalSteps: 9,
+    totalSteps: 8,
     isToday,
     isLoadingProgress,
     markInquiriesReviewed,
@@ -243,7 +236,6 @@ export function useDailyProgress(selectedDate: string = getTodayString()) {
     markNewsRead,
     markAgentCreated,
     markWebsiteImproved,
-    markVisualsGenerated,
     markRedditEngaged,
     markCustDevCompleted,
   };

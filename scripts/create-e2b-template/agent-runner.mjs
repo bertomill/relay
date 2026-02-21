@@ -91,6 +91,9 @@ async function run() {
   let streamingWriteJsonBuffer = "";    // raw JSON input accumulator for parsing
   let streamingWriteContentStarted = false; // true once we're inside the "content" field
   let lastDocumentContent = "";         // track last sent document content to avoid no-op updates
+  // Track Task tool descriptions so TaskOutput can show which sub-agent it's waiting on.
+  // Maps task_id → description string.
+  const taskDescriptions = new Map();
   // Track content block indices that were streamed so we skip their text
   // when the full assistant message arrives.
   const streamedTextBlockIndices = new Set();
@@ -131,7 +134,10 @@ async function run() {
             if (currentToolName === "AskUserQuestion") {
               // AskUserQuestion will be handled when the full message arrives
             } else if (currentToolName === "Task") {
-              // Subagent — handled on full message
+              // Task — we'll emit a proper tool_call when the full message arrives with input
+              // (we need the description from the input to show a useful summary)
+            } else if (currentToolName === "TaskOutput") {
+              // TaskOutput — we'll emit when full message arrives so we can look up the task description
             } else {
               let status = `Using ${currentToolName}…`;
               switch (currentToolName) {
@@ -322,12 +328,27 @@ async function run() {
             sentAskUserQuestion = true;
             break; // Stop processing content blocks in this message
           } else if (block.type === "tool_use" && block.name === "Task") {
+            const taskDesc = block.input?.description || "Working...";
+            // Store description keyed by tool_use_id so we can link it to the task_id later
+            taskDescriptions.set(`tooluse:${block.id}`, taskDesc);
             sendEvent({
               type: "subagent_start",
               agentType: block.input?.subagent_type || "unknown",
-              description: block.input?.description || "Working...",
+              description: taskDesc,
               rawMessage: msg,
             });
+            // Also emit as a tool_call so it shows in the tool call list
+            const taskSummary = `Spawning agent: ${taskDesc}`;
+            sendEvent({ type: "thinking_step", step: taskSummary });
+            sendEvent({ type: "tool_call", toolUseId: block.id, toolName: "Task", toolInput: { description: taskDesc, subagent_type: block.input?.subagent_type }, status: "running", summary: taskSummary });
+          } else if (block.type === "tool_use" && block.name === "TaskOutput") {
+            // Look up the task description from a prior Task call if possible
+            const taskId = block.input?.task_id;
+            const desc = taskId && taskDescriptions.get(taskId);
+            const waitSummary = desc ? `Waiting for: ${desc}` : "Waiting for sub-agent results…";
+            sendEvent({ type: "thinking_step", step: waitSummary });
+            sendEvent({ type: "status", status: waitSummary });
+            sendEvent({ type: "tool_call", toolUseId: block.id, toolName: "TaskOutput", toolInput: block.input, status: "running", summary: waitSummary });
           } else if (block.type === "tool_use") {
             // Only emit status for tools that weren't already streamed
             if (streamedToolBlockIndices.has(blockIdx)) {
@@ -346,7 +367,7 @@ async function run() {
                 }
               }
               // Emit tool_call with full input now that the block is complete
-              if (block.id && block.name !== "AskUserQuestion" && block.name !== "Task") {
+              if (block.id && block.name !== "AskUserQuestion") {
                 let streamedStatus = `Using ${block.name}…`;
                 switch (block.name) {
                   case "Skill": streamedStatus = "Loading guidelines…"; break;
@@ -358,6 +379,13 @@ async function run() {
                   case "Grep": streamedStatus = "Searching code…"; break;
                   case "Write": streamedStatus = "Writing file…"; break;
                   case "Edit": streamedStatus = "Editing file…"; break;
+                  case "Task": streamedStatus = `Spawning agent: ${block.input?.description || "Working..."}`; break;
+                  case "TaskOutput": {
+                    const tid = block.input?.task_id;
+                    const desc = tid && taskDescriptions.get(tid);
+                    streamedStatus = desc ? `Waiting for: ${desc}` : "Waiting for sub-agent results…";
+                    break;
+                  }
                 }
                 sendEvent({ type: "tool_call", toolUseId: block.id, toolName: block.name, toolInput: block.input, status: "running", summary: streamedStatus });
               }
@@ -434,6 +462,24 @@ async function run() {
           for (const block of resultContent) {
             if (block.tool_use_id) {
               const resultText = typeof block.content === "string" ? block.content : JSON.stringify(block.content);
+              // If this is a Task tool result, try to extract the returned task_id
+              // and link it to the description we stored earlier
+              const storedDesc = taskDescriptions.get(`tooluse:${block.tool_use_id}`);
+              if (storedDesc && resultText) {
+                // Task tool results often contain a task_id or output_file
+                try {
+                  const parsed = JSON.parse(resultText);
+                  if (parsed.task_id) {
+                    taskDescriptions.set(parsed.task_id, storedDesc);
+                  }
+                } catch {
+                  // Result may contain a task_id string pattern like "task_id: abc123"
+                  const match = resultText.match(/task[_-]?id[:\s]+["']?([a-zA-Z0-9_-]+)/i);
+                  if (match) {
+                    taskDescriptions.set(match[1], storedDesc);
+                  }
+                }
+              }
               sendEvent({ type: "tool_result", toolUseId: block.tool_use_id, result: resultText, isError: !!block.is_error });
             }
           }

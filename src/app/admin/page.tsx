@@ -11,7 +11,6 @@ import StepLeadOutreach from "./components/StepCreateAgent";
 import Step3Content from "./components/Step3Content";
 import Step1Leads from "./components/Step1Leads";
 import Step5Improve from "./components/Step5Improve";
-import Step6Visuals from "./components/Step6Visuals";
 import StepReddit from "./components/StepReddit";
 import StepCustDev from "./components/StepCustDev";
 
@@ -57,7 +56,6 @@ export default function AdminDashboard() {
     markContentCreated,
     markInquiriesReviewed,
     markWebsiteImproved,
-    markVisualsGenerated,
     markRedditEngaged,
     markCustDevCompleted,
   } = useDailyProgress(selectedDate);
@@ -119,7 +117,7 @@ export default function AdminDashboard() {
 
   const advanceToNext = useCallback((currentStep: number) => {
     const next = currentStep + 1;
-    if (next < 9) {
+    if (next < 8) {
       setExpandedStep(next);
     } else {
       setExpandedStep(null);
@@ -174,25 +172,18 @@ export default function AdminDashboard() {
     if (!wasComplete) advanceToNext(5);
   }, [markWebsiteImproved, advanceToNext, stepsComplete]);
 
-  // Step 6: Generate Visuals
-  const handleVisualsComplete = useCallback(() => {
-    const wasComplete = stepsComplete[6];
-    markVisualsGenerated();
-    if (!wasComplete) advanceToNext(6);
-  }, [markVisualsGenerated, advanceToNext, stepsComplete]);
-
-  // Step 7: Reddit Engagement
+  // Step 6: Reddit Engagement
   const handleRedditComplete = useCallback(() => {
-    const wasComplete = stepsComplete[7];
+    const wasComplete = stepsComplete[6];
     markRedditEngaged();
-    if (!wasComplete) advanceToNext(7);
+    if (!wasComplete) advanceToNext(6);
   }, [markRedditEngaged, advanceToNext, stepsComplete]);
 
-  // Step 8: Customer Development
+  // Step 7: Customer Development
   const handleCustDevComplete = useCallback(() => {
-    const wasComplete = stepsComplete[8];
+    const wasComplete = stepsComplete[7];
     markCustDevCompleted();
-    if (!wasComplete) advanceToNext(8);
+    if (!wasComplete) advanceToNext(7);
   }, [markCustDevCompleted, advanceToNext, stepsComplete]);
 
   // Greeting based on time of day
@@ -335,7 +326,7 @@ export default function AdminDashboard() {
         <StepCard
           stepNumber={3}
           label="Outreach"
-          title="Reach Out to Leads"
+          title="Find & Reach Leads"
           timeEstimate="~15 min"
           isComplete={stepsComplete[2]}
           isExpanded={expandedStep === 2}
@@ -411,51 +402,35 @@ export default function AdminDashboard() {
           />
         </StepCard>
 
-        {/* Step 7: Generate Visuals */}
+        {/* Step 7: Reddit Engagement */}
         <StepCard
           stepNumber={7}
-          label="Design"
-          title="Generate Visuals"
-          timeEstimate="~5 min"
+          label="Engage"
+          title="Reddit SDK Q&A"
+          timeEstimate="~15 min"
           isComplete={stepsComplete[6]}
           isExpanded={expandedStep === 6}
           onToggle={() => toggleStep(6)}
         >
-          <Step6Visuals
-            onComplete={handleVisualsComplete}
+          <StepReddit
+            onComplete={handleRedditComplete}
             isComplete={stepsComplete[6]}
           />
         </StepCard>
 
-        {/* Step 8: Reddit Engagement */}
+        {/* Step 8: Customer Development */}
         <StepCard
           stepNumber={8}
-          label="Engage"
-          title="Reddit SDK Q&A"
-          timeEstimate="~15 min"
+          label="Develop"
+          title="Customer Development"
+          timeEstimate="~10 min"
           isComplete={stepsComplete[7]}
           isExpanded={expandedStep === 7}
           onToggle={() => toggleStep(7)}
         >
-          <StepReddit
-            onComplete={handleRedditComplete}
-            isComplete={stepsComplete[7]}
-          />
-        </StepCard>
-
-        {/* Step 9: Customer Development */}
-        <StepCard
-          stepNumber={9}
-          label="Develop"
-          title="Customer Development"
-          timeEstimate="~10 min"
-          isComplete={stepsComplete[8]}
-          isExpanded={expandedStep === 8}
-          onToggle={() => toggleStep(8)}
-        >
           <StepCustDev
             onComplete={handleCustDevComplete}
-            isComplete={stepsComplete[8]}
+            isComplete={stepsComplete[7]}
           />
         </StepCard>
       </div>
