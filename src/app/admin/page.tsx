@@ -7,7 +7,7 @@ import MorningProgress from "./components/MorningProgress";
 import StepCard from "./components/StepCard";
 import Step4Learn from "./components/Step4Learn";
 import StepNews from "./components/StepNews";
-import StepCreateAgent from "./components/StepCreateAgent";
+import StepLeadOutreach from "./components/StepCreateAgent";
 import Step3Content from "./components/Step3Content";
 import Step1Leads from "./components/Step1Leads";
 import Step5Improve from "./components/Step5Improve";
@@ -331,17 +331,17 @@ export default function AdminDashboard() {
           />
         </StepCard>
 
-        {/* Step 3: Create Agent */}
+        {/* Step 3: Lead Outreach */}
         <StepCard
           stepNumber={3}
-          label="Build"
-          title="Create Agent"
-          timeEstimate="~20 min"
+          label="Outreach"
+          title="Reach Out to Leads"
+          timeEstimate="~15 min"
           isComplete={stepsComplete[2]}
           isExpanded={expandedStep === 2}
           onToggle={() => toggleStep(2)}
         >
-          <StepCreateAgent
+          <StepLeadOutreach
             onComplete={handleAgentComplete}
             isComplete={stepsComplete[2]}
           />

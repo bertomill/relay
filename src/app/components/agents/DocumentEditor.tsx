@@ -3,6 +3,21 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 
+export interface ScheduledPost {
+  id: string;
+  platform: string;
+  text: string;
+  image_url: string | null;
+  markdown_content: string | null;
+  as_organization: boolean;
+  scheduled_at: string;
+  status: "pending" | "published" | "failed" | "cancelled";
+  error_message: string | null;
+  post_id: string | null;
+  created_at: string;
+  published_at: string | null;
+}
+
 interface DocumentEditorProps {
   content: string;
   onChange: (content: string) => void;
@@ -10,14 +25,21 @@ interface DocumentEditorProps {
   connectedPlatforms?: string[];
   onPostToSocial?: (platform: string, text: string, imageUrl?: string, asOrganization?: boolean, markdownContent?: string) => Promise<void>;
   linkedInOrgName?: string | null;
+  onSchedulePost?: (platform: string, text: string, scheduledAt: string, imageUrl?: string, asOrganization?: boolean, markdownContent?: string) => Promise<void>;
+  scheduledPosts?: ScheduledPost[];
+  onCancelScheduled?: (id: string) => Promise<void>;
+  onRefreshScheduled?: () => Promise<void>;
 }
 
-export default function DocumentEditor({ content, onChange, isAgentWriting, connectedPlatforms = [], onPostToSocial, linkedInOrgName }: DocumentEditorProps) {
+export default function DocumentEditor({ content, onChange, isAgentWriting, connectedPlatforms = [], onPostToSocial, linkedInOrgName, onSchedulePost, scheduledPosts = [], onCancelScheduled, onRefreshScheduled }: DocumentEditorProps) {
   const [copied, setCopied] = useState<"text" | "md" | null>(null);
   const [showSource, setShowSource] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<"success" | null>(null);
   const [postingState, setPostingState] = useState<Record<string, "idle" | "posting" | "posted" | "error">>({});
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [showScheduledList, setShowScheduledList] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -196,6 +218,40 @@ export default function DocumentEditor({ content, onChange, isAgentWriting, conn
       setPostingState((prev) => ({ ...prev, [key]: "error" }));
     }
   }, [onPostToSocial, content, getPlainText, imageUrls]);
+
+  const handleSchedule = useCallback(async (platform: string, asOrganization?: boolean) => {
+    if (!onSchedulePost || !content.trim() || !scheduledAt) return;
+    const key = `${platform}${asOrganization ? "-org" : ""}`;
+    setPostingState((prev) => ({ ...prev, [key]: "posting" }));
+
+    const plainText = getPlainText();
+    const firstImage = imageUrls[0] || undefined;
+
+    try {
+      const mdContent = platform === "medium" ? content : undefined;
+      await onSchedulePost(platform, plainText, scheduledAt, firstImage, asOrganization, mdContent);
+      setPostingState((prev) => ({ ...prev, [key]: "posted" }));
+      // Reset after 3s
+      setTimeout(() => {
+        setPostingState((prev) => ({ ...prev, [key]: "idle" }));
+      }, 3000);
+    } catch {
+      setPostingState((prev) => ({ ...prev, [key]: "error" }));
+    }
+  }, [onSchedulePost, content, scheduledAt, getPlainText, imageUrls]);
+
+  const pendingScheduled = scheduledPosts.filter((p) => p.status === "pending");
+  const failedScheduled = scheduledPosts.filter((p) => p.status === "failed");
+
+  const formatScheduledTime = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  };
+
+  const platformLabel = (p: string) => {
+    const labels: Record<string, string> = { x: "X", linkedin: "LinkedIn", linkedin_org: "Company Page", instagram: "Instagram", medium: "Medium", facebook: "Facebook" };
+    return labels[p] || p;
+  };
 
   const hasAnyPlatform = connectedPlatforms.length > 0;
 
@@ -398,14 +454,47 @@ export default function DocumentEditor({ content, onChange, isAgentWriting, conn
 
       {/* Post bar */}
       {content.trim() && (hasAnyPlatform || onPostToSocial) && (
-        <div className="shrink-0 border-t border-[#E8E6E1] px-4 py-3 flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] font-semibold text-[#999] uppercase tracking-[0.1em] mr-1">Post to</span>
+        <div className="shrink-0 border-t border-[#E8E6E1] px-4 py-3">
+          <div className="flex items-center gap-2 flex-wrap">
+          {/* Mode toggle */}
+          <div className="flex items-center bg-[#F5F4F0] rounded-full p-0.5 mr-1">
+            <button
+              onClick={() => setScheduleMode(false)}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.1em] transition-all ${
+                !scheduleMode ? "bg-white text-[#1C1C1C] shadow-sm" : "text-[#999] hover:text-[#666]"
+              }`}
+            >
+              Post now
+            </button>
+            <button
+              onClick={() => setScheduleMode(true)}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.1em] transition-all flex items-center gap-1 ${
+                scheduleMode ? "bg-white text-[#1C1C1C] shadow-sm" : "text-[#999] hover:text-[#666]"
+              }`}
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+              Schedule
+            </button>
+          </div>
+
+          {/* Date/time picker when in schedule mode */}
+          {scheduleMode && (
+            <input
+              type="datetime-local"
+              value={scheduledAt}
+              onChange={(e) => setScheduledAt(e.target.value)}
+              min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+              className="px-2.5 py-1.5 text-xs border border-[#E8E6E1] rounded-lg bg-white text-[#1C1C1C] focus:outline-none focus:border-[#6B8F71]"
+            />
+          )}
 
           {/* X / Twitter */}
           {connectedPlatforms.includes("x") && (
             <button
-              onClick={() => handlePost("x")}
-              disabled={postingState["x"] === "posting"}
+              onClick={() => scheduleMode ? handleSchedule("x") : handlePost("x")}
+              disabled={postingState["x"] === "posting" || (scheduleMode && !scheduledAt)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                 postingState["x"] === "posted"
                   ? "bg-[#6B8F71]/10 text-[#6B8F71] border border-[#6B8F71]/30"
@@ -417,23 +506,29 @@ export default function DocumentEditor({ content, onChange, isAgentWriting, conn
               {postingState["x"] === "posting" ? (
                 <span className="w-3 h-3 border-2 border-[#1C1C1C] border-t-transparent rounded-full animate-spin" />
               ) : postingState["x"] === "posted" ? (
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+                scheduleMode ? (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                  </svg>
+                ) : (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                )
               ) : (
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                 </svg>
               )}
-              {postingState["x"] === "posted" ? "Posted" : postingState["x"] === "error" ? "Failed" : "X"}
+              {postingState["x"] === "posted" ? (scheduleMode ? "Scheduled!" : "Posted") : postingState["x"] === "error" ? "Failed" : (scheduleMode ? "Schedule X" : "X")}
             </button>
           )}
 
           {/* LinkedIn Personal */}
           {connectedPlatforms.includes("linkedin") && (
             <button
-              onClick={() => handlePost("linkedin")}
-              disabled={postingState["linkedin"] === "posting"}
+              onClick={() => scheduleMode ? handleSchedule("linkedin") : handlePost("linkedin")}
+              disabled={postingState["linkedin"] === "posting" || (scheduleMode && !scheduledAt)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                 postingState["linkedin"] === "posted"
                   ? "bg-[#6B8F71]/10 text-[#6B8F71] border border-[#6B8F71]/30"
@@ -453,15 +548,15 @@ export default function DocumentEditor({ content, onChange, isAgentWriting, conn
                   <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
                 </svg>
               )}
-              {postingState["linkedin"] === "posted" ? "Posted" : postingState["linkedin"] === "error" ? "Failed" : "LinkedIn"}
+              {postingState["linkedin"] === "posted" ? (scheduleMode ? "Scheduled!" : "Posted") : postingState["linkedin"] === "error" ? "Failed" : (scheduleMode ? "Schedule LinkedIn" : "LinkedIn")}
             </button>
           )}
 
           {/* LinkedIn Company Page */}
           {connectedPlatforms.includes("linkedin_org") && (
             <button
-              onClick={() => handlePost("linkedin", true)}
-              disabled={postingState["linkedin-org"] === "posting"}
+              onClick={() => scheduleMode ? handleSchedule("linkedin", true) : handlePost("linkedin", true)}
+              disabled={postingState["linkedin-org"] === "posting" || (scheduleMode && !scheduledAt)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                 postingState["linkedin-org"] === "posted"
                   ? "bg-[#6B8F71]/10 text-[#6B8F71] border border-[#6B8F71]/30"
@@ -481,15 +576,15 @@ export default function DocumentEditor({ content, onChange, isAgentWriting, conn
                   <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
                 </svg>
               )}
-              {postingState["linkedin-org"] === "posted" ? "Posted" : postingState["linkedin-org"] === "error" ? "Failed" : (linkedInOrgName || "Company Page")}
+              {postingState["linkedin-org"] === "posted" ? (scheduleMode ? "Scheduled!" : "Posted") : postingState["linkedin-org"] === "error" ? "Failed" : (scheduleMode ? `Schedule ${linkedInOrgName || "Company"}` : (linkedInOrgName || "Company Page"))}
             </button>
           )}
 
           {/* Instagram */}
           {connectedPlatforms.includes("instagram") && (
             <button
-              onClick={() => handlePost("instagram")}
-              disabled={postingState["instagram"] === "posting" || !imageUrls.length}
+              onClick={() => scheduleMode ? handleSchedule("instagram") : handlePost("instagram")}
+              disabled={postingState["instagram"] === "posting" || !imageUrls.length || (scheduleMode && !scheduledAt)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                 postingState["instagram"] === "posted"
                   ? "bg-[#6B8F71]/10 text-[#6B8F71] border border-[#6B8F71]/30"
@@ -510,7 +605,7 @@ export default function DocumentEditor({ content, onChange, isAgentWriting, conn
                   <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
                 </svg>
               )}
-              {postingState["instagram"] === "posted" ? "Posted" : postingState["instagram"] === "error" ? "Failed" : "Instagram"}
+              {postingState["instagram"] === "posted" ? (scheduleMode ? "Scheduled!" : "Posted") : postingState["instagram"] === "error" ? "Failed" : (scheduleMode ? "Schedule Instagram" : "Instagram")}
               {!imageUrls.length && postingState["instagram"] !== "posted" && postingState["instagram"] !== "error" && (
                 <svg className="w-3 h-3 text-[#999]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
@@ -522,8 +617,8 @@ export default function DocumentEditor({ content, onChange, isAgentWriting, conn
           {/* Medium */}
           {connectedPlatforms.includes("medium") && (
             <button
-              onClick={() => handlePost("medium")}
-              disabled={postingState["medium"] === "posting"}
+              onClick={() => scheduleMode ? handleSchedule("medium") : handlePost("medium")}
+              disabled={postingState["medium"] === "posting" || (scheduleMode && !scheduledAt)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                 postingState["medium"] === "posted"
                   ? "bg-[#6B8F71]/10 text-[#6B8F71] border border-[#6B8F71]/30"
@@ -543,15 +638,15 @@ export default function DocumentEditor({ content, onChange, isAgentWriting, conn
                   <path d="M13.54 12a6.8 6.8 0 01-6.77 6.82A6.8 6.8 0 010 12a6.8 6.8 0 016.77-6.82A6.8 6.8 0 0113.54 12zM20.96 12c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z" />
                 </svg>
               )}
-              {postingState["medium"] === "posted" ? "Draft saved" : postingState["medium"] === "error" ? "Failed" : "Medium"}
+              {postingState["medium"] === "posted" ? (scheduleMode ? "Scheduled!" : "Draft saved") : postingState["medium"] === "error" ? "Failed" : (scheduleMode ? "Schedule Medium" : "Medium")}
             </button>
           )}
 
           {/* Facebook Page */}
           {connectedPlatforms.includes("facebook") && (
             <button
-              onClick={() => handlePost("facebook")}
-              disabled={postingState["facebook"] === "posting"}
+              onClick={() => scheduleMode ? handleSchedule("facebook") : handlePost("facebook")}
+              disabled={postingState["facebook"] === "posting" || (scheduleMode && !scheduledAt)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                 postingState["facebook"] === "posted"
                   ? "bg-[#6B8F71]/10 text-[#6B8F71] border border-[#6B8F71]/30"
@@ -571,13 +666,69 @@ export default function DocumentEditor({ content, onChange, isAgentWriting, conn
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                 </svg>
               )}
-              {postingState["facebook"] === "posted" ? "Posted" : postingState["facebook"] === "error" ? "Failed" : "Facebook"}
+              {postingState["facebook"] === "posted" ? (scheduleMode ? "Scheduled!" : "Posted") : postingState["facebook"] === "error" ? "Failed" : (scheduleMode ? "Schedule Facebook" : "Facebook")}
             </button>
           )}
 
           {/* No platforms connected hint */}
           {!hasAnyPlatform && (
             <span className="text-xs text-[#999]">Connect X, LinkedIn, or Instagram to post directly</span>
+          )}
+          </div>
+
+          {/* Scheduled posts count & toggle */}
+          {(pendingScheduled.length > 0 || failedScheduled.length > 0) && (
+            <div className="mt-2 flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setShowScheduledList(!showScheduledList);
+                  if (!showScheduledList && onRefreshScheduled) onRefreshScheduled();
+                }}
+                className="flex items-center gap-1.5 text-xs text-[#6B8F71] hover:text-[#5A7D60] font-medium transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+                {pendingScheduled.length} scheduled
+                {failedScheduled.length > 0 && (
+                  <span className="text-red-500">({failedScheduled.length} failed)</span>
+                )}
+                <svg className={`w-3 h-3 transition-transform ${showScheduledList ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
+          )}
+
+          {/* Scheduled posts list */}
+          {showScheduledList && (pendingScheduled.length > 0 || failedScheduled.length > 0) && (
+            <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto">
+              {pendingScheduled.map((post) => (
+                <div key={post.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#FAFAF8] border border-[#E8E6E1] text-xs">
+                  <span className="font-medium text-[#1C1C1C]">{platformLabel(post.platform)}</span>
+                  <span className="text-[#999] truncate flex-1 max-w-[200px]">{post.text.slice(0, 60)}{post.text.length > 60 ? "..." : ""}</span>
+                  <span className="text-[#6B8F71] whitespace-nowrap">{formatScheduledTime(post.scheduled_at)}</span>
+                  {onCancelScheduled && (
+                    <button
+                      onClick={() => onCancelScheduled(post.id)}
+                      className="text-[#999] hover:text-red-500 transition-colors shrink-0"
+                      title="Cancel"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              ))}
+              {failedScheduled.map((post) => (
+                <div key={post.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs">
+                  <span className="font-medium text-red-600">{platformLabel(post.platform)}</span>
+                  <span className="text-red-500 truncate flex-1">{post.error_message || "Failed"}</span>
+                  <span className="text-[#999] whitespace-nowrap">{formatScheduledTime(post.scheduled_at)}</span>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

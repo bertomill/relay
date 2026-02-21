@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import dynamic from "next/dynamic";
+import type { ScheduledPost } from "@/app/components/agents/DocumentEditor";
 
 const AgentChat = dynamic(() => import("@/app/components/agents/AgentChat"), {
   ssr: false,
@@ -395,6 +396,47 @@ export default function Step3Content({ onComplete, isComplete, externalPrompt }:
       throw new Error(data.error || "Post failed");
     }
   }, []);
+
+  // Scheduled posts state & handlers
+  const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
+
+  const loadScheduledPosts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/social/schedule");
+      if (res.ok) {
+        const data = await res.json();
+        setScheduledPosts(data.posts || []);
+      }
+    } catch {
+      // Silent fail
+    }
+  }, []);
+
+  useEffect(() => {
+    loadScheduledPosts();
+  }, [loadScheduledPosts]);
+
+  const handleSchedulePost = useCallback(async (platform: string, text: string, scheduledAt: string, imageUrl?: string, asOrganization?: boolean, markdownContent?: string) => {
+    const res = await fetch("/api/social/schedule", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ platform, text, scheduledAt, imageUrl, asOrganization, markdownContent }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Schedule failed");
+    }
+    await loadScheduledPosts();
+  }, [loadScheduledPosts]);
+
+  const handleCancelScheduled = useCallback(async (id: string) => {
+    const res = await fetch(`/api/social/schedule?id=${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Cancel failed");
+    }
+    await loadScheduledPosts();
+  }, [loadScheduledPosts]);
 
   return (
     <div>
@@ -1103,6 +1145,10 @@ export default function Step3Content({ onComplete, isComplete, externalPrompt }:
                     connectedPlatforms={connectedPlatforms}
                     onPostToSocial={handlePostToSocial}
                     linkedInOrgName={linkedInOrgConnection?.orgName}
+                    onSchedulePost={handleSchedulePost}
+                    scheduledPosts={scheduledPosts}
+                    onCancelScheduled={handleCancelScheduled}
+                    onRefreshScheduled={loadScheduledPosts}
                   />
                 )}
               </div>
