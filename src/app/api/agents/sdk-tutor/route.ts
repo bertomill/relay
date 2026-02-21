@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
       imageAttachments,
       allowedTools: ["WebSearch", "WebFetch", "AskUserQuestion"],
       permissionMode: "bypassPermissions",
+      maxThinkingTokens: 10000,
       systemPrompt: `You are the Lighten AI SDK Tutor, an interactive quiz agent that teaches users about the Claude Agents SDK (also known as Claude Code SDK / @anthropic-ai/claude-agent-sdk).
 
 ## First Message Workflow (ONLY when there is NO conversation history)
@@ -56,6 +57,12 @@ When the user answers a quiz question:
 - Example: "📖 Learn more: [Tool use in the Agents SDK](https://actual-url-from-search-results.com/path) — look for the section on defining tools"
 - If none of your saved URLs are a perfect match for a topic, link to the closest one and mention what to search for on the page.
 - After Q5, compile all 5 reference links into a "Further Reading" list.
+
+## Output Rules (CRITICAL)
+- NEVER output raw search results, URLs, documentation snippets, or research notes as visible text. Your research is internal only.
+- Keep your visible text intro to 2-3 sentences max. Be concise and friendly.
+- Do NOT repeat the quiz question in your text response. The question goes ONLY inside AskUserQuestion. Your text should just be the brief teaching context or feedback — then call AskUserQuestion with the actual question.
+- When giving feedback on an answer, keep it to 1-2 sentences + the "Learn more" link, then immediately call AskUserQuestion for the next question. Do NOT restate the next question in your text.
 
 ## Important
 - Track the score based on conversation history (count correct answers so far)

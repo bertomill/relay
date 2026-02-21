@@ -36,6 +36,8 @@ interface Message {
   rawOutput?: unknown[];
   pendingQuestion?: PendingQuestion;
   subagentStatus?: SubagentStatus;
+  thinking?: string;
+  thinkingDuration?: number;
 }
 
 interface Session {
@@ -133,6 +135,11 @@ export default function AgentChat({
   const [statusText, setStatusText] = useState<string | null>(null);
   const [thinkingSteps, setThinkingSteps] = useState<string[]>([]);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [thinkingText, setThinkingText] = useState("");
+  const [isThinking, setIsThinking] = useState(false);
+  const [expandedThinking, setExpandedThinking] = useState<Record<number, boolean>>({});
+  const thinkingStartTimeRef = useRef<number | null>(null);
+  const thinkingTextRef = useRef("");
   const wasLoadingRef = useRef(false);
   const loadingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -604,6 +611,43 @@ export default function AgentChat({
                 });
               }
 
+              if (parsed.type === "thinking_start") {
+                setIsThinking(true);
+                setThinkingText("");
+                thinkingTextRef.current = "";
+                thinkingStartTimeRef.current = Date.now();
+              }
+
+              if (parsed.type === "thinking" && parsed.text) {
+                thinkingTextRef.current += parsed.text;
+                setThinkingText(thinkingTextRef.current);
+              }
+
+              if (parsed.type === "thinking_end") {
+                setIsThinking(false);
+                const duration = thinkingStartTimeRef.current
+                  ? Math.round((Date.now() - thinkingStartTimeRef.current) / 1000)
+                  : 0;
+                thinkingStartTimeRef.current = null;
+                const finalThinking = thinkingTextRef.current;
+                thinkingTextRef.current = "";
+                setThinkingText("");
+                // Store thinking on the current assistant message
+                setMessages((prev) => {
+                  const newMessages = [...prev];
+                  const lastIdx = newMessages.length - 1;
+                  const lastMessage = newMessages[lastIdx];
+                  if (lastMessage.role === "assistant") {
+                    newMessages[lastIdx] = {
+                      ...lastMessage,
+                      thinking: (lastMessage.thinking || "") + finalThinking,
+                      thinkingDuration: duration,
+                    };
+                  }
+                  return newMessages;
+                });
+              }
+
               if (parsed.type === "text" && parsed.text) {
                 // Skip text after we've received an interactive question
                 if (receivedQuestion) continue;
@@ -800,6 +844,9 @@ export default function AgentChat({
       setIsLoading(false);
       setStatusText(null);
       setThinkingSteps([]);
+      setIsThinking(false);
+      setThinkingText("");
+      thinkingTextRef.current = "";
 
       // Detect quiz scores in the accumulated response
       if (onQuizScore && accumulatedContentForScore) {
@@ -1371,6 +1418,43 @@ export default function AgentChat({
                     className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div className="flex flex-col gap-1 max-w-[80%]">
+                      {/* Collapsible reasoning block */}
+                      {message.role === "assistant" && (message.thinking || (isThinking && index === messages.length - 1)) && (() => {
+                        const isCurrentlyThinking = isThinking && index === messages.length - 1;
+                        const displayText = isCurrentlyThinking ? thinkingText : message.thinking;
+                        const duration = message.thinkingDuration;
+                        const isExpanded = isCurrentlyThinking || expandedThinking[index];
+                        return (
+                          <div className="mb-1">
+                            <button
+                              onClick={() => !isCurrentlyThinking && setExpandedThinking((prev) => ({ ...prev, [index]: !prev[index] }))}
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                                isCurrentlyThinking
+                                  ? "text-[#6B8F71] bg-[#6B8F71]/5 border border-[#6B8F71]/20"
+                                  : "text-[#999] hover:text-[#666] hover:bg-[#F5F4F0] border border-transparent hover:border-[#E8E6E1]"
+                              }`}
+                            >
+                              {/* Brain icon */}
+                              <svg className={`w-3.5 h-3.5 ${isCurrentlyThinking ? "animate-pulse" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+                              </svg>
+                              <span>
+                                {isCurrentlyThinking ? "Thinking…" : `Thought for ${duration || 0}s`}
+                              </span>
+                              {!isCurrentlyThinking && (
+                                <svg className={`w-3 h-3 transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                </svg>
+                              )}
+                            </button>
+                            {isExpanded && displayText && (
+                              <div className="mt-1 ml-1 px-3 py-2 rounded-lg bg-[#F5F4F0]/50 border border-[#E8E6E1]/50 max-h-48 overflow-y-auto">
+                                <pre className="text-[11px] text-[#888] whitespace-pre-wrap font-sans leading-relaxed">{displayText}</pre>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                       <div
                         className={`px-4 py-3 rounded-2xl ${
                           message.role === "user"

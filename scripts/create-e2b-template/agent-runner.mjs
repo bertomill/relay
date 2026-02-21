@@ -81,6 +81,7 @@ async function run() {
   // call so we can suppress text echoes while a tool runs.
   let inToolBlock = false;
   let currentToolName = "";
+  let inThinkingBlock = false;
   // Track content block indices that were streamed so we skip their text
   // when the full assistant message arrives.
   const streamedTextBlockIndices = new Set();
@@ -108,7 +109,10 @@ async function run() {
         const event = msg.event;
 
         if (event.type === "content_block_start") {
-          if (event.content_block?.type === "tool_use") {
+          if (event.content_block?.type === "thinking") {
+            inThinkingBlock = true;
+            sendEvent({ type: "thinking_start" });
+          } else if (event.content_block?.type === "tool_use") {
             inToolBlock = true;
             currentToolName = event.content_block.name || "";
             streamedToolBlockIndices.add(event.index);
@@ -138,7 +142,9 @@ async function run() {
             streamedTextBlockIndices.add(event.index);
           }
         } else if (event.type === "content_block_delta") {
-          if (event.delta?.type === "text_delta" && !inToolBlock) {
+          if (event.delta?.type === "thinking_delta" && event.delta.thinking) {
+            sendEvent({ type: "thinking", text: event.delta.thinking });
+          } else if (event.delta?.type === "text_delta" && !inToolBlock) {
             const text = event.delta.text;
             if (text) {
               sendEvent({ type: "text", text });
@@ -152,6 +158,10 @@ async function run() {
           // Tool input deltas — we could parse these for more granular status
           // (e.g. extracting WebSearch query), but the full message handles it.
         } else if (event.type === "content_block_stop") {
+          if (inThinkingBlock) {
+            inThinkingBlock = false;
+            sendEvent({ type: "thinking_end" });
+          }
           if (inToolBlock) {
             inToolBlock = false;
             currentToolName = "";
