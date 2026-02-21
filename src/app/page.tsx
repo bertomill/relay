@@ -107,13 +107,13 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6 py-14 md:py-20 lg:py-24 text-center relative z-10">
           <AnimateIn animation="fade-up">
             <h1 className="font-sans font-light text-5xl md:text-7xl lg:text-8xl leading-[1.05] tracking-tight mb-6">
-              Agentic AI <span className="text-[#6B8F71]">Engineers.</span>
+              We lighten your <span className="text-[#6B8F71]">workload.</span>
             </h1>
           </AnimateIn>
 
           <AnimateIn animation="fade-up" delay={50}>
             <p className="text-lg md:text-xl text-[#555] leading-relaxed mb-10 max-w-2xl mx-auto">
-              We help your company identify profit gaps, wasted hours, bottlenecks, and inefficiencies — then show you exactly where AI can lighten your workload.
+              Our team strives to make your workload lighter through AI. We are AI experts, building an AI engine and AI agents every day. We specialize in teaching and building with you to lighten your work with AI agents.
             </p>
           </AnimateIn>
 
