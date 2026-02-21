@@ -154,7 +154,8 @@ export default function DocumentEditor({ content, onChange, isAgentWriting, conn
   };
 
   const getPlainText = useCallback(() => {
-    return content
+    let text = content
+      // Strip markdown headings (# Title) but keep the text
       .replace(/^#{1,6}\s+/gm, "")
       .replace(/\*\*(.+?)\*\*/g, "$1")
       .replace(/\*(.+?)\*/g, "$1")
@@ -165,6 +166,17 @@ export default function DocumentEditor({ content, onChange, isAgentWriting, conn
       .replace(/^---+$/gm, "")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
+    // Strip title-like first line (e.g. "LinkedIn Post — Feb 21, 2026")
+    // These are metadata headers the agent sometimes adds, not actual post content
+    const lines = text.split("\n");
+    if (lines.length > 1) {
+      const firstLine = lines[0].trim();
+      const isTitleLine = /^(LinkedIn|X|Twitter|Medium|Instagram|Facebook)\s+(Post|Thread|Article)/i.test(firstLine);
+      if (isTitleLine) {
+        text = lines.slice(1).join("\n").trim();
+      }
+    }
+    return text;
   }, [content]);
 
   const handlePost = useCallback(async (platform: string, asOrganization?: boolean) => {

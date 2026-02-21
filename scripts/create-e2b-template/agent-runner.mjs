@@ -81,7 +81,16 @@ async function run() {
   // call so we can suppress text echoes while a tool runs.
   let inToolBlock = false;
   let currentToolName = "";
+  let currentToolUseId = "";
   let inThinkingBlock = false;
+  // --- Live document editing state ---
+  // Track streaming Write tool input so we can send progressive document_update
+  // events as the agent types the content (gives "live editing" feel).
+  let streamingWriteContent = "";       // accumulated content from input_json_delta
+  let streamingWriteIsDraft = false;    // true if current Write targets draft.md
+  let streamingWriteJsonBuffer = "";    // raw JSON input accumulator for parsing
+  let streamingWriteContentStarted = false; // true once we're inside the "content" field
+  let lastDocumentContent = "";         // track last sent document content to avoid no-op updates
   // Track content block indices that were streamed so we skip their text
   // when the full assistant message arrives.
   const streamedTextBlockIndices = new Set();
@@ -115,6 +124,7 @@ async function run() {
           } else if (event.content_block?.type === "tool_use") {
             inToolBlock = true;
             currentToolName = event.content_block.name || "";
+            currentToolUseId = event.content_block.id || "";
             streamedToolBlockIndices.add(event.index);
 
             // Emit a status indicator for tool start
@@ -132,11 +142,12 @@ async function run() {
                 case "Read": status = "Reading file…"; break;
                 case "Glob": status = "Finding files…"; break;
                 case "Grep": status = "Searching code…"; break;
-                case "Write": status = "Writing file…"; break;
+                case "Write": status = "Writing document…"; break;
                 case "Edit": status = "Editing file…"; break;
               }
               sendEvent({ type: "thinking_step", step: status });
               sendEvent({ type: "status", status });
+              sendEvent({ type: "tool_call", toolUseId: currentToolUseId, toolName: currentToolName, status: "running", summary: status });
             }
           } else if (event.content_block?.type === "text") {
             streamedTextBlockIndices.add(event.index);
@@ -155,8 +166,59 @@ async function run() {
               }
             }
           }
-          // Tool input deltas — we could parse these for more granular status
-          // (e.g. extracting WebSearch query), but the full message handles it.
+          // --- Live document editing: stream Write tool content as it arrives ---
+          if (event.delta?.type === "input_json_delta" && event.delta.partial_json) {
+            const chunk = event.delta.partial_json;
+            if (inToolBlock && currentToolName === "Write") {
+              streamingWriteJsonBuffer += chunk;
+              // Detect if this Write targets draft.md (check early in the stream)
+              if (!streamingWriteIsDraft && streamingWriteJsonBuffer.includes("draft.md")) {
+                streamingWriteIsDraft = true;
+              }
+              if (streamingWriteIsDraft && !streamingWriteContentStarted) {
+                // Look for the start of the "content" value in the JSON
+                const marker = streamingWriteJsonBuffer.match(/"content"\s*:\s*"/);
+                if (marker) {
+                  streamingWriteContentStarted = true;
+                  // contentOffset is where the actual string value begins (after the opening quote)
+                  const valueStart = marker.index + marker[0].length;
+                  streamingWriteJsonBuffer = streamingWriteJsonBuffer.slice(valueStart);
+                }
+              }
+              if (streamingWriteIsDraft && streamingWriteContentStarted) {
+                // The buffer now contains the raw JSON string value (without the opening quote).
+                // Unescape what we have so far. The string may be incomplete (no closing quote).
+                // Strip any trailing "} that would close the JSON object.
+                let raw = streamingWriteJsonBuffer.replace(/"\s*\}\s*$/, "");
+                // Try to unescape as JSON string
+                try {
+                  streamingWriteContent = JSON.parse('"' + raw + '"');
+                } catch {
+                  // Partial JSON escape at the end — trim the last incomplete escape
+                  // e.g. raw ends with "\" which is an incomplete escape sequence
+                  const lastBackslash = raw.lastIndexOf("\\");
+                  if (lastBackslash >= 0 && lastBackslash === raw.length - 1) {
+                    raw = raw.slice(0, lastBackslash);
+                  }
+                  try {
+                    streamingWriteContent = JSON.parse('"' + raw + '"');
+                  } catch {
+                    // Fallback: manual unescape of common sequences
+                    streamingWriteContent = raw
+                      .replace(/\\n/g, "\n")
+                      .replace(/\\t/g, "\t")
+                      .replace(/\\"/g, '"')
+                      .replace(/\\\\/g, "\\");
+                  }
+                }
+                if (streamingWriteContent.trim() && streamingWriteContent !== lastDocumentContent) {
+                  sendEvent({ type: "document_update", content: streamingWriteContent });
+                  lastDocumentContent = streamingWriteContent;
+                  sentDocumentUpdate = true;
+                }
+              }
+            }
+          }
         } else if (event.type === "content_block_stop") {
           if (inThinkingBlock) {
             inThinkingBlock = false;
@@ -164,7 +226,16 @@ async function run() {
           }
           if (inToolBlock) {
             inToolBlock = false;
+            if (currentToolUseId) {
+              sendEvent({ type: "tool_call_complete", toolUseId: currentToolUseId });
+            }
+            // Reset streaming Write state
+            streamingWriteContent = "";
+            streamingWriteIsDraft = false;
+            streamingWriteJsonBuffer = "";
+            streamingWriteContentStarted = false;
             currentToolName = "";
+            currentToolUseId = "";
           }
         }
         continue; // Don't process stream_event as a regular message
@@ -180,6 +251,22 @@ async function run() {
         const msgId = msg.message?.id;
         const isRepeat = msgId && processedAssistantIds.has(msgId);
         if (msgId) processedAssistantIds.add(msgId);
+
+        // Pre-pass: always check for Write-to-draft.md document_update, even on
+        // repeat messages. The dedup logic below may skip tool_use blocks, but we
+        // need the authoritative content from the complete message.
+        if (isRepeat) {
+          for (const block of msg.message.content) {
+            if (block.type === "tool_use" && block.name === "Write" && block.input?.content) {
+              const wp = block.input.file_path || "";
+              if (wp.endsWith("draft.md") && block.input.content !== lastDocumentContent) {
+                sendEvent({ type: "document_update", content: block.input.content });
+                lastDocumentContent = block.input.content;
+                sentDocumentUpdate = true;
+              }
+            }
+          }
+        }
 
         for (let blockIdx = 0; blockIdx < msg.message.content.length; blockIdx++) {
           const block = msg.message.content[blockIdx];
@@ -244,13 +331,35 @@ async function run() {
           } else if (block.type === "tool_use") {
             // Only emit status for tools that weren't already streamed
             if (streamedToolBlockIndices.has(blockIdx)) {
-              // Still need to handle Write → document_update detection
+              // Send final document_update with complete content from the Write tool.
+              // The streaming handler already sent progressive updates, but this
+              // ensures we have the authoritative final version.
               if (block.name === "Write") {
                 const writeTargetPath = block.input?.file_path || "";
-                if (writeTargetPath.endsWith("draft.md")) {
-                  sendEvent({ type: "document_update", content: block.input?.content || "" });
+                if (writeTargetPath.endsWith("draft.md") && block.input?.content) {
+                  // Only send if content is non-empty and different from last sent
+                  if (block.input.content !== lastDocumentContent) {
+                    sendEvent({ type: "document_update", content: block.input.content });
+                    lastDocumentContent = block.input.content;
+                  }
                   sentDocumentUpdate = true;
                 }
+              }
+              // Emit tool_call with full input now that the block is complete
+              if (block.id && block.name !== "AskUserQuestion" && block.name !== "Task") {
+                let streamedStatus = `Using ${block.name}…`;
+                switch (block.name) {
+                  case "Skill": streamedStatus = "Loading guidelines…"; break;
+                  case "WebSearch": streamedStatus = block.input?.query ? `Searching "${block.input.query}"` : "Searching the web…"; break;
+                  case "WebFetch": try { streamedStatus = `Reading ${new URL(block.input?.url || "").hostname.replace(/^www\./, "")}`; } catch { streamedStatus = "Reading page…"; } break;
+                  case "Bash": streamedStatus = block.input?.description || "Running command…"; break;
+                  case "Read": streamedStatus = "Reading file…"; break;
+                  case "Glob": streamedStatus = "Finding files…"; break;
+                  case "Grep": streamedStatus = "Searching code…"; break;
+                  case "Write": streamedStatus = "Writing file…"; break;
+                  case "Edit": streamedStatus = "Editing file…"; break;
+                }
+                sendEvent({ type: "tool_call", toolUseId: block.id, toolName: block.name, toolInput: block.input, status: "running", summary: streamedStatus });
               }
               continue;
             }
@@ -287,12 +396,13 @@ async function run() {
               case "Write":
                 status = "Writing file…";
                 // Detect writes to the draft document and emit document_update
+                // Guard: only send if content is non-empty (avoids clearing the document)
                 const writeTargetPath = block.input?.file_path || "";
-                if (writeTargetPath.endsWith("draft.md")) {
-                  sendEvent({
-                    type: "document_update",
-                    content: block.input?.content || "",
-                  });
+                if (writeTargetPath.endsWith("draft.md") && block.input?.content) {
+                  if (block.input.content !== lastDocumentContent) {
+                    sendEvent({ type: "document_update", content: block.input.content });
+                    lastDocumentContent = block.input.content;
+                  }
                   sentDocumentUpdate = true;
                 }
                 break;
@@ -308,6 +418,7 @@ async function run() {
             if (status) {
               sendEvent({ type: "thinking_step", step: status });
               sendEvent({ type: "status", status });
+              sendEvent({ type: "tool_call", toolUseId: block.id, toolName: block.name, toolInput: block.input, status: "running", summary: status });
             }
           }
         }
@@ -317,6 +428,17 @@ async function run() {
         streamedTextBlockIndices.clear();
         streamedToolBlockIndices.clear();
       } else {
+        // Emit tool_result events for tool result messages
+        const resultContent = msg.content || msg.message?.content;
+        if (resultContent && Array.isArray(resultContent)) {
+          for (const block of resultContent) {
+            if (block.tool_use_id) {
+              const resultText = typeof block.content === "string" ? block.content : JSON.stringify(block.content);
+              sendEvent({ type: "tool_result", toolUseId: block.tool_use_id, result: resultText, isError: !!block.is_error });
+            }
+          }
+        }
+
         if (msg.type === "result") {
           sendEvent({ type: "status", status: "Thinking..." });
         }

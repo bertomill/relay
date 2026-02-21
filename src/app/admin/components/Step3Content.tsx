@@ -138,6 +138,7 @@ export default function Step3Content({ onComplete, isComplete, externalPrompt }:
   const [isLoadingConnections, setIsLoadingConnections] = useState(true);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const agentWritingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const supabase = createClient();
   const prevIdeaId = useRef<string | null>(null);
   const headerPortalRef = useRef<HTMLDivElement | null>(null);
@@ -1069,7 +1070,9 @@ export default function Step3Content({ onComplete, isComplete, externalPrompt }:
                   setDocumentContent(content);
                   setIsAgentWriting(true);
                   if (!showDocument) setShowDocument(true);
-                  setTimeout(() => setIsAgentWriting(false), 1500);
+                  // Reset the writing indicator after updates stop flowing (2s debounce)
+                  if (agentWritingTimerRef.current) clearTimeout(agentWritingTimerRef.current);
+                  agentWritingTimerRef.current = setTimeout(() => setIsAgentWriting(false), 2000);
                 }}
                 onSessionChange={handleSessionChange}
               />

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { StatefulButton } from "@/components/ui/stateful-button";
 import { createClient } from "@/lib/supabase/client";
 
@@ -29,6 +30,15 @@ interface SubagentStatus {
   isComplete: boolean;
 }
 
+interface ToolCall {
+  id: string;
+  name: string;
+  input?: unknown;
+  output?: string;
+  status: "running" | "complete" | "error";
+  summary: string;
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -38,6 +48,7 @@ interface Message {
   subagentStatus?: SubagentStatus;
   thinking?: string;
   thinkingDuration?: number;
+  toolCalls?: ToolCall[];
 }
 
 interface Session {
@@ -134,6 +145,8 @@ export default function AgentChat({
   const [isUploading, setIsUploading] = useState(false);
   const [statusText, setStatusText] = useState<string | null>(null);
   const [thinkingSteps, setThinkingSteps] = useState<string[]>([]);
+  const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
+  const [expandedToolCalls, setExpandedToolCalls] = useState<Set<string>>(new Set());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [thinkingText, setThinkingText] = useState("");
   const [isThinking, setIsThinking] = useState(false);
@@ -251,9 +264,10 @@ export default function AgentChat({
   }, [sessionId, messages]);
 
   // Notify parent of message changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- onMessagesChange is a callback, not data; including it causes infinite loops when callers pass inline functions
   useEffect(() => {
     onMessagesChange?.(messages);
-  }, [messages, onMessagesChange]);
+  }, [messages]);
 
   // Generate a title for the session after first exchange completes
   useEffect(() => {
@@ -513,6 +527,8 @@ export default function AgentChat({
     if (textarea) textarea.style.height = "auto";
     setIsLoading(true);
     setThinkingSteps([]);
+    setToolCalls([]);
+    setExpandedToolCalls(new Set());
 
     setMessages((prev) => [...prev, {
       role: "user",
@@ -785,6 +801,45 @@ export default function AgentChat({
                 });
               }
 
+              if (parsed.type === "tool_call") {
+                setToolCalls((prev) => {
+                  const existing = prev.find((tc) => tc.id === parsed.toolUseId);
+                  if (existing) {
+                    // Update with input if we now have it
+                    return prev.map((tc) =>
+                      tc.id === parsed.toolUseId
+                        ? { ...tc, input: parsed.toolInput ?? tc.input, summary: parsed.summary || tc.summary }
+                        : tc
+                    );
+                  }
+                  return [...prev, {
+                    id: parsed.toolUseId,
+                    name: parsed.toolName,
+                    input: parsed.toolInput,
+                    status: "running" as const,
+                    summary: parsed.summary || `Using ${parsed.toolName}…`,
+                  }];
+                });
+              }
+
+              if (parsed.type === "tool_call_complete") {
+                setToolCalls((prev) =>
+                  prev.map((tc) =>
+                    tc.id === parsed.toolUseId ? { ...tc, status: "complete" as const } : tc
+                  )
+                );
+              }
+
+              if (parsed.type === "tool_result") {
+                setToolCalls((prev) =>
+                  prev.map((tc) =>
+                    tc.id === parsed.toolUseId
+                      ? { ...tc, output: parsed.result, status: parsed.isError ? "error" as const : "complete" as const }
+                      : tc
+                  )
+                );
+              }
+
               if (parsed.type === "document_update" && parsed.content != null) {
                 onDocumentUpdate?.(parsed.content);
               }
@@ -841,9 +896,31 @@ export default function AgentChat({
       }
     } finally {
       abortControllerRef.current = null;
+
+      // Snapshot tool calls onto the last assistant message for history viewing
+      setToolCalls((currentToolCalls) => {
+        if (currentToolCalls.length > 0) {
+          const finalToolCalls = currentToolCalls.map((tc) => ({
+            ...tc,
+            status: tc.status === "running" ? "complete" as const : tc.status,
+          }));
+          setMessages((prev) => {
+            const newMessages = [...prev];
+            const lastIdx = newMessages.length - 1;
+            const lastMessage = newMessages[lastIdx];
+            if (lastMessage?.role === "assistant") {
+              newMessages[lastIdx] = { ...lastMessage, toolCalls: finalToolCalls };
+            }
+            return newMessages;
+          });
+        }
+        return [];
+      });
+
       setIsLoading(false);
       setStatusText(null);
       setThinkingSteps([]);
+      setExpandedToolCalls(new Set());
       setIsThinking(false);
       setThinkingText("");
       thinkingTextRef.current = "";
@@ -1122,6 +1199,90 @@ export default function AgentChat({
           );
         })}
       </>
+    );
+  };
+
+  const toggleToolCallExpanded = (id: string) => {
+    setExpandedToolCalls((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const truncateOutput = (text: string, maxLen = 2000) => {
+    if (text.length <= maxLen) return text;
+    return text.slice(0, maxLen) + `\n\n(truncated, ${text.length.toLocaleString()} chars total)`;
+  };
+
+  const renderToolCallRow = (tc: ToolCall, isLive: boolean) => {
+    const isExpanded = expandedToolCalls.has(tc.id);
+    return (
+      <div key={tc.id} className="group">
+        <button
+          onClick={() => toggleToolCallExpanded(tc.id)}
+          className="w-full flex items-center gap-2 py-1 hover:bg-[#F5F4F0]/50 rounded-lg px-1 transition-colors text-left"
+        >
+          {/* Status indicator */}
+          {tc.status === "running" ? (
+            <span className="w-1.5 h-1.5 rounded-full bg-[#6B8F71] animate-pulse shrink-0" />
+          ) : tc.status === "error" ? (
+            <svg className="w-3 h-3 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-3 h-3 text-[#6B8F71] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+
+          {/* Tool name badge */}
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#E8E6E1]/50 text-[#666] shrink-0">
+            {tc.name}
+          </span>
+
+          {/* Summary */}
+          <span className={`text-xs truncate flex-1 ${tc.status === "running" ? "text-[#6B8F71]" : "text-[#999]"}`}>
+            {tc.summary}
+          </span>
+
+          {/* Chevron */}
+          <svg
+            className={`w-3 h-3 text-[#999] shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        {/* Expanded input/output */}
+        {isExpanded && (
+          <div className="ml-5 mt-1 mb-2 border border-[#E8E6E1] rounded-lg overflow-hidden bg-white">
+            {tc.input != null && (
+              <div className="p-3 border-b border-[#E8E6E1]/50">
+                <p className="text-[10px] uppercase tracking-[0.1em] text-[#888] font-semibold mb-1.5">Input</p>
+                <pre className="text-[11px] font-mono text-[#555] bg-[#f5f5f3] border border-[#E8E6E1] rounded-lg p-3 max-h-48 overflow-auto whitespace-pre-wrap">
+                  {typeof tc.input === "string" ? tc.input : JSON.stringify(tc.input, null, 2)}
+                </pre>
+              </div>
+            )}
+            {tc.output != null && (
+              <div className="p-3">
+                <p className="text-[10px] uppercase tracking-[0.1em] text-[#888] font-semibold mb-1.5">Output</p>
+                <pre className="text-[11px] font-mono text-[#555] bg-[#f5f5f3] border border-[#E8E6E1] rounded-lg p-3 max-h-48 overflow-auto whitespace-pre-wrap">
+                  {truncateOutput(tc.output)}
+                </pre>
+              </div>
+            )}
+            {tc.input == null && tc.output == null && (
+              <div className="p-3 text-xs text-[#999] italic">
+                {tc.status === "running" ? "Waiting for data…" : "No data available"}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -1466,7 +1627,22 @@ export default function AgentChat({
                           message.role === "assistant" ? (
                             <div data-assistant-content className="text-sm prose prose-sm max-w-none prose-headings:text-[#1C1C1C] prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2 prose-p:text-[#444] prose-p:my-1.5 prose-p:leading-relaxed prose-a:text-[#6B8F71] prose-strong:text-[#1C1C1C] prose-li:text-[#444] prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2 prose-hr:border-[#E8E6E1] prose-hr:my-4 prose-code:text-[#6B8F71] prose-code:bg-[#6B8F71]/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-white prose-pre:border prose-pre:border-[#E8E6E1] prose-pre:rounded-lg prose-blockquote:border-[#6B8F71] prose-blockquote:text-[#555]">
                               <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
                                 components={{
+                                  table: ({ children, ...props }) => (
+                                    <div className="overflow-x-auto my-3">
+                                      <table className="w-full text-sm border-collapse border border-[#E8E6E1] rounded-lg" {...props}>{children}</table>
+                                    </div>
+                                  ),
+                                  thead: ({ children, ...props }) => (
+                                    <thead className="bg-[#F5F4F0]" {...props}>{children}</thead>
+                                  ),
+                                  th: ({ children, ...props }) => (
+                                    <th className="text-left px-3 py-2 border border-[#E8E6E1] text-xs font-semibold text-[#1C1C1C] uppercase tracking-wide" {...props}>{children}</th>
+                                  ),
+                                  td: ({ children, ...props }) => (
+                                    <td className="px-3 py-2 border border-[#E8E6E1] text-[#444]" {...props}>{children}</td>
+                                  ),
                                   p: ({ node, children, ...props }) => {
                                     // If paragraph contains an image, render as div to avoid
                                     // invalid <figure> inside <p> HTML nesting
@@ -1519,7 +1695,37 @@ export default function AgentChat({
                         ) : (
                           message.role === "assistant" && isLoading ? (
                             <div className="space-y-1.5 py-0.5">
-                              {thinkingSteps.length > 0 ? (
+                              {toolCalls.length > 0 ? (
+                                <>
+                                  {toolCalls.map((tc) => renderToolCallRow(tc, true))}
+                                  {/* Progress bar for long-running operations */}
+                                  {elapsedSeconds >= 5 && (() => {
+                                    const estimatedTotal = 300;
+                                    const progress = Math.min(elapsedSeconds / estimatedTotal, 0.95);
+                                    const remaining = Math.max(0, estimatedTotal - elapsedSeconds);
+                                    const mins = Math.floor(remaining / 60);
+                                    const secs = remaining % 60;
+                                    return (
+                                      <div className="mt-2 space-y-1">
+                                        <div className="w-full h-1.5 bg-[#E8E6E1] rounded-full overflow-hidden">
+                                          <div
+                                            className="h-full bg-[#6B8F71] rounded-full transition-all duration-1000 ease-linear"
+                                            style={{ width: `${progress * 100}%` }}
+                                          />
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-[10px] text-[#999]">
+                                            {Math.floor(elapsedSeconds / 60)}:{String(elapsedSeconds % 60).padStart(2, "0")} elapsed
+                                          </span>
+                                          <span className="text-[10px] text-[#999]">
+                                            ~{mins > 0 ? `${mins}m ` : ""}{secs > 0 ? `${secs}s` : ""} remaining
+                                          </span>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                </>
+                              ) : thinkingSteps.length > 0 ? (
                                 <>
                                   {thinkingSteps.map((step, i) => (
                                     <div key={i} className="flex items-center gap-2">
@@ -1537,7 +1743,7 @@ export default function AgentChat({
                                   ))}
                                   {/* Progress bar for long-running operations */}
                                   {elapsedSeconds >= 5 && (() => {
-                                    const estimatedTotal = 300; // 5 minutes
+                                    const estimatedTotal = 300;
                                     const progress = Math.min(elapsedSeconds / estimatedTotal, 0.95);
                                     const remaining = Math.max(0, estimatedTotal - elapsedSeconds);
                                     const mins = Math.floor(remaining / 60);
@@ -1574,23 +1780,27 @@ export default function AgentChat({
                         )}
                       </div>
 
-                      {/* Thinking steps timeline while agent is working between text outputs */}
-                      {message.role === "assistant" && message.content && isLoading && index === messages.length - 1 && thinkingSteps.length > 0 && (
+                      {/* Tool calls timeline while agent is working between text outputs */}
+                      {message.role === "assistant" && message.content && isLoading && index === messages.length - 1 && (toolCalls.length > 0 || thinkingSteps.length > 0) && (
                         <div className="mt-2 ml-1 space-y-1">
-                          {thinkingSteps.map((step, i) => (
-                            <div key={i} className="flex items-center gap-2">
-                              {i === thinkingSteps.length - 1 ? (
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#6B8F71] animate-pulse shrink-0" />
-                              ) : (
-                                <svg className="w-3 h-3 text-[#6B8F71] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
-                              <span className={`text-xs ${i === thinkingSteps.length - 1 ? "text-[#6B8F71]" : "text-[#999]"}`}>
-                                {step}
-                              </span>
-                            </div>
-                          ))}
+                          {toolCalls.length > 0 ? (
+                            toolCalls.map((tc) => renderToolCallRow(tc, true))
+                          ) : (
+                            thinkingSteps.map((step, i) => (
+                              <div key={i} className="flex items-center gap-2">
+                                {i === thinkingSteps.length - 1 ? (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[#6B8F71] animate-pulse shrink-0" />
+                                ) : (
+                                  <svg className="w-3 h-3 text-[#6B8F71] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                                <span className={`text-xs ${i === thinkingSteps.length - 1 ? "text-[#6B8F71]" : "text-[#999]"}`}>
+                                  {step}
+                                </span>
+                              </div>
+                            ))
+                          )}
                           {/* Progress bar for long-running operations */}
                           {elapsedSeconds >= 5 && (() => {
                             const estimatedTotal = 300;
@@ -1619,6 +1829,32 @@ export default function AgentChat({
                           })()}
                         </div>
                       )}
+
+                      {/* Historical tool calls on completed messages */}
+                      {message.role === "assistant" && !isLoading && message.toolCalls && message.toolCalls.length > 0 && (() => {
+                        const [isHistoryExpanded, setKey] = [expandedToolCalls.has(`history-${index}`), `history-${index}`];
+                        return (
+                          <div className="mt-1 ml-1">
+                            <button
+                              onClick={() => toggleToolCallExpanded(setKey)}
+                              className="flex items-center gap-2 text-xs text-[#999] hover:text-[#666] hover:bg-[#F5F4F0] px-2 py-1 rounded-lg transition-colors"
+                            >
+                              <svg
+                                className={`w-3 h-3 transition-transform ${isHistoryExpanded ? "rotate-90" : ""}`}
+                                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                              </svg>
+                              {message.toolCalls.length} tool call{message.toolCalls.length !== 1 ? "s" : ""}
+                            </button>
+                            {isHistoryExpanded && (
+                              <div className="mt-1 space-y-0.5">
+                                {message.toolCalls.map((tc) => renderToolCallRow(tc, false))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Copy + Post buttons for assistant messages */}
                       {message.role === "assistant" && message.content && !isLoading && (

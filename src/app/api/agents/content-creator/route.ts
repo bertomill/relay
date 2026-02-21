@@ -187,6 +187,8 @@ You have a collaborative document editor. When drafting or revising content, ALW
 - The user can edit the document directly — check <current_document> tags for their latest version
 - After writing to draft.md, you can still output brief commentary in chat (e.g. "Updated the draft with your changes" or "Here's the revised version")
 - For the first draft, write to draft.md immediately after researching
+- **NEVER add a title/header like "# LinkedIn Post — Date" or "# X Thread" to the document.** The document should contain ONLY the post body text, ready to copy-paste directly into the platform. No metadata headers.
+- **Include source links.** When you reference specific data, articles, or announcements, include the source URLs inline or at the end of the post (e.g. as a "Sources:" section with clickable links). This makes the content credible and shareable.
 
 ## CRITICAL: Edit vs New Draft Detection
 If a <current_document> tag exists AND the user's message is an edit request (e.g. "make it shorter", "change the hook", "add a CTA", "rewrite the intro", "more casual tone", "fix the ending", etc.):

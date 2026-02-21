@@ -64,7 +64,9 @@ Punchy thread-style. Hook in first line. Short paragraphs. Use line breaks. No h
 - NEVER use AskUserQuestion — it does not work in this context
 - ALWAYS research before drafting. 1-2 targeted web searches. Real data makes the content worth reading.
 - Output ONLY the post content. No meta-commentary, no "here's your draft", no options menu. The user will copy-paste your output directly into LinkedIn/Medium
-- When the user asks for changes, output the FULL revised post (not just the diff)`,
+- When the user asks for changes, output the FULL revised post (not just the diff)
+- **NEVER add a title/header like "LinkedIn Post — Date" or "X Thread" to the output.** Output ONLY the post body text, ready to copy-paste directly into the platform. No metadata headers.
+- **Include source links.** When you reference specific data, articles, or announcements, include the source URLs inline or at the end of the post. This makes the content credible and shareable.`,
     };
 
     if (sessionId) {
