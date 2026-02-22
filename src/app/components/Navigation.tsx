@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { href: "/about", label: "ABOUT" },
   { href: "/learn", label: "LEARN" },
   { href: "/agents", label: "AGENTS" },
+  { href: "/#reviews", label: "LEAVE A REVIEW" },
 ] as const;
 
 export function Navigation() {
@@ -81,10 +82,14 @@ export function Navigation() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`text-xs tracking-[0.15em] font-medium transition-colors duration-200 cursor-pointer ${
-                  pathname === link.href
-                    ? "text-[#1C1C1C]"
-                    : "text-[#888] hover:text-[#1C1C1C]"
+                className={`text-xs tracking-[0.15em] transition-colors duration-200 cursor-pointer ${
+                  link.label === "LEAVE A REVIEW"
+                    ? "font-semibold text-[#6B8F71] hover:text-[#5A7D60]"
+                    : `font-medium ${
+                        pathname === link.href
+                          ? "text-[#1C1C1C]"
+                          : "text-[#888] hover:text-[#1C1C1C]"
+                      }`
                 }`}
               >
                 {link.label}
@@ -161,10 +166,14 @@ export function Navigation() {
               key={link.href}
               href={link.href}
               onClick={closeMobile}
-              className={`text-xs tracking-[0.15em] font-medium py-3 px-4 rounded-lg transition-colors duration-200 ${
-                pathname === link.href
-                  ? "text-[#1C1C1C] bg-[#F5F4F1]"
-                  : "text-[#888] hover:text-[#1C1C1C] hover:bg-[#F5F4F1]"
+              className={`text-xs tracking-[0.15em] py-3 px-4 rounded-lg transition-colors duration-200 ${
+                link.label === "LEAVE A REVIEW"
+                  ? "font-semibold text-[#6B8F71] hover:text-[#5A7D60] hover:bg-[#F5F4F1]"
+                  : `font-medium ${
+                      pathname === link.href
+                        ? "text-[#1C1C1C] bg-[#F5F4F1]"
+                        : "text-[#888] hover:text-[#1C1C1C] hover:bg-[#F5F4F1]"
+                    }`
               }`}
             >
               {link.label}

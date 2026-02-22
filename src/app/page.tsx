@@ -14,6 +14,7 @@ import { AssessmentFramework } from "./components/AssessmentFramework";
 import Link from "next/link";
 import { DropContentIdeas } from "./components/DropContentIdeas";
 import { ShareButton } from "./components/ShareButton";
+import { ReviewForm } from "./components/ReviewForm";
 
 const FEATURE_ICONS: Record<string, string> = {
   SALES: "M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z",
@@ -107,13 +108,13 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6 py-14 md:py-20 lg:py-24 text-center relative z-10">
           <AnimateIn animation="fade-up">
             <h1 className="font-sans font-light text-5xl md:text-7xl lg:text-8xl leading-[1.05] tracking-tight mb-6">
-              We lighten your <span className="text-[#6B8F71]">workload.</span>
+              We build <span className="text-[#6B8F71]">AI agents</span> that lighten your workload.
             </h1>
           </AnimateIn>
 
           <AnimateIn animation="fade-up" delay={50}>
             <p className="text-lg md:text-xl text-[#555] leading-relaxed mb-10 max-w-2xl mx-auto">
-              Our team strives to make your workload lighter through AI. We are AI experts, building an AI engine and AI agents every day. We specialize in teaching and building with you to lighten your work with AI agents.
+              We&apos;re AI consultants who build custom agents for your business. Less busywork for your team means more capacity to serve your clients and grow.
             </p>
           </AnimateIn>
 
@@ -131,6 +132,26 @@ export default function Home() {
               </Link>
             </div>
           </AnimateIn>
+        </div>
+      </section>
+
+      {/* ─── REVIEWS ─── */}
+      <section id="reviews" className="bg-[#F5F4F1]/50 overflow-hidden">
+        <div className="max-w-6xl mx-auto px-6 pt-20 md:pt-28 pb-10 md:pb-16">
+          <AnimateIn animation="fade-up">
+            <div className="text-center mb-12">
+              <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">REVIEWS</p>
+              <h2 className="font-sans font-light text-3xl md:text-5xl leading-[1.1] tracking-tight">
+                What our clients say.
+              </h2>
+            </div>
+          </AnimateIn>
+        </div>
+        <div className="pb-10 md:pb-14">
+          <ParallaxReviews reviews={REVIEWS} />
+        </div>
+        <div className="max-w-6xl mx-auto px-6 pb-20 md:pb-28 flex justify-center">
+          <ReviewForm />
         </div>
       </section>
 
@@ -363,23 +384,6 @@ export default function Home() {
               </div>
             </AnimateIn>
           ))}
-        </div>
-      </section>
-
-      {/* ─── REVIEWS ─── */}
-      <section className="bg-[#F5F4F1]/50 overflow-hidden">
-        <div className="max-w-6xl mx-auto px-6 pt-20 md:pt-28 pb-10 md:pb-16">
-          <AnimateIn animation="fade-up">
-            <div className="text-center mb-12">
-              <p className="text-xs font-semibold text-[#6B8F71] uppercase tracking-[0.15em] mb-4">REVIEWS</p>
-              <h2 className="font-sans font-light text-3xl md:text-5xl leading-[1.1] tracking-tight">
-                What our clients say.
-              </h2>
-            </div>
-          </AnimateIn>
-        </div>
-        <div className="pb-20 md:pb-28">
-          <ParallaxReviews reviews={REVIEWS} />
         </div>
       </section>
 
