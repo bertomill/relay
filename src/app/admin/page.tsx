@@ -13,6 +13,7 @@ import Step1Leads from "./components/Step1Leads";
 import Step5Improve from "./components/Step5Improve";
 import StepReddit from "./components/StepReddit";
 import StepCustDev from "./components/StepCustDev";
+import StepCommunity from "./components/StepCommunity";
 
 
 function formatDateDisplay(dateStr: string): string {
@@ -58,6 +59,7 @@ export default function AdminDashboard() {
     markWebsiteImproved,
     markRedditEngaged,
     markCustDevCompleted,
+    markCommunityManaged,
   } = useDailyProgress(selectedDate);
 
   const goToPreviousDay = useCallback(() => {
@@ -117,7 +119,7 @@ export default function AdminDashboard() {
 
   const advanceToNext = useCallback((currentStep: number) => {
     const next = currentStep + 1;
-    if (next < 8) {
+    if (next < 9) {
       setExpandedStep(next);
     } else {
       setExpandedStep(null);
@@ -185,6 +187,13 @@ export default function AdminDashboard() {
     markCustDevCompleted();
     if (!wasComplete) advanceToNext(7);
   }, [markCustDevCompleted, advanceToNext, stepsComplete]);
+
+  // Step 8: Community Management
+  const handleCommunityComplete = useCallback(() => {
+    const wasComplete = stepsComplete[8];
+    markCommunityManaged();
+    if (!wasComplete) advanceToNext(8);
+  }, [markCommunityManaged, advanceToNext, stepsComplete]);
 
   // Greeting based on time of day
   const getGreeting = () => {
@@ -282,7 +291,7 @@ export default function AdminDashboard() {
             {isToday ? "Morning routine complete!" : "This day was completed!"}
           </h2>
           <p className="text-sm text-[#666]">
-            {isToday ? "Great start to your day. Everything's handled." : `All 7 steps were completed on ${formatDateDisplay(selectedDate)}.`}
+            {isToday ? "Great start to your day. Everything's handled." : `All ${totalSteps} steps were completed on ${formatDateDisplay(selectedDate)}.`}
           </p>
         </div>
       )}
@@ -431,6 +440,22 @@ export default function AdminDashboard() {
           <StepCustDev
             onComplete={handleCustDevComplete}
             isComplete={stepsComplete[7]}
+          />
+        </StepCard>
+
+        {/* Step 9: Community Management */}
+        <StepCard
+          stepNumber={9}
+          label="Community"
+          title="Community Management"
+          timeEstimate="~10 min"
+          isComplete={stepsComplete[8]}
+          isExpanded={expandedStep === 8}
+          onToggle={() => toggleStep(8)}
+        >
+          <StepCommunity
+            onComplete={handleCommunityComplete}
+            isComplete={stepsComplete[8]}
           />
         </StepCard>
       </div>
