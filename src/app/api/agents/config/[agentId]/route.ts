@@ -1,14 +1,11 @@
-import { runAgentInSandbox } from "@/lib/agents/sandbox";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { NextRequest } from "next/server";
 
-// Vercel deployment config
-export const runtime = "nodejs";
-export const maxDuration = 600; // 10 minutes (E2B sandbox timeout)
-
-const DEFAULT_ALLOWED_TOOLS = ["WebSearch", "WebFetch", "AskUserQuestion"];
-
-const DEFAULT_SYSTEM_PROMPT = `You are the Lighten AI SDK Tutor, an interactive quiz agent that teaches users about the Claude Agents SDK (also known as Claude Code SDK / @anthropic-ai/claude-agent-sdk).
+// Hardcoded defaults for each agent
+const AGENT_DEFAULTS: Record<string, { systemPrompt: string; allowedTools: string[] }> = {
+  "sdk-tutor": {
+    allowedTools: ["WebSearch", "WebFetch", "AskUserQuestion"],
+    systemPrompt: `You are the Lighten AI SDK Tutor, an interactive quiz agent that teaches users about the Claude Agents SDK (also known as Claude Code SDK / @anthropic-ai/claude-agent-sdk).
 
 ## First Message Workflow (ONLY when there is NO conversation history)
 1. **Research** — Use WebSearch to find latest Claude Agents SDK docs. Search for "Claude Agents SDK documentation" or "@anthropic-ai/claude-agent-sdk".
@@ -56,66 +53,110 @@ When the user answers a quiz question:
 ## Important
 - Track the score based on conversation history (count correct answers so far)
 - Be encouraging and educational
-- NEVER re-research or re-introduce on follow-up messages`;
+- NEVER re-research or re-introduce on follow-up messages`,
+  },
+};
 
-async function getAgentConfig() {
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ agentId: string }> }
+) {
+  const { agentId } = await params;
+  const defaults = AGENT_DEFAULTS[agentId];
+
+  if (!defaults) {
+    return Response.json({ error: "Unknown agent" }, { status: 404 });
+  }
+
   try {
-    const supabase = createAdminClient();
+    const supabase = await createClient();
     const { data } = await supabase
       .from("agent_config_overrides")
-      .select("system_prompt, allowed_tools")
-      .eq("agent_id", "sdk-tutor")
+      .select("*")
+      .eq("agent_id", agentId)
       .single();
 
     if (data) {
-      return {
+      return Response.json({
         systemPrompt: data.system_prompt,
-        allowedTools: data.allowed_tools as string[],
-      };
+        allowedTools: data.allowed_tools,
+        isOverride: true,
+        updatedAt: data.updated_at,
+      });
     }
   } catch {
-    // Table might not exist yet or no override — use defaults
+    // Table might not exist yet, fall through to defaults
   }
 
-  return {
-    systemPrompt: DEFAULT_SYSTEM_PROMPT,
-    allowedTools: DEFAULT_ALLOWED_TOOLS,
-  };
+  return Response.json({
+    systemPrompt: defaults.systemPrompt,
+    allowedTools: defaults.allowedTools,
+    isOverride: false,
+  });
 }
 
-export async function POST(request: NextRequest) {
-  const { message, history = [], imageAttachments } = await request.json();
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ agentId: string }> }
+) {
+  const { agentId } = await params;
+  const defaults = AGENT_DEFAULTS[agentId];
 
-  if (!message) {
-    return new Response(JSON.stringify({ error: "Message is required" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+  if (!defaults) {
+    return Response.json({ error: "Unknown agent" }, { status: 404 });
   }
 
-  try {
-    const config = await getAgentConfig();
+  const body = await request.json();
+  const systemPrompt = body.systemPrompt ?? defaults.systemPrompt;
+  const allowedTools = body.allowedTools ?? defaults.allowedTools;
 
-    const stream = await runAgentInSandbox(message, history, {
-      imageAttachments,
-      allowedTools: config.allowedTools,
-      permissionMode: "bypassPermissions",
-      maxThinkingTokens: 10000,
-      systemPrompt: config.systemPrompt,
-    });
-
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("agent_config_overrides")
+    .upsert(
+      {
+        agent_id: agentId,
+        system_prompt: systemPrompt,
+        allowed_tools: allowedTools,
+        updated_at: new Date().toISOString(),
       },
-    });
-  } catch (error) {
-    console.error("SDK tutor agent error:", error);
-    return new Response(
-      JSON.stringify({ error: "Failed to start agent", details: String(error) }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+      { onConflict: "agent_id" }
+    )
+    .select()
+    .single();
+
+  if (error) {
+    return Response.json({ error: error.message }, { status: 500 });
   }
+
+  return Response.json({
+    systemPrompt: data.system_prompt,
+    allowedTools: data.allowed_tools,
+    isOverride: true,
+    updatedAt: data.updated_at,
+  });
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ agentId: string }> }
+) {
+  const { agentId } = await params;
+  const defaults = AGENT_DEFAULTS[agentId];
+
+  if (!defaults) {
+    return Response.json({ error: "Unknown agent" }, { status: 404 });
+  }
+
+  const supabase = await createClient();
+  await supabase
+    .from("agent_config_overrides")
+    .delete()
+    .eq("agent_id", agentId);
+
+  return Response.json({
+    systemPrompt: defaults.systemPrompt,
+    allowedTools: defaults.allowedTools,
+    isOverride: false,
+  });
 }
